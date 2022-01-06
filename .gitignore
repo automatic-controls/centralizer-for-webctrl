@@ -1,0 +1,13 @@
+.vscode
+Utility.bat
+classes
+config.txt
+root/LICENSE
+root/webapp/WEB-INF/classes
+root/webapp/WEB-INF/lib
+**/*.addon
+database_jar
+database/**
+!database/*.vbs
+!database/*.bat
+!database/README.txt
