@@ -47,7 +47,7 @@ public class Server {
     Database.entropy.nextBytes(identifier);
   }
   /**
-   * Serializes an server into a byte array.
+   * Serializes a server into a byte array.
    */
   public byte[] serialize(boolean includeIdentifier){
     byte[] ipData = ipAddress.getBytes();
@@ -96,7 +96,7 @@ public class Server {
    */
   protected synchronized boolean save(Path folder){
     if (disposed){
-      //Indicates this operator has been deleted
+      //Indicates this server has been deleted
       return true;
     }
     String name = getName();
@@ -111,7 +111,9 @@ public class Server {
         FileChannel out = FileChannel.open(dataFile, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         FileLock lock = out.tryLock();
       ){
-        out.write(buf);
+        while (buf.hasRemaining()){
+          out.write(buf);
+        }
       }
       return true;
     }catch(Exception e){

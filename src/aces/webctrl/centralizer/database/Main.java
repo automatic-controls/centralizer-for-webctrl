@@ -122,7 +122,7 @@ public class Main {
       if (Database.init(rootFolder, true)){
         Logger.log("Initialization successful.");
       }else{
-        Logger.log("Database initialization failure.");
+        Logger.log("Initialization failure.");
       }
       if (connect()){
         Logger.trim(Config.deleteLogAfter);
@@ -192,7 +192,7 @@ public class Main {
         server = AsynchronousServerSocketChannel.open(asyncGroup);
         server.bind(new InetSocketAddress(port), Config.backlog);
         server.accept(null, clientAcceptor);
-        Logger.log("Database successfully bound to port "+port+" using a thread pool of fixed size "+threads+'.');
+        Logger.log("Database successfully bound to port "+port+" using a fixed thread pool of size "+threads+'.');
         return true;
       }catch(Exception e){
         running.set(false);

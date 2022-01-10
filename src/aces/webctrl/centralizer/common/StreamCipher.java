@@ -3,7 +3,7 @@ package aces.webctrl.centralizer.common;
  * This class is designed for continuous encryption/decryption operations on a stream.
  * The symmetric key changes with each operation depending on the data being processed.
  * Since a single corrupted bit can make two {@code StreamCipher} instances incompatible,
- * the {@link #hash(int)} value should be compared after each transmission. This behavior provides a way to verify data integrity.
+ * the {@link #hash(int)} or {@link #hashCode()} values should be compared after each transmission. This behavior provides a way to verify data integrity.
  * The {@link #mark()} and {@link #reset()} methods may be used to revert to an earlier internal state should data corruption occur.
  * <p>Usage Example:
  * <pre>{@code
@@ -212,5 +212,14 @@ public class StreamCipher {
    */
   public static long hash(byte[] data){
     return new SerializationStream(hash(data,8)).readLong();
+  }
+  /**
+   * Returns a hash of the symmetric key.
+   * Used to verify multiple {@code StreamCipher} instances have the same internal state.
+   * @return hash of the symmetric key.
+   * @see {@link #hash(int)}
+   */
+  @Override public int hashCode(){
+    return new SerializationStream(hash(4)).readInt();
   }
 }

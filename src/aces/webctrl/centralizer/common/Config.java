@@ -181,9 +181,14 @@ public class Config {
         loginLockoutTime = Long.parseLong(value);
       }else if (key.equalsIgnoreCase("BackupTime")){
         String[] arr = value.split(":");
-        backupHr = Integer.parseInt(arr[0]);
-        backupMin = Integer.parseInt(arr[1]);
-        backupSec = Integer.parseInt(arr[2]);
+        if (arr.length==3){
+          backupHr = Integer.parseInt(arr[0]);
+          backupMin = Integer.parseInt(arr[1]);
+          backupSec = Integer.parseInt(arr[2]);
+        }else{
+          Logger.log("BackupTime configuration value has invalid format.");
+          return false;
+        }
       }else{
         Logger.log("Unrecognized key-value pair in the primary configuration file ("+key+':'+value+')');
         return false;
@@ -254,7 +259,7 @@ public class Config {
    */
   public static boolean save(){
     try{
-      StringBuilder sb = new StringBuilder(512);
+      StringBuilder sb = new StringBuilder(1024);
       sb.append(';'+NAME+" Primary Configuration File\n");
       sb.append(";Note all time intervals are specified in milliseconds.");
       sb.append("\n\n;Used to determine compatiblity\n");
@@ -284,7 +289,9 @@ public class Config {
           FileChannel out = FileChannel.open(configFile, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
           FileLock lock = out.tryLock();
         ){
-          out.write(buf);
+          while (buf.hasRemaining()){
+            out.write(buf);
+          }
         }
       }
       return true;

@@ -486,22 +486,18 @@ public class SocketWrapper {
       final int offset = b?0:req.pos;
       final int length = b?arr.length:Math.min(blockSize, req.end-req.pos);
       req.pos = b?req.offset:req.pos+blockSize;
-      socket.read(ByteBuffer.wrap(arr, offset, length), config.getTimeout(), TimeUnit.MILLISECONDS, null, new CompletionHandler<Integer,Void>(){
-        public void completed(Integer x, Void v){
-          if (x.intValue()==length){
-            if (b){
-              SerializationStream s = new SerializationStream(arr);
-              req.length = s.readInt();
-              req.end = req.length+req.offset;
-              if (req.length<0 || req.end>req.data.length){
-                req.fail("Stream size ("+req.length+") exceeded pre-defined limit ("+(req.data.length-req.offset)+").");
-                return;
-              }
+      read(ByteBuffer.wrap(arr, offset, length), config.getTimeout(), null, new CompletionHandler<Void,Void>(){
+        public void completed(Void x, Void v){
+          if (b){
+            SerializationStream s = new SerializationStream(arr);
+            req.length = s.readInt();
+            req.end = req.length+req.offset;
+            if (req.length<0 || req.end>req.data.length){
+              req.fail("Stream size ("+req.length+") exceeded pre-defined limit ("+(req.data.length-req.offset)+").");
+              return;
             }
-            readInternal(req);
-          }else{
-            req.fail();
           }
+          readInternal(req);
         }
         public void failed(Throwable e, Void v){
           req.fail(e);
@@ -526,57 +522,45 @@ public class SocketWrapper {
         req.attempts = attempts;
       }
       c.mark();
-      socket.read(ByteBuffer.wrap(arr, offset, length), config.getTimeout(), TimeUnit.MILLISECONDS, null, new CompletionHandler<Integer,Void>(){
-        public void completed(Integer x, Void v){
-          if (x.intValue()==length){
-            c.decrypt(arr,offset,offset+length);
-            final byte[] hash = c.hash(4);
-            final ByteBuffer buf = ByteBuffer.allocate(4);
-            socket.read(buf, config.getTimeout(), TimeUnit.MILLISECONDS, null, new CompletionHandler<Integer,Void>(){
-              public void completed(Integer x, Void v){
-                if (x.intValue()==4){
-                  byte[] hashRead = buf.array();
-                  c.decrypt(hashRead);
-                  final boolean hashSuccess = java.util.Arrays.equals(hash,hashRead);
-                  final byte[] ret = (hashSuccess?Protocol.HASH_COMPARISON_SUCCESS_ARRAY:Protocol.HASH_COMPARISON_FAILURE_ARRAY).clone();
-                  c.encrypt(ret);
-                  socket.write(ByteBuffer.wrap(ret), config.getTimeout(), TimeUnit.MILLISECONDS, null, new CompletionHandler<Integer,Void>(){
-                    public void completed(Integer x, Void v){
-                      if (x.intValue()==ret.length){
-                        if (hashSuccess){
-                          req.pos = newPos;
-                          if (b){
-                            SerializationStream s = new SerializationStream(arr);
-                            req.length = s.readInt();
-                            req.end = req.length+req.offset;
-                            if (req.length<0 || req.end>req.data.length){
-                              req.fail("Stream size ("+req.length+") exceeded pre-defined limit ("+(req.data.length-req.offset)+").");
-                              return;
-                            }
-                          }
-                          readInternal(req,false);
-                        }else{
-                          readInternal(req,true);
-                        }
-                      }else{
-                        req.fail();
+      read(ByteBuffer.wrap(arr, offset, length), config.getTimeout(), null, new CompletionHandler<Void,Void>(){
+        public void completed(Void x, Void v){
+          c.decrypt(arr,offset,offset+length);
+          final byte[] hash = c.hash(4);
+          final ByteBuffer buf = ByteBuffer.allocate(4);
+          read(buf, config.getTimeout(), null, new CompletionHandler<Void,Void>(){
+            public void completed(Void x, Void v){
+              byte[] hashRead = buf.array();
+              c.decrypt(hashRead);
+              final boolean hashSuccess = java.util.Arrays.equals(hash,hashRead);
+              final byte[] ret = (hashSuccess?Protocol.HASH_COMPARISON_SUCCESS_ARRAY:Protocol.HASH_COMPARISON_FAILURE_ARRAY).clone();
+              c.encrypt(ret);
+              write(ByteBuffer.wrap(ret), config.getTimeout(), null, new CompletionHandler<Void,Void>(){
+                public void completed(Void x, Void v){
+                  if (hashSuccess){
+                    req.pos = newPos;
+                    if (b){
+                      SerializationStream s = new SerializationStream(arr);
+                      req.length = s.readInt();
+                      req.end = req.length+req.offset;
+                      if (req.length<0 || req.end>req.data.length){
+                        req.fail("Stream size ("+req.length+") exceeded pre-defined limit ("+(req.data.length-req.offset)+").");
+                        return;
                       }
                     }
-                    public void failed(Throwable e, Void v){
-                      req.fail(e);
-                    }
-                  });
-                }else{
-                  req.fail();
+                    readInternal(req,false);
+                  }else{
+                    readInternal(req,true);
+                  }
                 }
-              }
-              public void failed(Throwable e, Void v){
-                req.fail(e);
-              }
-            });
-          }else{
-            req.fail();
-          }
+                public void failed(Throwable e, Void v){
+                  req.fail(e);
+                }
+              });
+            }
+            public void failed(Throwable e, Void v){
+              req.fail(e);
+            }
+          });
         }
         public void failed(Throwable e, Void v){
           req.fail(e);
@@ -601,9 +585,6 @@ public class SocketWrapper {
     }
     void success(){
       func.completed(length, attach);
-    }
-    void fail(){
-      fail("Connection closed unexpectedly.");
     }
     void fail(String message){
       fail(new Exception(message));
@@ -660,23 +641,19 @@ public class SocketWrapper {
       final int offset = b?0:req.pos;
       final int length = b?arr.length:Math.min(blockSize, req.data.length-req.pos);
       req.pos = b?0:req.pos+blockSize;
-      socket.read(ByteBuffer.wrap(arr, offset, length), config.getTimeout(), TimeUnit.MILLISECONDS, null, new CompletionHandler<Integer,Void>(){
-        public void completed(Integer x, Void v){
-          if (x.intValue()==length){
-            if (b){
-              SerializationStream s = new SerializationStream(arr);
-              int size = s.readInt();
-              if (size>=0 && size<=req.limit){
-                req.data = new byte[size];
-              }else{
-                req.fail("Stream size ("+size+") exceeded pre-defined limit ("+req.limit+").");
-                return;
-              }
+      read(ByteBuffer.wrap(arr, offset, length), config.getTimeout(), null, new CompletionHandler<Void,Void>(){
+        public void completed(Void x, Void v){
+          if (b){
+            SerializationStream s = new SerializationStream(arr);
+            int size = s.readInt();
+            if (size>=0 && size<=req.limit){
+              req.data = new byte[size];
+            }else{
+              req.fail("Stream size ("+size+") exceeded pre-defined limit ("+req.limit+").");
+              return;
             }
-            readInternal(req);
-          }else{
-            req.fail();
           }
+          readInternal(req);
         }
         public void failed(Throwable e, Void v){
           req.fail(e);
@@ -701,58 +678,46 @@ public class SocketWrapper {
         req.attempts = attempts;
       }
       c.mark();
-      socket.read(ByteBuffer.wrap(arr, offset, length), config.getTimeout(), TimeUnit.MILLISECONDS, null, new CompletionHandler<Integer,Void>(){
-        public void completed(Integer x, Void v){
-          if (x.intValue()==length){
-            c.decrypt(arr,offset,offset+length);
-            final byte[] hash = c.hash(4);
-            final ByteBuffer buf = ByteBuffer.allocate(4);
-            socket.read(buf, config.getTimeout(), TimeUnit.MILLISECONDS, null, new CompletionHandler<Integer,Void>(){
-              public void completed(Integer x, Void v){
-                if (x.intValue()==4){
-                  byte[] hashRead = buf.array();
-                  c.decrypt(hashRead);
-                  final boolean hashSuccess = java.util.Arrays.equals(hash,hashRead);
-                  final byte[] ret = (hashSuccess?Protocol.HASH_COMPARISON_SUCCESS_ARRAY:Protocol.HASH_COMPARISON_FAILURE_ARRAY).clone();
-                  c.encrypt(ret);
-                  socket.write(ByteBuffer.wrap(ret), config.getTimeout(), TimeUnit.MILLISECONDS, null, new CompletionHandler<Integer,Void>(){
-                    public void completed(Integer x, Void v){
-                      if (x.intValue()==ret.length){
-                        if (hashSuccess){
-                          req.pos = newPos;
-                          if (b){
-                            SerializationStream s = new SerializationStream(arr);
-                            int size = s.readInt();
-                            if (size>=0 && size<=req.limit){
-                              req.data = new byte[size];
-                            }else{
-                              req.fail("Stream size ("+size+") exceeded pre-defined limit ("+req.limit+").");
-                              return;
-                            }
-                          }
-                          readInternal(req,false);
-                        }else{
-                          readInternal(req,true);
-                        }
+      read(ByteBuffer.wrap(arr, offset, length), config.getTimeout(), null, new CompletionHandler<Void,Void>(){
+        public void completed(Void x, Void v){
+          c.decrypt(arr,offset,offset+length);
+          final byte[] hash = c.hash(4);
+          final ByteBuffer buf = ByteBuffer.allocate(4);
+          read(buf, config.getTimeout(), null, new CompletionHandler<Void,Void>(){
+            public void completed(Void x, Void v){
+              byte[] hashRead = buf.array();
+              c.decrypt(hashRead);
+              final boolean hashSuccess = java.util.Arrays.equals(hash,hashRead);
+              final byte[] ret = (hashSuccess?Protocol.HASH_COMPARISON_SUCCESS_ARRAY:Protocol.HASH_COMPARISON_FAILURE_ARRAY).clone();
+              c.encrypt(ret);
+              write(ByteBuffer.wrap(ret), config.getTimeout(), null, new CompletionHandler<Void,Void>(){
+                public void completed(Void x, Void v){
+                  if (hashSuccess){
+                    req.pos = newPos;
+                    if (b){
+                      SerializationStream s = new SerializationStream(arr);
+                      int size = s.readInt();
+                      if (size>=0 && size<=req.limit){
+                        req.data = new byte[size];
                       }else{
-                        req.fail();
+                        req.fail("Stream size ("+size+") exceeded pre-defined limit ("+req.limit+").");
+                        return;
                       }
                     }
-                    public void failed(Throwable e, Void v){
-                      req.fail(e);
-                    }
-                  });
-                }else{
-                  req.fail();
+                    readInternal(req,false);
+                  }else{
+                    readInternal(req,true);
+                  }
                 }
-              }
-              public void failed(Throwable e, Void v){
-                req.fail(e);
-              }
-            });
-          }else{
-            req.fail();
-          }
+                public void failed(Throwable e, Void v){
+                  req.fail(e);
+                }
+              });
+            }
+            public void failed(Throwable e, Void v){
+              req.fail(e);
+            }
+          });
         }
         public void failed(Throwable e, Void v){
           req.fail(e);
@@ -774,9 +739,6 @@ public class SocketWrapper {
     }
     void success(){
       func.completed(data, attach);
-    }
-    void fail(){
-      fail("Connection closed unexpectedly.");
     }
     void fail(String message){
       fail(new Exception(message));
@@ -844,13 +806,9 @@ public class SocketWrapper {
       final int offset = b?0:req.pos;
       final int length = b?req.header.length:Math.min(blockSize, req.end-req.pos);
       req.pos = b?req.offset:req.pos+blockSize;
-      socket.write(ByteBuffer.wrap(arr, offset, length), config.getTimeout(), TimeUnit.MILLISECONDS, null, new CompletionHandler<Integer,Void>(){
-        public void completed(Integer x, Void v){
-          if (x.intValue()==length){
-            writeInternal(req);
-          }else{
-            req.fail();
-          }
+      write(ByteBuffer.wrap(arr, offset, length), config.getTimeout(), null, new CompletionHandler<Void,Void>(){
+        public void completed(Void x, Void v){
+          writeInternal(req);
         }
         public void failed(Throwable e, Void v){
           req.fail(e);
@@ -875,45 +833,33 @@ public class SocketWrapper {
         req.hash = c.hash(4);
         c.encrypt(req.hash);
       }
-      socket.write(ByteBuffer.wrap(arr, offset, length), config.getTimeout(), TimeUnit.MILLISECONDS, null, new CompletionHandler<Integer,Void>(){
-        public void completed(Integer x, Void v){
-          if (x.intValue()==length){
-            socket.write(ByteBuffer.wrap(req.hash), config.getTimeout(), TimeUnit.MILLISECONDS, null, new CompletionHandler<Integer,Void>(){
-              public void completed(Integer x, Void v){
-                if (x.intValue()==req.hash.length){
-                  final ByteBuffer buf = ByteBuffer.allocate(4);
-                  socket.read(buf, config.getTimeout(), TimeUnit.MILLISECONDS, null, new CompletionHandler<Integer,Void>(){
-                    public void completed(Integer x, Void v){
-                      if (x.intValue()==4){
-                        byte[] arr = buf.array();
-                        c.mark();
-                        c.decrypt(arr);
-                        if (java.util.Arrays.equals(arr, Protocol.HASH_COMPARISON_SUCCESS_ARRAY)){
-                          req.pos = newPos;
-                          writeInternal(req,false);
-                        }else{
-                          c.reset();
-                          writeInternal(req,true);
-                        }
-                      }else{
-                        req.fail();
-                      }
-                    }
-                    public void failed(Throwable e, Void v){
-                      req.fail(e);
-                    }
-                  });
-                }else{
-                  req.fail();
+      write(ByteBuffer.wrap(arr, offset, length), config.getTimeout(), null, new CompletionHandler<Void,Void>(){
+        public void completed(Void x, Void v){
+          write(ByteBuffer.wrap(req.hash), config.getTimeout(), null, new CompletionHandler<Void,Void>(){
+            public void completed(Void x, Void v){
+              final ByteBuffer buf = ByteBuffer.allocate(4);
+              read(buf, config.getTimeout(), null, new CompletionHandler<Void,Void>(){
+                public void completed(Void x, Void v){
+                  byte[] arr = buf.array();
+                  c.mark();
+                  c.decrypt(arr);
+                  if (java.util.Arrays.equals(arr, Protocol.HASH_COMPARISON_SUCCESS_ARRAY)){
+                    req.pos = newPos;
+                    writeInternal(req,false);
+                  }else{
+                    c.reset();
+                    writeInternal(req,true);
+                  }
                 }
-              }
-              public void failed(Throwable e, Void v){
-                req.fail(e);
-              }
-            });
-          }else{
-            req.fail();
-          }
+                public void failed(Throwable e, Void v){
+                  req.fail(e);
+                }
+              });
+            }
+            public void failed(Throwable e, Void v){
+              req.fail(e);
+            }
+          });
         }
         public void failed(Throwable e, Void v){
           req.fail(e);
@@ -944,9 +890,6 @@ public class SocketWrapper {
     void success(){
       func.completed(null, attach);
     }
-    void fail(){
-      fail("Connection closed unexpectedly.");
-    }
     void fail(String message){
       fail(new Exception(message));
     }
@@ -966,15 +909,10 @@ public class SocketWrapper {
     if (c==null){
       //No encryption or hashing
       final ByteBuffer buf = ByteBuffer.allocate(1);
-      socket.read(buf, config.getTimeout(), TimeUnit.MILLISECONDS, null, new CompletionHandler<Integer,Void>(){
-        public void completed(Integer x, Void v){
-          if (x.intValue()==1){
-            buf.flip();
-            func.completed(buf.get(), attach);
-          }else{
-            func.failed(new Exception("Connection closed unexpectedly."), attach);
-            close();
-          }
+      read(buf, config.getTimeout(), null, new CompletionHandler<Void,Void>(){
+        public void completed(Void x, Void v){
+          buf.flip();
+          func.completed(buf.get(), attach);
         }
         public void failed(Throwable e, Void v){
           func.failed(e,attach);
@@ -1003,35 +941,27 @@ public class SocketWrapper {
     }else{
       c.mark();
       final ByteBuffer buf = ByteBuffer.allocate(2);
-      socket.read(buf, config.getTimeout(), TimeUnit.MILLISECONDS, null, new CompletionHandler<Integer,Void>(){
-        public void completed(Integer x, Void v){
-          if (x.intValue()==2){
-            buf.flip();
-            final byte b = c.decrypt(buf.get());
-            final boolean success = c.hash(1)[0]==c.decrypt(buf.get());
-            ByteBuffer buf2 = ByteBuffer.allocate(1);
-            buf2.put(c.encrypt(success?Protocol.HASH_COMPARISON_SUCCESS:Protocol.HASH_COMPARISON_FAILURE));
-            buf2.flip();
-            socket.write(buf2, config.getTimeout(), TimeUnit.MILLISECONDS, null, new CompletionHandler<Integer,Void>(){
-              public void completed(Integer x, Void v){
-                if (x.intValue()==1){
-                  if (success){
-                    req.success(b);
-                  }else{
-                    c.reset();
-                    readInternal(req);
-                  }
-                }else{
-                  req.fail();
-                }
+      read(buf, config.getTimeout(), null, new CompletionHandler<Void,Void>(){
+        public void completed(Void x, Void v){
+          buf.flip();
+          final byte b = c.decrypt(buf.get());
+          final boolean success = c.hash(1)[0]==c.decrypt(buf.get());
+          ByteBuffer buf2 = ByteBuffer.allocate(1);
+          buf2.put(c.encrypt(success?Protocol.HASH_COMPARISON_SUCCESS:Protocol.HASH_COMPARISON_FAILURE));
+          buf2.flip();
+          write(buf2, config.getTimeout(), null, new CompletionHandler<Void,Void>(){
+            public void completed(Void x, Void v){
+              if (success){
+                req.success(b);
+              }else{
+                c.reset();
+                readInternal(req);
               }
-              public void failed(Throwable e, Void v){
-                req.fail(e);
-              }
-            });
-          }else{
-            req.fail();
-          }
+            }
+            public void failed(Throwable e, Void v){
+              req.fail(e);
+            }
+          });
         }
         public void failed(Throwable e, Void v){
           req.fail(e);
@@ -1049,9 +979,6 @@ public class SocketWrapper {
     }
     void success(byte b){
       func.completed(b, attach);
-    }
-    void fail(){
-      fail("Connection closed unexpectedly.");
     }
     void fail(String message){
       fail(new Exception(message));
@@ -1073,14 +1000,9 @@ public class SocketWrapper {
   public <T> void write(byte b, final T attach, final CompletionHandler<Void,T> func){
     if (c==null){
       //No encryption or hashing
-      socket.write(ByteBuffer.wrap(new byte[]{b}), config.getTimeout(), TimeUnit.MILLISECONDS, null, new CompletionHandler<Integer,Void>(){
-        public void completed(Integer x, Void v){
-          if (x.intValue()==1){
-            func.completed(null, attach);
-          }else{
-            func.failed(new Exception("Connection closed unexpectedly."), attach);
-            close();
-          }
+      write(ByteBuffer.wrap(new byte[]{b}), config.getTimeout(), null, new CompletionHandler<Void,Void>(){
+        public void completed(Void x, Void v){
+          func.completed(null, attach);
         }
         public void failed(Throwable e, Void v){
           func.failed(e,attach);
@@ -1111,32 +1033,24 @@ public class SocketWrapper {
       buf.put(req.b);
       buf.put(req.hash);
       buf.flip();
-      socket.write(buf, config.getTimeout(), TimeUnit.MILLISECONDS, null, new CompletionHandler<Integer,Void>(){
-        public void completed(Integer x, Void v){
-          if (x.intValue()==2){
-            final ByteBuffer buf = ByteBuffer.allocate(1);
-            socket.read(buf, config.getTimeout(), TimeUnit.MILLISECONDS, null, new CompletionHandler<Integer,Void>(){
-              public void completed(Integer x, Void v){
-                if (x.intValue()==1){
-                  buf.flip();
-                  c.mark();
-                  if (c.decrypt(buf.get())==Protocol.HASH_COMPARISON_SUCCESS){
-                    req.success();
-                  }else{
-                    c.reset();
-                    writeInternal(req);
-                  }
-                }else{
-                  req.fail();
-                }
+      write(buf, config.getTimeout(), null, new CompletionHandler<Void,Void>(){
+        public void completed(Void x, Void v){
+          final ByteBuffer buf = ByteBuffer.allocate(1);
+          read(buf, config.getTimeout(), null, new CompletionHandler<Void,Void>(){
+            public void completed(Void x, Void v){
+              buf.flip();
+              c.mark();
+              if (c.decrypt(buf.get())==Protocol.HASH_COMPARISON_SUCCESS){
+                req.success();
+              }else{
+                c.reset();
+                writeInternal(req);
               }
-              public void failed(Throwable e, Void v){
-                req.fail(e);
-              }
-            });
-          }else{
-            req.fail();
-          }
+            }
+            public void failed(Throwable e, Void v){
+              req.fail(e);
+            }
+          });
         }
         public void failed(Throwable e, Void v){
           req.fail(e);
@@ -1159,9 +1073,6 @@ public class SocketWrapper {
     void success(){
       func.completed(null, attach);
     }
-    void fail(){
-      fail("Connection closed unexpectedly.");
-    }
     void fail(String message){
       fail(new Exception(message));
     }
@@ -1180,9 +1091,9 @@ public class SocketWrapper {
   public <T> void listen(T attach, CompletionHandler<Void,T> func){
     try{
       final ByteBuffer buf = ByteBuffer.allocate(1);
-      socket.read(buf, config.getPingInterval()<<1, TimeUnit.MILLISECONDS, attach, new CompletionHandler<Integer,T>(){
-        public void completed(Integer x, T attach){
-          if (x.intValue()==1 && buf.array()[0]==Protocol.PING){
+      read(buf, config.getPingInterval()<<1, attach, new CompletionHandler<Void,T>(){
+        public void completed(Void x, T attach){
+          if (buf.array()[0]==Protocol.PING){
             func.completed(null,attach);
           }else{
             func.failed(new Exception("Connection closed unexpectedly."),attach);
@@ -1208,14 +1119,9 @@ public class SocketWrapper {
    */
   public <T> void ping(T attach, CompletionHandler<Void,T> func){
     try{
-      socket.write(ByteBuffer.wrap(new byte[]{Protocol.PING}), config.getTimeout(), TimeUnit.MILLISECONDS, attach, new CompletionHandler<Integer,T>(){
-        public void completed(Integer x, T attach){
-          if (x.intValue()==1){
-            func.completed(null,attach);
-          }else{
-            func.failed(new Exception("Connection closed unexpectedly."),attach);
-            close();
-          }
+      write(ByteBuffer.wrap(new byte[]{Protocol.PING}), config.getTimeout(), attach, new CompletionHandler<Void,T>(){
+        public void completed(Void x, T attach){
+          func.completed(null,attach);
         }
         public void failed(Throwable e, T attach){
           func.failed(e,attach);
@@ -1226,5 +1132,55 @@ public class SocketWrapper {
       func.failed(e,attach);
       close();
     }
+  }
+  /**
+   * Convenience method to ensure the entire buffer has been written to the socket.
+   */
+  private <T> void write(final ByteBuffer buf, final long timeout, final T attach, final CompletionHandler<Void,T> h){
+    final long expiry = System.currentTimeMillis()+timeout;
+    socket.write(buf, timeout, TimeUnit.MILLISECONDS, attach, new CompletionHandler<Integer,T>(){
+      public void completed(Integer x, T attach){
+        if (x==-1){
+          h.failed(new Exception("Connection closed unexpectedly."),attach);
+        }else if (buf.hasRemaining()){
+          long ms = expiry-System.currentTimeMillis();
+          if (ms<=0){
+            h.failed(new InterruptedByTimeoutException(), attach);
+          }else{
+            socket.write(buf, ms, TimeUnit.MILLISECONDS, attach, this);
+          }
+        }else{
+          h.completed(null,attach);
+        }
+      }
+      public void failed(Throwable e, T attach){
+        h.failed(e,attach);
+      }
+    });
+  }
+  /**
+   * Convenience method to ensure the entire buffer has been filled by reading the socket.
+   */
+  private <T> void read(final ByteBuffer buf, final long timeout, final T attach, final CompletionHandler<Void,T> h){
+    final long expiry = System.currentTimeMillis()+timeout;
+    socket.read(buf, timeout, TimeUnit.MILLISECONDS, attach, new CompletionHandler<Integer,T>(){
+      public void completed(Integer x, T attach){
+        if (x==-1){
+          h.failed(new Exception("Connection closed unexpectedly."),attach);
+        }else if (buf.hasRemaining()){
+          long ms = expiry-System.currentTimeMillis();
+          if (ms<=0){
+            h.failed(new InterruptedByTimeoutException(), attach);
+          }else{
+            socket.read(buf, ms, TimeUnit.MILLISECONDS, attach, this);
+          }
+        }else{
+          h.completed(null,attach);
+        }
+      }
+      public void failed(Throwable e, T attach){
+        h.failed(e,attach);
+      }
+    });
   }
 }

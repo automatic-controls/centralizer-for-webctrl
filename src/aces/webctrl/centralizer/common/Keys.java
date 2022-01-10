@@ -10,9 +10,9 @@ import java.security.*;
  * Thread-safe namespace which encapsulates all RSA key-pairs used for database authentication.
  */
 public class Keys {
-  /** Global instance of {@code KeyFactory}. I am unsure if this object is thread-safe, so all access is synchronized (see {@code Data.Key}). */
+  /** Global instance of {@code KeyFactory}. I am unsure if this object is thread-safe, so all access is synchronized (see {@code Key.deserialize}). */
   public static volatile KeyFactory keyFactory;
-  /** Global instance of {@code KeyPairGenerator}. I am unsure if this object is thread-safe, so all access is synchronized (see {@code Data.Key}). */
+  /** Global instance of {@code KeyPairGenerator}. I am unsure if this object is thread-safe, so all access is synchronized (see {@code Key}'s constructor). */
   public static volatile KeyPairGenerator keyPairGen;
   /** Where to store key data. */
   protected static volatile Path keyFile;
@@ -163,7 +163,9 @@ public class Keys {
         FileChannel out = FileChannel.open(keyFile, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         FileLock lock = out.tryLock();
       ){
-        out.write(buf);
+        while (buf.hasRemaining()){
+          out.write(buf);
+        }
       }
       return true;
     }catch(Exception e){

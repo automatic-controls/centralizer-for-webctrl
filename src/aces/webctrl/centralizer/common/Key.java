@@ -3,7 +3,7 @@ import javax.crypto.Cipher;
 import java.security.*;
 import java.security.spec.*;
 /**
- * Thread-safe class which encapsulates a single 4096 bit RSA key-pair.
+ * Thread-safe class which encapsulates a single RSA key-pair.
  */
 public class Key {
   /** Unique identification number for this key-pair. */
@@ -56,7 +56,7 @@ public class Key {
    * Used to precompute serialization length.
    */
   public int length(boolean includePrivate){
-    return publicKeyRaw.length+(includePrivate?privateKeyRaw.length:0)+12;
+    return publicKeyRaw.length+(includePrivate?privateKeyRaw.length+4:0)+8;
   }
   /**
    * @return the {@code ID} for this key.
@@ -102,6 +102,9 @@ public class Key {
     return hash;
   }
   @Override public boolean equals(Object obj){
+    if (this==obj){
+      return true;
+    }
     if (obj instanceof Key){
       Key k = (Key)obj;
       return ID==k.ID && java.util.Arrays.equals(publicKeyRaw, k.publicKeyRaw) && java.util.Arrays.equals(privateKeyRaw, k.privateKeyRaw);

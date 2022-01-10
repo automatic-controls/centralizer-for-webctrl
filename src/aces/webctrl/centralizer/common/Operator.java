@@ -72,6 +72,11 @@ public class Operator {
    */
   private volatile long creationTime;
   /**
+   * Indicates the time of the last successful operator login.
+   * {@code -1} implies the operator has never logged in.
+   */
+  private volatile long lastLogin = -1L;
+  /**
    * Indicates whether this operator should be forced to change their password at login.
    */
   private volatile boolean forceChange = false;
@@ -117,7 +122,15 @@ public class Operator {
    * @return whether or not this operator is locked out.
    */
   public boolean isLockedOut(){
-    return lockout!=-1 && Database.isServer() && Config.loginAttempts>=0;
+    if (lockout!=-1 && Database.isServer() && Config.loginAttempts>=0){
+      if (System.currentTimeMillis()>lockout){
+        lockout = -1;
+        return false;
+      }else{
+        return true;
+      }
+    }
+    return false;
   }
   /**
    * Unlocks this operator.
@@ -147,6 +160,13 @@ public class Operator {
     return creationTime;
   }
   /**
+   * Returns the value of {@code System.currentTimeMillis()} as recorded during this operator's last successful login.
+   * {@code -1} implies this operator has never successfully logged in.
+   */
+  public long getLastLogin(){
+    return lastLogin;
+  }
+  /**
    * Serializes an operator into a byte array.
    */
   public byte[] serialize(){
@@ -154,7 +174,7 @@ public class Operator {
     byte[] displayNameData = displayName.getBytes();
     byte[] descData = description.getBytes();
     passwordLock.readLock().lock();
-    SerializationStream s = new SerializationStream(usernameData.length+displayNameData.length+descData.length+salt.length+hash.length+49);
+    SerializationStream s = new SerializationStream(usernameData.length+displayNameData.length+descData.length+salt.length+hash.length+57);
     s.write(salt);
     s.write(hash);
     passwordLock.readLock().unlock();
@@ -162,6 +182,7 @@ public class Operator {
     s.write(forceChange);
     s.write(creationTime);
     s.write(timestamp);
+    s.write(lastLogin);
     s.write(permissions);
     s.write(navigationTimeout);
     s.write(usernameData);
@@ -183,6 +204,7 @@ public class Operator {
     op.forceChange = s.readBoolean();
     op.creationTime = s.readLong();
     op.timestamp = s.readLong();
+    op.lastLogin = s.readLong();
     op.permissions = s.readInt();
     op.navigationTimeout = s.readInt();
     op.username = s.readString();
@@ -212,7 +234,9 @@ public class Operator {
         FileChannel out = FileChannel.open(dataFile, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         FileLock lock = out.tryLock();
       ){
-        out.write(buf);
+        while (buf.hasRemaining()){
+          out.write(buf);
+        }
       }
       return true;
     }catch(Exception e){
@@ -271,6 +295,7 @@ public class Operator {
     }
     if (ret){
       unlock();
+      lastLogin = System.currentTimeMillis();
     }else if (Database.isServer() && Config.loginAttempts>=0){
       synchronized (failedAttempts){
         long time = System.currentTimeMillis();
@@ -308,6 +333,7 @@ public class Operator {
    * @return {@code true} if the username was changed successfully; {@code false} if the new username failed validation.
    */
   public boolean setUsername(String username){
+    username = username.toLowerCase();
     if (Database.validateName(username,false)){
       this.username = username;
       stamp();

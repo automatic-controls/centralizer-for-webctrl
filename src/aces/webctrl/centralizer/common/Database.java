@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.*;
  * Thread-safe namespace for initializing and saving the database.
  */
 public class Database {
-  /** Used to specify the transformation with {@code javax.crypto.Cipher}. */
+  /** Used to specify the transformation for {@code javax.crypto.Cipher}. */
   public final static String CIPHER = "RSA/ECB/OAEPWITHSHA-512ANDMGF1PADDING";
   /** All-purpose random number generator for use anywhere its needed. This object is thread-safe. */
   public volatile static SecureRandom entropy;

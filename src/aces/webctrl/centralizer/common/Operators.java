@@ -135,6 +135,7 @@ public class Operators {
    * @return the constructed {@code Operator} under most circumstances; {@code null} if the given username is already taken or if any other error occurs.
    */
   public static Operator add(String username, byte[] password, int permissions, String displayName, int navigationTimeout, String description){
+    username = username.toLowerCase();
     if (!Database.validateName(username, false) || !Database.validatePassword(password)){
       Arrays.fill(password,(byte)0);
       return null;
@@ -143,7 +144,7 @@ public class Operators {
     lock.writeLock().lock();
     try{
       for (Operator op:operators){
-        if (op!=null && op.getUsername().equalsIgnoreCase(username)){
+        if (op!=null && op.getUsername().equals(username)){
           return null;
         }
       }

@@ -20,6 +20,9 @@ public abstract class DelayedRunnable implements Delayed, Runnable {
     return expiry==0?0:expiry-System.currentTimeMillis();
   }
   public int compareTo(Delayed d){
+    if (d==this){
+      return 0;
+    }
     if (d instanceof DelayedRunnable){
       DelayedRunnable dr = (DelayedRunnable)d;
       return expiry<dr.expiry?-1:(expiry==dr.expiry?0:1);
