@@ -216,8 +216,8 @@ public class Connection implements Comparable<Connection> {
     });
   }
   public void init(){
-    SerializationStream s = new SerializationStream(8);
-    s.write(Config.VERSION);
+    SerializationStream s = new SerializationStream(Config.VERSION_RAW.length+4);
+    s.write(Config.VERSION_RAW);
     //Write the application version to the client
     wrap.writeBytes(s.data, null, new Handler<Void>(){
       public void func(Void v){
@@ -343,6 +343,7 @@ public class Connection implements Comparable<Connection> {
                                           }
                                         });
                                       }else if (x==Protocol.EXISTING_SERVER){
+                                        updateServerParams();
                                         //Read identifying information from the client
                                         wrap.readBytes(1024, null, new Handler<byte[]>(){
                                           public void func(byte[] data){
@@ -436,6 +437,27 @@ public class Connection implements Comparable<Connection> {
         });
       }
     });
+  }
+  /**
+   * Writes the server name and description to the client.
+   */
+  public void updateServerParams(){
+    if (server!=null){
+      add(new Task(Protocol.UPDATE_SERVER_PARAMS){
+        public void run(){
+          byte[] nameBytes = server.getName().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+          byte[] descBytes = server.getDescription().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+          SerializationStream s = new SerializationStream(nameBytes.length+descBytes.length+8);
+          s.write(nameBytes);
+          s.write(descBytes);
+          wrap.writeBytes(s.data, null, new Handler<Void>(){
+            public void func(Void v){
+              listen2();
+            }
+          });
+        }
+      });
+    }
   }
   /**
    * Ensures the client's operator list is up to date.

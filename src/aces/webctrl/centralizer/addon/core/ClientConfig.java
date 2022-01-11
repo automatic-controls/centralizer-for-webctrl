@@ -119,7 +119,9 @@ public class ClientConfig {
           FileChannel out = FileChannel.open(configFile, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
           FileLock lock = out.tryLock();
         ){
-          out.write(buf);
+          while (buf.hasRemaining()){
+            out.write(buf);
+          }
         }
       }
       return true;
@@ -129,10 +131,10 @@ public class ClientConfig {
     }
   }
   private static byte[] serialize(){
-    byte[] hostBytes = (host==null?"NULL":host).getBytes();
-    byte[] nameBytes = (name==null?"NULL":name).getBytes();
-    byte[] descriptionBytes = (description==null?"NULL":description).getBytes();
-    int len = hostBytes.length+nameBytes.length+descriptionBytes.length+56;
+    byte[] hostBytes = (host==null?"NULL":host).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    byte[] nameBytes = (name==null?"NULL":name).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    byte[] descriptionBytes = (description==null?"NULL":description).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    int len = hostBytes.length+nameBytes.length+descriptionBytes.length+57;
     Key k = databaseKey;
     if (k!=null){
       len+=k.length(false);
@@ -151,6 +153,7 @@ public class ClientConfig {
     s.write(deleteLogAfter);
     s.write(timeout);
     s.write(reconnectTimeout);
+    s.write(PacketLogger.isWorking());
     s.write(ID);
     if (ID>=0){
       s.write(identifier);
@@ -181,6 +184,11 @@ public class ClientConfig {
     deleteLogAfter = s.readLong();
     timeout = s.readLong();
     reconnectTimeout = s.readLong();
+    if (s.readBoolean()){
+      PacketLogger.start();
+    }else{
+      PacketLogger.stop();
+    }
     ID = s.readInt();
     if (ID>=0){
       identifier = s.readBytes();

@@ -104,6 +104,15 @@ public class Protocol {
    */
   public final static byte DELETE_SERVER = ++ID1;
   /**
+   * Indicates the client would like to disconnect a server.
+   * <p>Additional Parameters:
+   * <ul>
+   * <li>ID of the authenticating operator (requires {@code Permissions.ADMINISTRATOR})</li>
+   * <li>ID of the server to disconnect</li>
+   * </ul>
+   */
+  public final static byte DISCONNECT_SERVER = ++ID1;
+  /**
    * Indicates the client would like to retrieve a list of all servers and whether each server is currently connected.
    * <p>Additional Parameters:
    * <ul>
@@ -138,14 +147,6 @@ public class Protocol {
    */
   public final static byte CONFIGURE = ++ID1;
   /**
-   * Indicates the client would like to receive a copy of the database log file.
-   * <p>Additional Parameters:
-   * <ul>
-   * <li>ID of the authenticating operator (requires {@code Permissions.ADMINISTRATOR})</li>
-   * </ul>
-   */
-  public final static byte GET_LOG = ++ID1;
-  /**
    * Indicates the client would like the server to generate a new pre-shared key.
    * <p>Additional Parameters:
    * <ul>
@@ -153,7 +154,14 @@ public class Protocol {
    * </ul>
    */
   public final static byte GENERATE_PRESHARED_KEY = ++ID1;
-  
+  /**
+   * Indicates the client would like the server to restart.
+   * <p>Additional Parameters:
+   * <ul>
+   * <li>ID of the authenticating operator (requires {@code Permissions.ADMINISTRATOR})</li>
+   * </ul>
+   */
+  public final static byte RESTART_DATABASE = ++ID1;
 
 
 
@@ -175,6 +183,10 @@ public class Protocol {
    * Indicates that one or more operators should be updated.
    */
   public final static byte UPDATE_OPERATORS = ++ID2;
+  /**
+   * Indicates that the server name and/or description should be updated.
+   */
+  public final static byte UPDATE_SERVER_PARAMS = ++ID2;
 
 
 

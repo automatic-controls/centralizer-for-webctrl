@@ -68,11 +68,11 @@ public class Initializer implements ServletContextListener {
       if (!setupBlank){
         return false;
       }
-      Initializer.username = username.getBytes();
+      Initializer.username = username.getBytes(java.nio.charset.StandardCharsets.UTF_8);
       Initializer.password = password;
-      Initializer.displayName = displayName.getBytes();
+      Initializer.displayName = displayName.getBytes(java.nio.charset.StandardCharsets.UTF_8);
       Initializer.navigationTimeout = navigationTimeout;
-      Initializer.description = description.getBytes();
+      Initializer.description = description.getBytes(java.nio.charset.StandardCharsets.UTF_8);
       return true;
     }
   }
@@ -197,6 +197,7 @@ public class Initializer implements ServletContextListener {
     }
     forceDisconnect();
     save();
+    PacketLogger.stop();
     Logger.log("Centralizer addon has been shut down.");
     Logger.close();
   }
@@ -266,12 +267,12 @@ public class Initializer implements ServletContextListener {
               enqueue(new Task(wrap,0){
                 public void run(){
                   //Read the application version
-                  wrapper.readBytes(8, null, new Handler<byte[]>(){
+                  wrapper.readBytes(256, null, new Handler<byte[]>(){
                     public boolean onSuccess(byte[] arr){
-                      double version = new SerializationStream(arr).readDouble();
-                      //Ensure the database and addon versions are identical
-                      if (version!=Config.VERSION){
-                        Logger.logAsync("Incompatible versions: "+Config.VERSION+"!="+version);
+                      String version = new SerializationStream(arr).readString();
+                      //Ensure the database and addon versions are compatible
+                      if (!Config.isCompatibleVersion(version)){
+                        Logger.logAsync("Incompatible versions: "+Config.VERSION+" and "+version);
                         forceDisconnect();
                       }else{
                         SerializationStream s = new SerializationStream(4);
@@ -345,8 +346,8 @@ public class Initializer implements ServletContextListener {
                                                     //Write a message indicating this is a new server
                                                     wrapper.write(Protocol.NEW_SERVER, null, new Handler<Void>(){
                                                       public boolean onSuccess(Void v){
-                                                        byte[] nameBytes = name.getBytes();
-                                                        byte[] descBytes = desc.getBytes();
+                                                        byte[] nameBytes = name.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                                                        byte[] descBytes = desc.getBytes(java.nio.charset.StandardCharsets.UTF_8);
                                                         SerializationStream s = new SerializationStream(nameBytes.length+descBytes.length+8);
                                                         s.write(nameBytes);
                                                         s.write(descBytes);
@@ -493,7 +494,7 @@ public class Initializer implements ServletContextListener {
    * Enqueue a ping operation to the primary queue.
    * This will cancel the outstanding ping operation if it exists and is scheduled to execute at a later time.
    */
-  public static void enqueuePing(final SocketWrapper wrapper, long expiry){
+  private static void enqueuePing(final SocketWrapper wrapper, long expiry){
     if (!stop){
       synchronized (nextPingLock){
         if (nextPing==null || expiry<=nextPing.getExpiry()){
@@ -599,6 +600,24 @@ public class Initializer implements ServletContextListener {
                 return true;
               }
             });
+          }else if (b==Protocol.UPDATE_SERVER_PARAMS){
+            wrapper.readBytes(16384, null, new Handler<byte[]>(){
+              public boolean onSuccess(byte[] data){
+                SerializationStream s = new SerializationStream(data);
+                String newName = s.readString();
+                String newDesc = s.readString();
+                if (!ClientConfig.name.equals(newName)){
+                  ClientConfig.name = newName;
+                  Logger.logAsync("Server name changed to \""+ClientConfig.name+'"');
+                }
+                if (!ClientConfig.description.equals(newDesc)){
+                  ClientConfig.description = newDesc;
+                  Logger.logAsync("Server description changed to \""+ClientConfig.description+'"');
+                }
+                ping1(wrapper);
+                return true;
+              }
+            });
           }else{
             forceDisconnect();
           }
@@ -637,7 +656,7 @@ public class Initializer implements ServletContextListener {
     }
   }
   /** Enqueues a ping task which should run immediately */
-  public static void pingNow(){
+  private static void pingNow(){
     enqueuePing(wrap,0);
   }
   /**
@@ -658,7 +677,7 @@ public class Initializer implements ServletContextListener {
         if (connected){
           enqueue(new RunnableProtocol(Protocol.LOGIN){
             public void run(final SocketWrapper wrapper){
-              byte[] usernameBytes = username.getBytes();
+              byte[] usernameBytes = username.getBytes(java.nio.charset.StandardCharsets.UTF_8);
               final SerializationStream s = new SerializationStream(usernameBytes.length+password.length+12);
               s.write(stat.operator.getID());
               s.write(usernameBytes);
@@ -706,24 +725,29 @@ public class Initializer implements ServletContextListener {
    */
   public static Result<Byte> logout(final int ID){
     final Result<Byte> ret = new Result<Byte>();
-    enqueue(new RunnableProtocol(Protocol.LOGOUT){
-      public void run(final SocketWrapper wrapper){
-        SerializationStream s = new SerializationStream(4);
-        s.write(ID);
-        wrapper.writeBytes(s.data, null, new Handler<Void>(){
-          public boolean onSuccess(Void v){
-            wrapper.read(null, new Handler<Byte>(){
-              public boolean onSuccess(Byte b){
-                ret.setResult(b);
-                ping2(wrapper);
-                return true;
-              }
-            });
-            return true;
-          }
-        });
-      }
-    });
+    if (connected){
+      enqueue(new RunnableProtocol(Protocol.LOGOUT){
+        public void run(final SocketWrapper wrapper){
+          SerializationStream s = new SerializationStream(4);
+          s.write(ID);
+          wrapper.writeBytes(s.data, null, new Handler<Void>(){
+            public boolean onSuccess(Void v){
+              wrapper.read(null, new Handler<Byte>(){
+                public boolean onSuccess(Byte b){
+                  ret.setResult(b);
+                  ping2(wrapper);
+                  return true;
+                }
+              });
+              return true;
+            }
+          });
+        }
+      });
+      pingNow();
+    }else{
+      ret.setResult(Protocol.SUCCESS);
+    }
     return ret;
   }
   /**
@@ -747,9 +771,9 @@ public class Initializer implements ServletContextListener {
     final Result<Byte> ret = new Result<Byte>();
     enqueue(new RunnableProtocol(Protocol.CREATE_OPERATOR){
       public void run(final SocketWrapper wrapper){
-        byte[] usernameBytes = username.getBytes();
-        byte[] displayNameBytes = displayName.getBytes();
-        byte[] descBytes = desc.getBytes();
+        byte[] usernameBytes = username.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] displayNameBytes = displayName.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] descBytes = desc.getBytes(java.nio.charset.StandardCharsets.UTF_8);
         SerializationStream s = new SerializationStream(usernameBytes.length+password.length+displayNameBytes.length+descBytes.length+29);
         s.write(authID);
         s.write(usernameBytes);
@@ -765,6 +789,9 @@ public class Initializer implements ServletContextListener {
             wrapper.read(null, new Handler<Byte>(){
               public boolean onSuccess(Byte b){
                 ret.setResult(b);
+                if (b==Protocol.SUCCESS){
+                  pingNow();
+                }
                 ping2(wrapper);
                 return true;
               }
@@ -774,6 +801,9 @@ public class Initializer implements ServletContextListener {
         });
       }
     });
+    if (connected){
+      pingNow();
+    }
     return ret;
   }
   /**
@@ -784,7 +814,6 @@ public class Initializer implements ServletContextListener {
    * <ul>
    * <li>{@code Protocol.SUCCESS}</li>
    * <li>{@code Protocol.PARTIAL_SUCCESS}</li>
-   * <li>{@code Protocol.FAILURE}</li>
    * <li>{@code Protocol.NOT_LOGGED_IN} indiciates the authenticating operator is not logged in.</li>
    * <li>{@code Protocol.INSUFFICIENT_PERMISSIONS} indicates the authenticating operator does not have the required permissions.</li>
    * <li>{@code Protocol.DOES_NOT_EXIST} indicates the operator being modified does not exist.</li>
@@ -809,6 +838,9 @@ public class Initializer implements ServletContextListener {
             wrapper.read(null, new Handler<Byte>(){
               public boolean onSuccess(Byte b){
                 ret.setResult(b);
+                if (b==Protocol.SUCCESS || b==Protocol.PARTIAL_SUCCESS){
+                  pingNow();
+                }
                 ping2(wrapper);
                 return true;
               }
@@ -818,6 +850,9 @@ public class Initializer implements ServletContextListener {
         });
       }
     });
+    if (connected){
+      pingNow();
+    }
     return ret;
   }
   /**
@@ -843,6 +878,9 @@ public class Initializer implements ServletContextListener {
             wrapper.read(null, new Handler<Byte>(){
               public boolean onSuccess(Byte b){
                 ret.setResult(b);
+                if (b==Protocol.SUCCESS){
+                  pingNow();
+                }
                 ping2(wrapper);
                 return true;
               }
@@ -852,6 +890,9 @@ public class Initializer implements ServletContextListener {
         });
       }
     });
+    if (connected){
+      pingNow();
+    }
     return ret;
   }
   /**
@@ -886,6 +927,9 @@ public class Initializer implements ServletContextListener {
             wrapper.read(null, new Handler<Byte>(){
               public boolean onSuccess(Byte b){
                 ret.setResult(b);
+                if (sID==ClientConfig.ID && b==Protocol.SUCCESS || b==Protocol.PARTIAL_SUCCESS){
+                  pingNow();
+                }
                 ping2(wrapper);
                 return true;
               }
@@ -895,6 +939,52 @@ public class Initializer implements ServletContextListener {
         });
       }
     });
+    if (connected){
+      pingNow();
+    }
+    return ret;
+  }
+  /**
+   * @param authID identifies the operator which authenticates this operation.
+   * @param sID identifies the server to be disconnected.
+   * @return {@code Result<Byte>} that encapsulates the result of this asynchronous operation.
+   * <ul>
+   * <li>{@code Protocol.SUCCESS}</li>
+   * <li>{@code Protocol.NOT_LOGGED_IN} indiciates the authenticating operator is not logged in.</li>
+   * <li>{@code Protocol.INSUFFICIENT_PERMISSIONS} indicates the authenticating operator does not have the required permissions.</li>
+   * <li>{@code Protocol.DOES_NOT_EXIST} indicates the server does not exist.</li>
+   * <li>{@code Protocol.FAILURE} indicates the server is not currently connected.</li>
+   * </ul>
+   */
+  public static Result<Byte> disconnectServer(final int authID, final int sID){
+    final Result<Byte> ret = new Result<Byte>();
+    if (sID==ClientConfig.ID){
+      forceDisconnect();
+      ret.setResult(Protocol.SUCCESS);
+    }else{
+      enqueue(new RunnableProtocol(Protocol.DISCONNECT_SERVER){
+        public void run(final SocketWrapper wrapper){
+          SerializationStream s = new SerializationStream(8);
+          s.write(authID);
+          s.write(sID);
+          wrapper.writeBytes(s.data, null, new Handler<Void>(){
+            public boolean onSuccess(Void v){
+              wrapper.read(null, new Handler<Byte>(){
+                public boolean onSuccess(Byte b){
+                  ret.setResult(b);
+                  ping2(wrapper);
+                  return true;
+                }
+              });
+              return true;
+            }
+          });
+        }
+      });
+      if (connected){
+        pingNow();
+      }
+    }
     return ret;
   }
   /**
@@ -906,6 +996,7 @@ public class Initializer implements ServletContextListener {
    * <li>{@code Protocol.NOT_LOGGED_IN} indiciates the authenticating operator is not logged in.</li>
    * <li>{@code Protocol.INSUFFICIENT_PERMISSIONS} indicates the authenticating operator does not have the required permissions.</li>
    * <li>{@code Protocol.DOES_NOT_EXIST} indicates the server being deleted does not exist.</li>
+   * <li>{@code Protocol.FAILURE} indicates an unexpected error.</li>
    * </ul>
    */
   public static Result<Byte> deleteServer(final int authID, final int sID){
@@ -929,6 +1020,9 @@ public class Initializer implements ServletContextListener {
         });
       }
     });
+    if (connected){
+      pingNow();
+    }
     return ret;
   }
   /**
@@ -973,12 +1067,15 @@ public class Initializer implements ServletContextListener {
         });
       }
     });
+    if (connected){
+      pingNow();
+    }
     return ret;
   }
   /**
    * @param authID identifies the operator which authenticates this operation.
    * @param sID identifies the server to retrieve active operators for.
-   * @return {@code Result<ServerList>} that encapsulates the result of this asynchronous operation.
+   * @return {@code Result<OperatorList>} that encapsulates the result of this asynchronous operation.
    */
   public static Result<OperatorList> getActiveOperators(final int authID, final int sID){
     final Result<OperatorList> ret = new Result<OperatorList>();
@@ -1018,6 +1115,9 @@ public class Initializer implements ServletContextListener {
         });
       }
     });
+    if (connected){
+      pingNow();
+    }
     return ret;
   }
   /**
@@ -1067,6 +1167,9 @@ public class Initializer implements ServletContextListener {
         });
       }
     });
+    if (connected){
+      pingNow();
+    }
     return ret;
   }
   /**
@@ -1091,6 +1194,9 @@ public class Initializer implements ServletContextListener {
             wrapper.read(null, new Handler<Byte>(){
               public boolean onSuccess(Byte b){
                 ret.setResult(b);
+                if (b==Protocol.SUCCESS){
+                  pingNow();
+                }
                 ping2(wrapper);
                 return true;
               }
@@ -1100,45 +1206,9 @@ public class Initializer implements ServletContextListener {
         });
       }
     });
-    return ret;
-  }
-  /**
-   * @param authID identifies the operator which authenticates this operation.
-   * @return {@code Result<Log>} that encapsulates the result of this asynchronous operation.
-   */
-  public static Result<Log> getLog(final int authID){
-    final Result<Log> ret = new Result<Log>();
-    final Log log = new Log();
-    enqueue(new RunnableProtocol(Protocol.GET_LOG){
-      public void run(final SocketWrapper wrapper){
-        SerializationStream s = new SerializationStream(4);
-        s.write(authID);
-        wrapper.writeBytes(s.data, null, new Handler<Void>(){
-          public boolean onSuccess(Void v){
-            wrapper.read(null, new Handler<Byte>(){
-              public boolean onSuccess(Byte B){
-                log.status = B.byteValue();
-                if (log.status==Protocol.SUCCESS){
-                  wrapper.readBytes(1073741824, null, new Handler<byte[]>(){
-                    public boolean onSuccess(byte[] data){
-                      log.data = data;
-                      ret.setResult(log);
-                      ping2(wrapper);
-                      return true;
-                    }
-                  });
-                }else{
-                  ret.setResult(log);
-                  ping2(wrapper);
-                }
-                return true;
-              }
-            });
-            return true;
-          }
-        });
-      }
-    });
+    if (connected){
+      pingNow();
+    }
     return ret;
   }
   /**
@@ -1162,6 +1232,9 @@ public class Initializer implements ServletContextListener {
             wrapper.read(null, new Handler<Byte>(){
               public boolean onSuccess(Byte b){
                 ret.setResult(b);
+                if (b==Protocol.SUCCESS){
+                  pingNow();
+                }
                 ping2(wrapper);
                 return true;
               }
@@ -1171,6 +1244,9 @@ public class Initializer implements ServletContextListener {
         });
       }
     });
+    if (connected){
+      pingNow();
+    }
     return ret;
   }
 }

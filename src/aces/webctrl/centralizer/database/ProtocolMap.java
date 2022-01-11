@@ -354,6 +354,17 @@ public class ProtocolMap {
                         }
                       }
                     }
+                    if (server.isConnected()){
+                      Connections.forEach(new Predicate<Connection>(){
+                        @Override public boolean test(Connection con){
+                          if (server==con.server){
+                            con.updateServerParams();
+                            return false;
+                          }
+                          return true;
+                        }
+                      });
+                    }
                   }
                 }
               }
@@ -364,6 +375,66 @@ public class ProtocolMap {
               });
             }catch(Exception e){
               Logger.logAsync("Error occurred in MODIFY_SERVER protocol.",e);
+              c.close(true);
+              return;
+            }
+          }
+        });
+      }
+    });
+    map.put(Protocol.DISCONNECT_SERVER, new Consumer<Connection>(){
+      public void accept(final Connection c){
+        c.wrap.readBytes(32, null, c.new Handler<byte[]>(){
+          public void func(byte[] data){
+            try{
+              SerializationStream s = new SerializationStream(data);
+              final int authID = s.readInt();
+              final int sID = s.readInt();
+              if (!s.end()){
+                Logger.logAsync("Lost data detected.");
+              }
+              byte ret;
+              OperatorTracker t = c.getTracker(authID);
+              if (t==null){
+                ret = Protocol.NOT_LOGGED_IN;
+              }else{
+                t.reset();
+                final int authP = t.getOperator().getPermissions();
+                if ((authP&Permissions.ADMINISTRATOR)==0){
+                  ret = Protocol.INSUFFICIENT_PERMISSIONS;
+                }else{
+                  Server server = Servers.get(sID);
+                  if (server==null){
+                    ret = Protocol.DOES_NOT_EXIST;
+                  }else if (server.isConnected()){
+                    final Container<Connection> container = new Container<Connection>();
+                    if (!Connections.forEach(new Predicate<Connection>(){
+                      @Override public boolean test(Connection con){
+                        if (server==con.server){
+                          container.x = con;
+                          return false;
+                        }
+                        return true;
+                      }
+                    })){
+                      Logger.logAsync("Server "+server.getName()+" disconnected by "+t.getOperator().getUsername());
+                      container.x.close(true);
+                      ret = Protocol.SUCCESS;
+                    }else{
+                      ret = Protocol.FAILURE;
+                    }
+                  }else{
+                    ret = Protocol.FAILURE;
+                  }
+                }
+              }
+              c.wrap.write(ret, null, c.new Handler<Void>(){
+                public void func(Void v){
+                  c.listen3();
+                }
+              });
+            }catch(Exception e){
+              Logger.logAsync("Error occurred in DISCONNECT_SERVER protocol.",e);
               c.close(true);
               return;
             }
@@ -667,53 +738,6 @@ public class ProtocolMap {
               });
             }catch(Exception e){
               Logger.logAsync("Error occurred in CONFIGURE protocol.",e);
-              c.close(true);
-              return;
-            }
-          }
-        });
-      }
-    });
-    map.put(Protocol.GET_LOG, new Consumer<Connection>(){
-      public void accept(final Connection c){
-        c.wrap.readBytes(32, null, c.new Handler<byte[]>(){
-          public void func(byte[] data){
-            try{
-              SerializationStream s = new SerializationStream(data);
-              final int authID = s.readInt();
-              if (!s.end()){
-                Logger.logAsync("Lost data detected.");
-              }
-              byte ret;
-              OperatorTracker t = c.getTracker(authID);
-              if (t==null){
-                ret = Protocol.NOT_LOGGED_IN;
-              }else{
-                t.reset();
-                final int authP = t.getOperator().getPermissions();
-                if ((authP&Permissions.ADMINISTRATOR)==0){
-                  ret = Protocol.INSUFFICIENT_PERMISSIONS;
-                }else{
-                  ret = Protocol.SUCCESS;
-                }
-              }
-              final boolean go = ret==Protocol.SUCCESS;
-              final byte[] bytes = go?Logger.getBytes():null;
-              c.wrap.write(ret, null, c.new Handler<Void>(){
-                public void func(Void v){
-                  if (go){
-                    c.wrap.writeBytes(bytes, null, c.new Handler<Void>(){
-                      public void func(Void v){
-                        c.listen3();
-                      }
-                    });
-                  }else{
-                    c.listen3();
-                  }
-                }
-              });
-            }catch(Exception e){
-              Logger.logAsync("Error occurred in GET_LOG protocol.",e);
               c.close(true);
               return;
             }

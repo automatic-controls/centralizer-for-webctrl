@@ -9,7 +9,7 @@ public abstract class OperatorModification {
   }
   public abstract void serialize(SerializationStream s);
   public static OperatorModification changeUsername(String username){
-    final byte[] usernameBytes = username.getBytes();
+    final byte[] usernameBytes = username.getBytes(java.nio.charset.StandardCharsets.UTF_8);
     return new OperatorModification(usernameBytes.length+5){
       public void serialize(SerializationStream s){
         s.write((byte)0);
@@ -27,7 +27,7 @@ public abstract class OperatorModification {
     };
   }
   public static OperatorModification changeDisplayName(String displayName){
-    final byte[] displayNameBytes = displayName.getBytes();
+    final byte[] displayNameBytes = displayName.getBytes(java.nio.charset.StandardCharsets.UTF_8);
     return new OperatorModification(displayNameBytes.length+5){
       public void serialize(SerializationStream s){
         s.write((byte)2);
@@ -52,7 +52,7 @@ public abstract class OperatorModification {
     };
   }
   public static OperatorModification changeDescription(String description){
-    final byte[] descriptionBytes = description.getBytes();
+    final byte[] descriptionBytes = description.getBytes(java.nio.charset.StandardCharsets.UTF_8);
     return new OperatorModification(descriptionBytes.length+5){
       public void serialize(SerializationStream s){
         s.write((byte)5);

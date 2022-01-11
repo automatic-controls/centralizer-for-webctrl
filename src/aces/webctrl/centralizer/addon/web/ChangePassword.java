@@ -28,9 +28,6 @@ public class ChangePassword extends HttpServlet {
             java.util.Arrays.fill(oldPassword,(char)0);
             oldPassword = null;
             Result<OperatorStatus> opRet = Initializer.login(op.getUsername(), oldPasswordBytes);
-            if (!opRet.waitForResult(0)){
-              Initializer.pingNow();
-            }
             if (opRet.waitForResult(System.currentTimeMillis()+Utility.ASYNC_TIMEOUT)){
               byte stat = opRet.getResult().status;
               if (Initializer.isConnected() && (stat==Protocol.SUCCESS || stat==Protocol.CHANGE_PASSWORD)){
@@ -41,7 +38,6 @@ public class ChangePassword extends HttpServlet {
                 password = null;
                 int id = op.getID();
                 Result<Byte> ret = Initializer.modifyOperator(id, id, java.util.Arrays.asList(OperatorModification.changePassword(passwordBytes)));
-                Initializer.pingNow();
                 if (ret.waitForResult(System.currentTimeMillis()+Utility.ASYNC_TIMEOUT) && ret.getResult().byteValue()==Protocol.SUCCESS){
                   success = true;
                 }

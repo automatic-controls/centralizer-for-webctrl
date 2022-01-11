@@ -167,6 +167,7 @@ public class Main {
         while ((r=queue.poll())!=null){
           r.run();
         }
+        PacketLogger.stop();
         Logger.log("Application terminated.");
         Logger.close();
         lockFileLock.release();

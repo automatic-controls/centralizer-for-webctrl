@@ -50,9 +50,9 @@ public class Server {
    * Serializes a server into a byte array.
    */
   public byte[] serialize(boolean includeIdentifier){
-    byte[] ipData = ipAddress.getBytes();
-    byte[] nameData = name.getBytes();
-    byte[] descData = description.getBytes();
+    byte[] ipData = ipAddress.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    byte[] nameData = name.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    byte[] descData = description.getBytes(java.nio.charset.StandardCharsets.UTF_8);
     SerializationStream s = new SerializationStream(nameData.length+ipData.length+descData.length+24+(includeIdentifier?identifier.length+4:1));
     s.write(nameData);
     s.write(ipData);

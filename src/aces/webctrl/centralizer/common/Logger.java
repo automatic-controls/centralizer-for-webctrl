@@ -10,12 +10,12 @@ import java.util.function.*;
  * <p>Appends a timestamp to most log entries.
  */
 public class Logger {
-  private final static SimpleDateFormat format = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
-  private final static String separator = " - ";
+  public final static SimpleDateFormat format = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+  public final static String separator = " - ";
+  public volatile static Consumer<DelayedRunnable> asyncLogConsumer = null;
   private volatile static PrintWriter out = null;
   private volatile static File f = null;
   private volatile static File tmp = null;
-  private volatile static Consumer<DelayedRunnable> asyncLogConsumer = null;
   /**
    * Initialization method.
    * @param file is the log file to write to.
@@ -29,6 +29,7 @@ public class Logger {
     f = logFile.toFile();
     tmp = logFile.resolveSibling("tmp_"+f.getName()).toFile();
     out = new PrintWriter(new FileWriter(f,true));
+    PacketLogger.init(logFile.getParent().resolve("packet_capture.txt"));
   }
   /**
    * Logs and timestamps a message.
@@ -142,17 +143,6 @@ public class Logger {
     out.close();
   }
   /**
-   * Gets all bytes stored in the log file.
-   */
-  public synchronized static byte[] getBytes() throws Exception {
-    try{
-      out.close();
-      return Files.readAllBytes(f.toPath());
-    }finally{
-      out = new PrintWriter(new FileWriter(f,true));
-    }
-  }
-  /**
    * Deletes log entries which occurred more than {@code deleteLogAfter} milliseconds ago.
    */
   public synchronized static void trim(long deleteLogAfter){
@@ -186,7 +176,7 @@ public class Logger {
                 b = time<format.parse(str).getTime();
               }catch(ParseException e){}
               if (b){
-                outTMP.write(str.getBytes());
+                outTMP.write(str.getBytes(java.nio.charset.StandardCharsets.UTF_8));
                 outTMP.write(i);
                 byte[] buf = new byte[2048];
                 while (true){

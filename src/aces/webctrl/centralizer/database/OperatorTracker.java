@@ -36,15 +36,6 @@ public class OperatorTracker {
    * @return {@code true} if the timeout has not expired and the tracked operator has not been removed from the operator list; {@code false} otherwise.
    */
   public synchronized boolean validate(){
-    if (op==null){
-      return false;
-    }
-    boolean b = System.currentTimeMillis()<expiry;
-    if (!b){
-      op = null;
-    }else if (op.isDisposed()){
-      op = Operators.get(op.getID());
-    }
-    return b && op!=null;
+    return op!=null && System.currentTimeMillis()<expiry && !op.isDisposed();
   }
 }

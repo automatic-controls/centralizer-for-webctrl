@@ -1135,8 +1135,10 @@ public class SocketWrapper {
   }
   /**
    * Convenience method to ensure the entire buffer has been written to the socket.
+   * Also provides handle so that raw data packets may be captured.
    */
   private <T> void write(final ByteBuffer buf, final long timeout, final T attach, final CompletionHandler<Void,T> h){
+    buf.mark();
     final long expiry = System.currentTimeMillis()+timeout;
     socket.write(buf, timeout, TimeUnit.MILLISECONDS, attach, new CompletionHandler<Integer,T>(){
       public void completed(Integer x, T attach){
@@ -1150,6 +1152,10 @@ public class SocketWrapper {
             socket.write(buf, ms, TimeUnit.MILLISECONDS, attach, this);
           }
         }else{
+          final int pos = buf.position();
+          buf.reset();
+          config.onWrite(IP, buf);
+          buf.position(pos);
           h.completed(null,attach);
         }
       }
@@ -1160,8 +1166,10 @@ public class SocketWrapper {
   }
   /**
    * Convenience method to ensure the entire buffer has been filled by reading the socket.
+   * Also provides handle so that raw data packets may be captured.
    */
   private <T> void read(final ByteBuffer buf, final long timeout, final T attach, final CompletionHandler<Void,T> h){
+    buf.mark();
     final long expiry = System.currentTimeMillis()+timeout;
     socket.read(buf, timeout, TimeUnit.MILLISECONDS, attach, new CompletionHandler<Integer,T>(){
       public void completed(Integer x, T attach){
@@ -1175,6 +1183,10 @@ public class SocketWrapper {
             socket.read(buf, ms, TimeUnit.MILLISECONDS, attach, this);
           }
         }else{
+          final int pos = buf.position();
+          buf.reset();
+          config.onRead(IP, buf);
+          buf.position(pos);
           h.completed(null,attach);
         }
       }

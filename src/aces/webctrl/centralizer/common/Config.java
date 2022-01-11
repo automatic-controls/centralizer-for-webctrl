@@ -9,9 +9,18 @@ import java.util.Calendar;
  */
 public class Config {
   /**
-   * Used to determine compatibility when connecting to clients
+   * Hardcoded internal version string for the application.
+   * Used to determine compatibility when connecting remote hosts.
    */
-  public final static double VERSION = 1.0;
+  public final static String VERSION = "0.1.0";
+  /**
+   * Used for evaluating compatible version strings.
+   */
+  private final static String VERSION_SUBSTRING = VERSION.substring(0,VERSION.lastIndexOf('.'));
+  /**
+   * Raw version bytes.
+   */
+  public final static byte[] VERSION_RAW = VERSION.getBytes(java.nio.charset.StandardCharsets.UTF_8);
   /**
    * This application's display name
    */
@@ -86,6 +95,24 @@ public class Config {
    */
   public volatile static long loginLockoutTime = 3600000L;
   /**
+   * Compares the given version string to the hardcoded version string of this application.
+   * Assuming each version string is of the form "MAJOR.MINOR.PATCH",
+   * two version strings are compatible whenever the MAJOR and MINOR versions agree.
+   * The PATCH version number may differ between compatible instances.
+   * @param ver is the given version string.
+   * @return whether or not the given version string is compatible with the hardcoded version string.
+   */
+  public static boolean isCompatibleVersion(String ver){
+    if (ver==null){
+      return false;
+    }
+    int i = ver.lastIndexOf('.');
+    if (i==-1){
+      return false;
+    }
+    return VERSION_SUBSTRING.equals(ver.substring(0,i));
+  }
+  /**
    * Initializes parameters.
    * @return {@code true} on success; {@code false} if an error occurs.
    */
@@ -107,7 +134,7 @@ public class Config {
   /**
    * Used to precompute serialization length.
    */
-  public final static int LENGTH = 64;
+  public final static int LENGTH = 65;
   /**
    * Encodes parameters which may be remotely configured from clients.
    */
@@ -124,6 +151,7 @@ public class Config {
     s.write(backupHr);
     s.write(backupMin);
     s.write(backupSec);
+    s.write(PacketLogger.isWorking());
   }
   /**
    * Decodes parameters which may be remotely configured by clients.
@@ -145,6 +173,11 @@ public class Config {
     backupHr = s.readInt();
     backupMin = s.readInt();
     backupSec = s.readInt();
+    if (s.readBoolean()){
+      PacketLogger.startAsync();
+    }else{
+      PacketLogger.stopAsync();
+    }
     return tmp!=pingInterval;
   }
   /**
@@ -157,12 +190,18 @@ public class Config {
     try{
       value = value.trim();
       if (key.equalsIgnoreCase("Version")){
-        if (VERSION!=Double.parseDouble(value)){
-          Logger.log("Configuration file version ("+value+") does not match the application's internal version ("+VERSION+").");
+        if (!isCompatibleVersion(value)){
+          Logger.log("Configuration file version ("+value+") is not compatible with the application's internal version ("+VERSION+").");
           return false;
         }
       }else if (key.equalsIgnoreCase("Port")){
         port = Integer.parseInt(value);
+      }else if (key.equalsIgnoreCase("PacketCapture")){
+        if (Boolean.parseBoolean(value)){
+          PacketLogger.start();
+        }else{
+          PacketLogger.stop();
+        }
       }else if (key.equalsIgnoreCase("DeleteLogAfter")){
         deleteLogAfter = Long.parseLong(value);
       }else if (key.equalsIgnoreCase("BackLog")){
@@ -262,10 +301,12 @@ public class Config {
       StringBuilder sb = new StringBuilder(1024);
       sb.append(';'+NAME+" Primary Configuration File\n");
       sb.append(";Note all time intervals are specified in milliseconds.");
-      sb.append("\n\n;Used to determine compatiblity\n");
+      sb.append("\n\n;Used to determine compatibility\n");
       sb.append("Version=").append(VERSION);
       sb.append("\n\n;Specifies where the database binds to listen for connections\n");
       sb.append("Port=").append(port);
+      sb.append("\n\n;Specifies whether data packets should be captured and logged.\n");
+      sb.append("PacketCapture=").append(PacketLogger.isWorking());
       sb.append("\n\n;Specifies the time of day (HR[0-23]:MIN[0-59]:SEC[0-59]) to backup data in RAM to the hard-drive\n");
       sb.append("BackupTime=").append(backupHr).append(':').append(backupMin).append(':').append(backupSec);
       sb.append("\n\n;The maximum waitlist size for client connection processing\n");
@@ -283,7 +324,7 @@ public class Config {
       sb.append("\nLoginAttempts=").append(loginAttempts);
       sb.append("\nLoginTimePeriod=").append(loginTimePeriod);
       sb.append("\nLoginLockoutTime=").append(loginLockoutTime);
-      ByteBuffer buf = ByteBuffer.wrap(sb.toString().getBytes());
+      ByteBuffer buf = ByteBuffer.wrap(sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
       synchronized(Config.class){
         try(
           FileChannel out = FileChannel.open(configFile, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);

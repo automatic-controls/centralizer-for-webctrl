@@ -9,7 +9,7 @@ public abstract class ServerModification {
   }
   public abstract void serialize(SerializationStream s);
   public static ServerModification changeName(String name){
-    final byte[] nameBytes = name.getBytes();
+    final byte[] nameBytes = name.getBytes(java.nio.charset.StandardCharsets.UTF_8);
     return new ServerModification(nameBytes.length+5){
       public void serialize(SerializationStream s){
         s.write((byte)0);
@@ -18,7 +18,7 @@ public abstract class ServerModification {
     };
   }
   public static ServerModification changeDescription(String desc){
-    final byte[] descBytes = desc.getBytes();
+    final byte[] descBytes = desc.getBytes(java.nio.charset.StandardCharsets.UTF_8);
     return new ServerModification(descBytes.length+5){
       public void serialize(SerializationStream s){
         s.write((byte)1);

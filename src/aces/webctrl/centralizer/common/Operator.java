@@ -170,9 +170,9 @@ public class Operator {
    * Serializes an operator into a byte array.
    */
   public byte[] serialize(){
-    byte[] usernameData = username.getBytes();
-    byte[] displayNameData = displayName.getBytes();
-    byte[] descData = description.getBytes();
+    byte[] usernameData = username.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    byte[] displayNameData = displayName.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    byte[] descData = description.getBytes(java.nio.charset.StandardCharsets.UTF_8);
     passwordLock.readLock().lock();
     SerializationStream s = new SerializationStream(usernameData.length+displayNameData.length+descData.length+salt.length+hash.length+57);
     s.write(salt);
