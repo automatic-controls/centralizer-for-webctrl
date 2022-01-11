@@ -12,12 +12,48 @@ if /i "%*" EQU "install" (
   call :install
 ) else if /i "%*" EQU "uninstall" (
   call :uninstall
+) else if /i "%*" EQU "start" (
+  call :start
+) else if /i "%*" EQU "stop" (
+  call :stop
 ) else (
-  echo Please use install.vbs and uninstall.vbs instead of invoking this file directly.
+  echo Please use the vbs scripts instead of invoking this file directly.
 )
 echo Press any key to exit...
 pause >nul
 exit
+
+:start
+  if not exist "%~dp0service.xml" (
+    call :generateServiceXML
+  )
+  for /f "tokens=1 delims= " %%i in ('""%~dp0winsw" status "%~dp0service.xml""') do set "stat=%%i"
+  if "%stat%" EQU "Active" (
+    echo The service is already running.
+  ) else if "%stat%" EQU "Inactive" (
+    "%~dp0winsw" start "%~dp0service.xml"
+  ) else if "%stat%" EQU "NonExistent" (
+    echo The service is not installed.
+  ) else (
+    echo The service has unexpected status: %stat%.
+  )
+exit /b
+
+:stop
+  if not exist "%~dp0service.xml" (
+    call :generateServiceXML
+  )
+  for /f "tokens=1 delims= " %%i in ('""%~dp0winsw" status "%~dp0service.xml""') do set "stat=%%i"
+  if "%stat%" EQU "Active" (
+    "%~dp0winsw" stop "%~dp0service.xml"
+  ) else if "%stat%" EQU "Inactive" (
+    echo The service is already stopped.
+  ) else if "%stat%" EQU "NonExistent" (
+    echo The service is not installed.
+  ) else (
+    echo The service has unexpected status: %stat%.
+  )
+exit /b
 
 :install
   call :generateServiceXML
@@ -28,7 +64,7 @@ exit
   ) else (
     echo The service is already installed.
   )
-  exit /b
+exit /b
 
 :uninstall
   if not exist "%~dp0service.xml" (
@@ -54,7 +90,7 @@ exit
       echo Uninstallation procedure aborted.
     )
   )
-  exit /b
+exit /b
 
 :uninstallFunc
   "%~dp0winsw" uninstall "%~dp0service.xml"
@@ -62,7 +98,7 @@ exit
   echo.
   echo To complete uninstallation, please delete "%~dp0".
   echo Or run "%~dp0install.vbs" to reinstall the service.
-  exit /b
+exit /b
 
 :generateServiceXML
   (
@@ -76,4 +112,4 @@ exit
     echo   ^<stoptimeout^>60sec^</stoptimeout^>
     echo ^</service^>
   ) > "%~dp0service.xml"
-  exit /b
+exit /b
