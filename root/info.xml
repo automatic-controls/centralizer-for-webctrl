@@ -1,6 +1,6 @@
 <extension version="1">
   <name>Centralizer</name>
   <description>Connects to an external database to synchronize operators and/or files.</description>
-  <version>1.0.0</version>
+  <version>0.1.0</version>
   <vendor>Automatic Controls Equipment Systems, Inc.</vendor>
 </extension>
