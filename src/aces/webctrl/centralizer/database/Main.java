@@ -37,6 +37,8 @@ public class Main {
   private final static AtomicBoolean exited = new AtomicBoolean();
   /** Task processing queue which permits the main thread to take some work (e.g. message logging and database backups) away from the server thread pool. */
   private final static DelayQueue<DelayedRunnable> queue = new DelayQueue<DelayedRunnable>();
+  /** Specifies the number of threads to use for asynchronous processing. */
+  private final static int threads = Runtime.getRuntime().availableProcessors();
 
   /** Application entry point */
   public static void main(String[] args){
@@ -122,6 +124,7 @@ public class Main {
           gracefulExit(false);
         }
       });
+      Database.exec = Executors.newFixedThreadPool(Math.min(2, threads>>1));
       if (Database.init(rootFolder, true)){
         Logger.log("Initialization successful.");
       }else{
@@ -190,7 +193,6 @@ public class Main {
   private static boolean connect(){
     if (running.compareAndSet(false,true)){
       try{
-        int threads = Runtime.getRuntime().availableProcessors();
         int port = Config.port;
         asyncGroup = AsynchronousChannelGroup.withFixedThreadPool(threads, Executors.defaultThreadFactory());
         server = AsynchronousServerSocketChannel.open(asyncGroup);

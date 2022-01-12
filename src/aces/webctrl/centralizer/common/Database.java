@@ -18,6 +18,8 @@ public class Database {
   private volatile static AtomicBoolean saving;
   /** Specifies whether or not this application is meant to act as a server to host the database (some behavior gets changed slightly). */
   private volatile static boolean server;
+  /** Used for certain non-blocking IO operations. */
+  public volatile static java.util.concurrent.ExecutorService exec = null;
   /**
    * Initializes all components of the database.
    * Invoked only once at the start of the application.

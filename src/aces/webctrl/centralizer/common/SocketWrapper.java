@@ -4,7 +4,6 @@ import java.nio.*;
 import java.nio.file.*;
 import java.nio.channels.*;
 import java.util.concurrent.TimeUnit;
-//TODO (Performance Improvement) - Make every file IO operation non-blocking
 /**
  * Wraps an {@code AsynchronousSocketChannel} to provide automatic encrytion and decryption.
  */
@@ -35,6 +34,21 @@ public class SocketWrapper {
   private volatile boolean closed = false;
   /** Stores the IP address of the underlying socket. */
   private volatile String IP;
+
+  /** Used for file IO operations. */
+  private final static java.nio.file.attribute.FileAttribute<?>[] emptyAttributes = new java.nio.file.attribute.FileAttribute<?>[0];
+  /** Write options used for file IO operations. */
+  private final static java.util.Set<OpenOption> writeOpenOptions = new java.util.HashSet<>();
+  /** Read options used for file IO operations. */
+  private final static java.util.Set<OpenOption> readOpenOptions = new java.util.HashSet<>();
+  // Static initialization block
+  static {
+    writeOpenOptions.add(StandardOpenOption.WRITE);
+    writeOpenOptions.add(StandardOpenOption.CREATE);
+    writeOpenOptions.add(StandardOpenOption.TRUNCATE_EXISTING);
+    readOpenOptions.add(StandardOpenOption.READ);
+  }
+
   /**
    * Initializes a {@code SocketWrapper} instance to wrap the given socket.
    */
@@ -109,10 +123,10 @@ public class SocketWrapper {
     read(null, new CompletionHandler<Byte,Void>(){
       public void completed(Byte b, Void v){
         if (b.byteValue()==Protocol.CONTINUE){
-          FileChannel ch = null;
+          AsynchronousFileChannel ch = null;
           FileLock lock = null;
           try{
-            ch = FileChannel.open(file, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            ch = AsynchronousFileChannel.open(file, writeOpenOptions, Database.exec, emptyAttributes);
             lock = ch.tryLock();
             if (lock==null){
               throw new Exception("Unable to acquire FileLock for \""+file.toString()+"\".");
@@ -133,6 +147,9 @@ public class SocketWrapper {
                   if (req.buf==null){
                     readBytes(fileBlockSize, null, req.READER);
                   }else{
+                    if (req.buf.length<fileBlockSize){
+                      req.buf = new byte[fileBlockSize];
+                    }
                     readBytes(req.buf, null, req.READER2);
                   }
                 }else if (b==Protocol.EOF){
@@ -147,14 +164,10 @@ public class SocketWrapper {
             };
             req.READER = new CompletionHandler<byte[],Void>(){
               public void completed(byte[] arr, Void v){
-                req.buf = arr;
                 try{
-                  if (req.ch.write(ByteBuffer.wrap(req.buf))==req.buf.length){
-                    write(Protocol.CONTINUE, null, req.HEADER);
-                  }else{
-                    Logger.logAsync("Error occurred while writing data to file \""+file.toString()+"\".", new Exception("Failed to transfer all buffered bytes to the file."));
-                    write(Protocol.FILE_ERROR, null, req.ERROR);
-                  }
+                  req.buf = arr;
+                  req.transfer = ByteBuffer.wrap(req.buf);
+                  req.ch.write(req.transfer, req.pos, null, req.TRANSFER);
                 }catch(Exception e){
                   Logger.logAsync("Error occurred while writing data to file \""+file.toString()+"\".", e);
                   write(Protocol.FILE_ERROR, null, req.ERROR);
@@ -165,15 +178,10 @@ public class SocketWrapper {
               }
             };
             req.READER2 = new CompletionHandler<Integer,Void>(){
-              public void completed(Integer X, Void v){
+              public void completed(Integer x, Void v){
                 try{
-                  int x = X.intValue();
-                  if (req.ch.write(ByteBuffer.wrap(req.buf, 0, x))==x){
-                    write(Protocol.CONTINUE, null, req.HEADER);
-                  }else{
-                    Logger.logAsync("Error occurred while writing data to file \""+file.toString()+"\".", new Exception("Failed to transfer all buffered bytes to the file."));
-                    write(Protocol.FILE_ERROR, null, req.ERROR);
-                  }
+                  req.transfer = ByteBuffer.wrap(req.buf, 0, x);
+                  req.ch.write(req.transfer, req.pos, null, req.TRANSFER);
                 }catch(Exception e){
                   Logger.logAsync("Error occurred while writing data to file \""+file.toString()+"\".", e);
                   write(Protocol.FILE_ERROR, null, req.ERROR);
@@ -181,6 +189,25 @@ public class SocketWrapper {
               }
               public void failed(Throwable e, Void v){
                 req.fail(e);
+              }
+            };
+            req.TRANSFER = new CompletionHandler<Integer,Void>(){
+              public void completed(Integer x, Void attach){
+                try{
+                  req.pos+=x;
+                  if (req.transfer.hasRemaining()){
+                    req.ch.write(req.transfer, req.pos, null, req.TRANSFER);
+                  }else{
+                    req.transfer = null;
+                    write(Protocol.CONTINUE, null, req.HEADER);
+                  }
+                }catch(Exception e){
+                  this.failed(e,null);
+                }
+              }
+              public void failed(Throwable e, Void attach){
+                Logger.logAsync("Error occurred while writing data to file \""+file.toString()+"\".", e);
+                write(Protocol.FILE_ERROR, null, req.ERROR);
               }
             };
             req.ERROR = new CompletionHandler<Void,Void>(){
@@ -207,7 +234,7 @@ public class SocketWrapper {
               try{
                 ch.close();
               }catch(Exception err){
-                Logger.logAsync("Error occurred while closing FileChannel to \""+file.toString()+"\".", err);
+                Logger.logAsync("Error occurred while closing AsynchronousFileChannel to \""+file.toString()+"\".", err);
               }
             }
             write(Protocol.FILE_ERROR, null, new CompletionHandler<Void,Void>(){
@@ -236,14 +263,17 @@ public class SocketWrapper {
     volatile CompletionHandler<Byte,Void> HEADER2;
     volatile CompletionHandler<byte[],Void> READER;
     volatile CompletionHandler<Integer,Void> READER2;
+    volatile CompletionHandler<Integer,Void> TRANSFER;
     volatile CompletionHandler<Void,Void> ERROR;
     volatile CompletionHandler<Boolean,T> func;
+    volatile ByteBuffer transfer;
     volatile T attach;
-    volatile FileChannel ch;
+    volatile AsynchronousFileChannel ch;
+    volatile long pos = 0;
     volatile byte[] buf = null;
     volatile Path file;
     volatile FileLock lock;
-    ReadFile(T attach, CompletionHandler<Boolean,T> func, FileChannel ch, Path file, FileLock lock){
+    ReadFile(T attach, CompletionHandler<Boolean,T> func, AsynchronousFileChannel ch, Path file, FileLock lock){
       this.attach = attach;
       this.func = func;
       this.ch = ch;
@@ -256,7 +286,7 @@ public class SocketWrapper {
         lock.release();
         ch.close();
       }catch(Exception err){
-        Logger.logAsync("Error occurred while closing FileChannel to \""+file.toString()+"\".", err);
+        Logger.logAsync("Error occurred while closing AsynchronousFileChannel to \""+file.toString()+"\".", err);
       }
       func.completed(transfer, attach);
     }
@@ -266,7 +296,7 @@ public class SocketWrapper {
         lock.release();
         ch.close();
       }catch(Exception err){
-        Logger.logAsync("Error occurred while closing FileChannel to \""+file.toString()+"\".", err);
+        Logger.logAsync("Error occurred while closing AsynchronousFileChannel to \""+file.toString()+"\".", err);
       }
       func.failed(e,attach);
       close();
@@ -299,9 +329,9 @@ public class SocketWrapper {
         Repeat.
       }
     */
-    FileChannel ch = null;
+    AsynchronousFileChannel ch = null;
     try{
-      ch = FileChannel.open(file, StandardOpenOption.READ);
+      ch = AsynchronousFileChannel.open(file, readOpenOptions, Database.exec, emptyAttributes);
       final WriteFile<T> req = new WriteFile<T>(attach, func, ch, file);
       req.RESPONSE = new CompletionHandler<Void,Void>(){
         public void completed(Void v, Void attach){
@@ -320,12 +350,7 @@ public class SocketWrapper {
               }else{
                 req.fileBuf.clear();
               }
-              req.x = req.ch.read(req.fileBuf);
-              if (req.x==-1){
-                write(Protocol.EOF, null, req.EOF);
-              }else{
-                write(Protocol.CONTINUE, null, req.WRITER);
-              }
+              req.ch.read(req.fileBuf, req.pos, null, req.TRANSFER);
             }catch(Exception e){
               Logger.logAsync("Error occurred while reading data from file \""+file.toString()+"\".", e);
               write(Protocol.FILE_ERROR, null, req.ERROR);
@@ -337,6 +362,27 @@ public class SocketWrapper {
         }
         public void failed(Throwable e, Void attach){
           req.fail(e);
+        }
+      };
+      req.TRANSFER = new CompletionHandler<Integer,Void>(){
+        public void completed(Integer x, Void attach){
+          req.x = x;
+          if (req.x==-1){
+            write(Protocol.EOF, null, req.EOF);
+          }else if (req.x==0){
+            try{
+              req.ch.read(req.fileBuf, req.pos, null, req.TRANSFER);
+            }catch(Exception e){
+              this.failed(e,null);
+            }
+          }else{
+            req.pos+=req.x;
+            write(Protocol.CONTINUE, null, req.WRITER);
+          }
+        }
+        public void failed(Throwable e, Void attach){
+          Logger.logAsync("Error occurred while reading data from file \""+file.toString()+"\".", e);
+          write(Protocol.FILE_ERROR, null, req.ERROR);
         }
       };
       req.WRITER = new CompletionHandler<Void,Void>(){
@@ -372,7 +418,7 @@ public class SocketWrapper {
         try{
           ch.close();
         }catch(Exception err){
-          Logger.logAsync("Error occurred while closing FileChannel to \""+file.toString()+"\".", err);
+          Logger.logAsync("Error occurred while closing AsynchronousFileChannel to \""+file.toString()+"\".", err);
         }
       }
       write(Protocol.FILE_ERROR, null, new CompletionHandler<Void,Void>(){
@@ -389,16 +435,18 @@ public class SocketWrapper {
   private class WriteFile<T>{
     volatile CompletionHandler<Void,Void> RESPONSE;
     volatile CompletionHandler<Byte,Void> HEADER;
+    volatile CompletionHandler<Integer,Void> TRANSFER;
     volatile CompletionHandler<Void,Void> WRITER;
     volatile CompletionHandler<Void,Void> EOF;
     volatile CompletionHandler<Void,Void> ERROR;
     volatile CompletionHandler<Boolean,T> func;
     volatile T attach;
-    volatile FileChannel ch;
+    volatile AsynchronousFileChannel ch;
+    volatile long pos = 0;
     volatile ByteBuffer fileBuf = null;
     volatile int x;
     volatile Path file;
-    WriteFile(T attach, CompletionHandler<Boolean,T> func, FileChannel ch, Path file){
+    WriteFile(T attach, CompletionHandler<Boolean,T> func, AsynchronousFileChannel ch, Path file){
       this.attach = attach;
       this.func = func;
       this.ch = ch;
@@ -409,7 +457,7 @@ public class SocketWrapper {
       try{
         ch.close();
       }catch(Exception err){
-        Logger.logAsync("Error occurred while closing FileChannel to \""+file.toString()+"\".", err);
+        Logger.logAsync("Error occurred while closing AsynchronousFileChannel to \""+file.toString()+"\".", err);
       }
       func.completed(transfer, attach);
     }
@@ -418,7 +466,7 @@ public class SocketWrapper {
       try{
         ch.close();
       }catch(Exception err){
-        Logger.logAsync("Error occurred while closing FileChannel to \""+file.toString()+"\".", err);
+        Logger.logAsync("Error occurred while closing AsynchronousFileChannel to \""+file.toString()+"\".", err);
       }
       func.failed(e,attach);
       close();
