@@ -791,6 +791,51 @@ public class ProtocolMap {
         });
       }
     });
+    map.put(Protocol.RESTART_DATABASE, new Consumer<Connection>(){
+      public void accept(final Connection c){
+        c.wrap.readBytes(32, null, c.new Handler<byte[]>(){
+          public void func(byte[] data){
+            try{
+              SerializationStream s = new SerializationStream(data);
+              final int authID = s.readInt();
+              if (!s.end()){
+                Logger.logAsync("Lost data detected.");
+              }
+              byte ret;
+              OperatorTracker t = c.getTracker(authID);
+              if (t==null){
+                ret = Protocol.NOT_LOGGED_IN;
+              }else{
+                t.reset();
+                final int authP = t.getOperator().getPermissions();
+                if ((authP&Permissions.ADMINISTRATOR)==0){
+                  ret = Protocol.INSUFFICIENT_PERMISSIONS;
+                }else{
+                  ret = Protocol.SUCCESS;
+                }
+              }
+              final boolean restart = ret==Protocol.SUCCESS;
+              c.wrap.write(ret, null, c.new Handler<Void>(){
+                public void func(Void v){
+                  if (restart){
+                    Logger.logAsync("Database restart initiated by "+t.getOperator().getUsername());
+                    if (!Main.restart()){
+                      c.listen3();
+                    }
+                  }else{
+                    c.listen3();
+                  }
+                }
+              });
+            }catch(Exception e){
+              Logger.logAsync("Error occurred in RESTART_DATABASE protocol.",e);
+              c.close(true);
+              return;
+            }
+          }
+        });
+      }
+    });
     return map;
   }
 }

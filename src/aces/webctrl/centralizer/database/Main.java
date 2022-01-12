@@ -5,17 +5,16 @@ import java.nio.file.*;
 import java.nio.channels.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
-
-/*
-  Notes
-    This application runs silently in the background
-
-  Changes under consideration
-    Send email alerts whenever the database is shutdown.
-*/
-
+//TODO (NEW FEATURE) - Send email alerts whenever Main.gracefulExit(boolean) is invoked
 /** Handles application initialization and termination */
 public class Main {
+
+  /** Path to the installation folder (the .jar location) */
+  private volatile static Path installation = null;
+  /** Path to the WINSW executable. */
+  private volatile static String WINSW = null;
+  /** Path to the XML configuration file for the Windows service */
+  private volatile static String serviceXML = null;
 
   /** Where all files are stored for this database */
   private volatile static Path rootFolder = null;
@@ -83,6 +82,10 @@ public class Main {
     
     try{
       //Initialization
+
+      installation = Paths.get(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParent();
+      WINSW = '"'+installation.resolve("winsw.exe").toString()+'"';
+      serviceXML = '"'+installation.resolve("service.xml").toString()+'"';
 
       clientAcceptor = new CompletionHandler<AsynchronousSocketChannel,Void>(){
         @Override
@@ -220,6 +223,19 @@ public class Main {
         return false;
       }
     }else{
+      return false;
+    }
+  }
+  /**
+   * Attempts to restart the database service.
+   * @return {@code true} on success; {@code false} if an error has occurred.
+   */
+  public static boolean restart(){
+    try{
+      Runtime.getRuntime().exec("cmd /c start \"\" "+WINSW+" restart "+serviceXML);
+      return true;
+    }catch(Exception e){
+      Logger.logAsync("Error occurred during attempted system restart.", e);
       return false;
     }
   }

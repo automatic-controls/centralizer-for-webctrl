@@ -993,10 +993,10 @@ public class Initializer implements ServletContextListener {
    * @return {@code Result<Byte>} that encapsulates the result of this asynchronous operation.
    * <ul>
    * <li>{@code Protocol.SUCCESS}</li>
+   * <li>{@code Protocol.FAILURE}</li>
    * <li>{@code Protocol.NOT_LOGGED_IN} indiciates the authenticating operator is not logged in.</li>
    * <li>{@code Protocol.INSUFFICIENT_PERMISSIONS} indicates the authenticating operator does not have the required permissions.</li>
    * <li>{@code Protocol.DOES_NOT_EXIST} indicates the server being deleted does not exist.</li>
-   * <li>{@code Protocol.FAILURE} indicates an unexpected error.</li>
    * </ul>
    */
   public static Result<Byte> deleteServer(final int authID, final int sID){
@@ -1235,6 +1235,40 @@ public class Initializer implements ServletContextListener {
                 if (b==Protocol.SUCCESS){
                   pingNow();
                 }
+                ping2(wrapper);
+                return true;
+              }
+            });
+            return true;
+          }
+        });
+      }
+    });
+    if (connected){
+      pingNow();
+    }
+    return ret;
+  }
+  /**
+   * @param authID identifies the operator which authenticates this operation.
+   * @return {@code Result<Byte>} that encapsulates the result of this asynchronous operation.
+   * <ul>
+   * <li>{@code Protocol.SUCCESS}</li>
+   * <li>{@code Protocol.NOT_LOGGED_IN} indiciates the authenticating operator is not logged in.</li>
+   * <li>{@code Protocol.INSUFFICIENT_PERMISSIONS} indicates the authenticating operator does not have the required permissions.</li>
+   * </ul>
+   */
+  public static Result<Byte> restartDatabase(final int authID){
+    final Result<Byte> ret = new Result<Byte>();
+    enqueue(new RunnableProtocol(Protocol.RESTART_DATABASE){
+      public void run(final SocketWrapper wrapper){
+        SerializationStream s = new SerializationStream(4);
+        s.write(authID);
+        wrapper.writeBytes(s.data, null, new Handler<Void>(){
+          public boolean onSuccess(Void v){
+            wrapper.read(null, new Handler<Byte>(){
+              public boolean onSuccess(Byte b){
+                ret.setResult(b);
                 ping2(wrapper);
                 return true;
               }
