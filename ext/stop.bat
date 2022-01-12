@@ -7,7 +7,6 @@ if /i "%*" EQU "--help" (
 )
 setlocal
   set "winsw=%workspace%\database\winsw.exe"
-  set "service=%workspace%\database\service.xml"
   if not exist "%winsw%" (
     echo Please install WinSW before using this command.
     echo https://github.com/winsw/winsw
