@@ -539,6 +539,8 @@ public class Initializer implements ServletContextListener {
               synchronized (nextPingLock){
                 nextPing = null;
               }
+              lockoutCounter = 0;
+              lockoutExpiry = 0;
               wrapper.ping(null, new Handler<Void>(){
                 public boolean onSuccess(Void v){
                   ping1(wrapper);
@@ -693,6 +695,15 @@ public class Initializer implements ServletContextListener {
     enqueuePing(wrap,0);
   }
   /**
+   * Records failed validation attempts while disconnected from the database.
+   */
+  private volatile static int lockoutCounter = 0;
+  /**
+   * Records the time when operator lockouts expire.
+   * If 100 failed validation attempts occur while disconnected, all central operators are locked out for 5 minutes.
+   */
+  private volatile static long lockoutExpiry = 0;
+  /**
    * @param username is the operator to be logged in.
    * @param password is cleared after use for security reasons.
    * @return {@code Result<OperatorStatus>} that encapsulates the result of this asynchronous operation.
@@ -700,13 +711,18 @@ public class Initializer implements ServletContextListener {
   public static Result<OperatorStatus> login(final String username, final byte[] password){
     final Result<OperatorStatus> ret = new Result<OperatorStatus>();
     final OperatorStatus stat = new OperatorStatus();
+    final boolean connected = Initializer.connected;
     stat.operator = Operators.get(username);
     if (stat.operator==null){
       Arrays.fill(password,(byte)0);
       stat.status = Protocol.DOES_NOT_EXIST;
       ret.setResult(stat);
     }else{
-      if (stat.operator.checkCredentials(username,password.clone())){
+      if (!connected && System.currentTimeMillis()<lockoutExpiry){
+        Arrays.fill(password,(byte)0);
+        stat.status = Protocol.LOCKED_OUT;
+        ret.setResult(stat);
+      }else if (stat.operator.checkCredentials(username,password.clone())){
         if (connected){
           enqueue(new RunnableProtocol(Protocol.LOGIN){
             public void run(final SocketWrapper wrapper){
@@ -741,6 +757,13 @@ public class Initializer implements ServletContextListener {
           ret.setResult(stat);
         }
       }else{
+        if (!connected){
+          lockoutCounter+=1;
+          if (lockoutCounter>=100){
+            lockoutExpiry = System.currentTimeMillis()+300000;
+            lockoutCounter = 0;
+          }
+        }
         Arrays.fill(password,(byte)0);
         stat.status = Protocol.FAILURE;
         ret.setResult(stat);
