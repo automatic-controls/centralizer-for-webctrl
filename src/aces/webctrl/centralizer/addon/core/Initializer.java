@@ -13,6 +13,8 @@ import com.controlj.green.addonsupport.*;
 public class Initializer implements ServletContextListener {
   /** The name of the application (used for constructing URLs) */
   private volatile static String name;
+  /** Prefix used for constructing relative URL paths */
+  private volatile static String prefix;
   /** The main processing thread */
   private volatile static Thread mainThread = null;
   /** Task processing queue */
@@ -97,10 +99,15 @@ public class Initializer implements ServletContextListener {
   public static String getName(){
     return name;
   }
+  /** @return the prefix to use for constructing relative URL paths. */
+  public static String getPrefix(){
+    return prefix;
+  }
   /** Loads the local database and attempts to establish a connection to the central database. */
   @Override public void contextInitialized(ServletContextEvent sce){
     AddOnInfo info = AddOnInfo.getAddOnInfo();
     name = info.getName();
+    prefix = '/'+name+'/';
     Path root = info.getPrivateDir().toPath();
     try{
       Logger.init(root.resolve("log.txt"), new Consumer<DelayedRunnable>(){

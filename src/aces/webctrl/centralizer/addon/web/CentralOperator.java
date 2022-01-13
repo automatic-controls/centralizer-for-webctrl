@@ -46,10 +46,8 @@ public class CentralOperator implements com.controlj.green.addonsupport.web.auth
       return true;
     }
   };
-  private final static Set<String> priv = makePrivSet();
-  private static Set<String> makePrivSet(){
-    Set<String> priv = new HashSet<String>();
+  private final static Set<String> priv = new HashSet<String>();
+  static {
     priv.add("administrator");
-    return priv;
   }
 }

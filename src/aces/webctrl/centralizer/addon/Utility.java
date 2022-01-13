@@ -1,10 +1,18 @@
 package aces.webctrl.centralizer.addon;
+import java.io.*;
 public class Utility {
   /**
-   * Builds a servlet path for this addon.
+   * Loads all bytes from the given resource and convert to a {@code UTF-8} string.
+   * @return the {@code UTF-8} string representing the given resource.
    */
-  public static String buildPath(String str){
-    return '/'+aces.webctrl.centralizer.addon.core.Initializer.getName()+'/'+str;
+  public static String loadResourceAsString(Class<?> c, String name) throws Exception {
+    byte[] arr;
+    try(
+      BufferedInputStream s = new BufferedInputStream(c.getClassLoader().getResourceAsStream(name));
+    ){
+      arr = s.readAllBytes();
+    }
+    return new String(arr, java.nio.charset.StandardCharsets.UTF_8);
   }
   /**
    * Reverses the order and XORs each character with 4.

@@ -1,10 +1,23 @@
 package aces.webctrl.centralizer.addon.core;
+import java.util.function.Consumer;
 /**
  * Provides behavior similar to {@code java.util.concurrent.Future<T>}.
  */
 public class Result<T> {
   private volatile T result = null;
   private volatile boolean finished = false;
+  private volatile Consumer<T> consumer = null;
+  /**
+   * Whenever the result is ready, the given consumer will be invoked.
+   * If the result is ready at the time of this method's invokation,
+   * then the given consumer is immediately invoked.
+   */
+  public synchronized void onResult(Consumer<T> consumer){
+    this.consumer = consumer;
+    if (finished && consumer!=null){
+      consumer.accept(result);
+    }
+  }
   /**
    * Sets {@code finished} to {@code false}, which means {@code waitForResult(-1)} will block until the next invokation of {@code setResult(T)}.
    */
@@ -16,9 +29,12 @@ public class Result<T> {
    */
   public void setResult(T result){
     this.result = result;
-    finished = true;
     synchronized (this){
+      finished = true;
       notifyAll();
+      if (consumer!=null){
+        consumer.accept(result);
+      }
     }
   }
   /**

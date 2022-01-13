@@ -18,7 +18,7 @@ public class CentralProvider extends StandardWebOperatorProvider {
     if (op!=null && op instanceof CentralOperator){
       CentralOperator cop = (CentralOperator)op;
       if (cop.changePassword() && Initializer.isConnected()){
-        res.sendRedirect('/'+Initializer.getName()+"/ChangePassword");
+        res.sendRedirect(Initializer.getPrefix()+"ChangePassword");
       }
     }
     return op;
@@ -26,7 +26,7 @@ public class CentralProvider extends StandardWebOperatorProvider {
   @Override public WebOperator validate(final String username, char[] password, String host) throws ValidationException {
     try{
       Result<OperatorStatus> ret = Initializer.login(username, Utility.toBytes(password));
-      if (ret.waitForResult(System.currentTimeMillis()+Utility.ASYNC_TIMEOUT)){
+      if (ret.waitForResult(System.currentTimeMillis()+20000)){
         OperatorStatus stat = ret.getResult();
         if (stat.status==Protocol.DOES_NOT_EXIST){
           return super.validate(username, password, host);
