@@ -1,9 +1,11 @@
 package aces.webctrl.centralizer.addon;
 public class Utility {
   /**
-   * Specifies how long to wait (in milliseconds) while an asynchronous database task completes.
+   * Builds a servlet path for this addon.
    */
-  public final static long ASYNC_TIMEOUT = 30000;
+  public static String buildPath(String str){
+    return '/'+aces.webctrl.centralizer.addon.core.Initializer.getName()+'/'+str;
+  }
   /**
    * Reverses the order and XORs each character with 4.
    */

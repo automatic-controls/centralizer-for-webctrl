@@ -1,5 +1,6 @@
 package aces.webctrl.centralizer.addon.core;
 import aces.webctrl.centralizer.common.*;
+import java.nio.*;
 import java.nio.file.*;
 import java.nio.channels.*;
 import java.util.*;
@@ -38,6 +39,9 @@ public class Initializer implements ServletContextListener {
   private volatile static Task nextPing = null;
   /** Queue containing actions which run on the next ping. */
   private final static Queue<RunnableProtocol> protocolQueue = new LinkedList<RunnableProtocol>();
+  /** Path to JSP file which is edited to prevent addon removal. */
+  private volatile static Path webapps_lite = null;
+
 
   /** Used to control setup parameters for blank databases. */
   private volatile static Object blankSetupLock = new Object();
@@ -104,6 +108,7 @@ public class Initializer implements ServletContextListener {
           enqueue(r);
         }
       });
+      webapps_lite = root.getParent().getParent().getParent().getParent().resolve("_common").resolve("lvl5").resolve("config").resolve("webapps_lite.jsp");
     }catch(Exception e){
       e.printStackTrace();
     }
@@ -121,6 +126,7 @@ public class Initializer implements ServletContextListener {
     Database.init(root, false);
     mainThread = new Thread(){
       public void run(){
+        enqueueConfigure(0);
         enqueueBackup();
         enqueueConnect(0);
         DelayedRunnable r;
@@ -237,6 +243,33 @@ public class Initializer implements ServletContextListener {
   /** Enqueues a task on the primary processing queue */
   public static void enqueue(DelayedRunnable r){
     queue.offer(r);
+  }
+  /** Enqueues a task to edit system WebCTRL files. */
+  private static void enqueueConfigure(long expiry){
+    enqueue(new DelayedRunnable(expiry){
+      public void run(){
+        try{
+          if (Files.exists(webapps_lite)){
+            ByteBuffer buf = ByteBuffer.wrap(new String(Files.readAllBytes(webapps_lite), java.nio.charset.StandardCharsets.UTF_8).replaceAll(
+              "(?<!function )executeWebappCommand\\(\\s*+(?!'start')[^,]++,\\s*+(\\w++)\\s*+\\);?+(?!/\\*EDITED\\*/)",
+              "if ($1!=\""+name+"\"){ $0/*EDITED*/ }"
+            ).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            try(
+              FileChannel ch = FileChannel.open(webapps_lite, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+              FileLock lock = ch.tryLock();
+            ){
+              while (buf.hasRemaining()){
+                ch.write(buf);
+              }
+            }
+          }else{
+            Logger.log("Warning - Cannot locate 'webapps_lite.jsp'.");
+          }
+        }catch(Exception e){
+          Logger.log("Error occurred while configuring system WebCTRL files.", e);
+        }
+      }
+    });
   }
   /** Enqueues a task which attempts to connect to the database */
   private static void enqueueConnect(long expiry){
