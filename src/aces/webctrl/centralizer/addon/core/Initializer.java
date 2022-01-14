@@ -1,4 +1,5 @@
 package aces.webctrl.centralizer.addon.core;
+import aces.webctrl.centralizer.addon.Utility;
 import aces.webctrl.centralizer.common.*;
 import java.nio.*;
 import java.nio.file.*;
@@ -64,7 +65,7 @@ public class Initializer implements ServletContextListener {
    * Sets parameters for configuring blank databases.
    * @return whether configuration was successful.
    */
-  public static boolean configureBlank(String username, byte[] password, String displayName, int navigationTimeout, String description){
+  public static boolean configureBlank(String username, char[] password, String displayName, int navigationTimeout, String description){
     synchronized (blankSetupLock){
       if (Initializer.password!=null){
         java.util.Arrays.fill(Initializer.password, (byte)0);
@@ -75,7 +76,7 @@ public class Initializer implements ServletContextListener {
         return false;
       }
       Initializer.username = username.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-      Initializer.password = password;
+      Initializer.password = Utility.toBytes(password);
       Initializer.displayName = displayName.getBytes(java.nio.charset.StandardCharsets.UTF_8);
       Initializer.navigationTimeout = navigationTimeout;
       Initializer.description = description.getBytes(java.nio.charset.StandardCharsets.UTF_8);
@@ -89,6 +90,9 @@ public class Initializer implements ServletContextListener {
         java.util.Arrays.fill(Initializer.password, (byte)0);
         Initializer.password = null;
       }
+      username = null;
+      displayName = null;
+      description = null;
     }
   }
   /** @return a status message. */
@@ -137,7 +141,7 @@ public class Initializer implements ServletContextListener {
         enqueueBackup();
         enqueueConnect(0);
         DelayedRunnable r;
-        ArrayList<DelayedRunnable> arr = new ArrayList<DelayedRunnable>();
+        ArrayList<Task> arr = new ArrayList<Task>();
         boolean b;
         Task t;
         while (!stop){
@@ -150,7 +154,7 @@ public class Initializer implements ServletContextListener {
                   b = taskExecuting;
                   if (connected){
                     if (b){
-                      arr.add(r);
+                      arr.add(t);
                     }else{
                       taskExecuting = true;
                       try{
@@ -283,8 +287,10 @@ public class Initializer implements ServletContextListener {
     if (!stop){
       enqueue(new DelayedRunnable(expiry){
         public void run(){
+          ClientConfig.ipLock.readLock().lock();
           String host = ClientConfig.host;
           int port = ClientConfig.port;
+          ClientConfig.ipLock.readLock().unlock();
           if (host==null){
             enqueueConnect(System.currentTimeMillis()+ClientConfig.reconnectTimeout);
           }else{

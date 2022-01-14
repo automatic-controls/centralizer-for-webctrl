@@ -30,5 +30,12 @@ public abstract class SecureServlet extends HttpServlet {
       }
     }
   }
-  public abstract void process(final HttpServletRequest req, final HttpServletResponse res) throws Exception;
+  public abstract void process(HttpServletRequest req, HttpServletResponse res) throws Exception;
+  /**
+   * @return the {@code CentralOperator} attached to the given request, or {@code null} if none is attached.
+   */
+  public static CentralOperator getOperator(HttpServletRequest req) throws com.controlj.green.addonsupport.InvalidConnectionRequestException {
+    com.controlj.green.addonsupport.access.Operator webop = com.controlj.green.addonsupport.access.DirectAccess.getDirectAccess().getUserSystemConnection(req).getOperator();
+    return webop instanceof CentralOperator ? (CentralOperator)webop : null;
+  }
 }

@@ -95,16 +95,16 @@ public class Database {
   }
   /**
    * Used to determine whether a given password is sufficiently secure.
-   * @param password the byte array to validate.
+   * @param password the char array to validate.
    * @return {@code true} if {@code 8<=password.length<=128} and the code-point range is {@code >=13}; {@code false} otherwise.
    */
-  public static boolean validatePassword(byte[] password){
+  public static boolean validatePassword(char[] password){
     if (password.length<8 || password.length>128){
       return false;
     }
-    byte min = Byte.MAX_VALUE;
-    byte max = Byte.MIN_VALUE;
-    byte b;
+    char min = Character.MAX_VALUE;
+    char max = Character.MIN_VALUE;
+    char b;
     for (int i=0;i<password.length;++i){
       b = password[i];
       if (b<min){
@@ -115,6 +115,14 @@ public class Database {
       }
     }
     return max-min>12;
+  }
+  /**
+   * Used to determine whether a given password is sufficiently secure.
+   * @param password the byte array to validate.
+   * @return {@code true} if {@code 8<=password.length<=128} and the code-point range is {@code >=13}; {@code false} otherwise.
+   */
+  public static boolean validatePassword(byte[] password){
+    return validatePassword(java.nio.charset.StandardCharsets.UTF_8.decode(java.nio.ByteBuffer.wrap(password)).array());
   }
   /**
    * Specifies whether or not this application is meant to act as a server to host the database (some behavior gets changed slightly).

@@ -5,12 +5,11 @@ import aces.webctrl.centralizer.common.*;
 import java.io.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
-import com.controlj.green.addonsupport.access.*;
 public class ChangePassword extends SecureServlet {
   private volatile static String html = null;
   @Override public void init() throws ServletException {
     try{
-      html = Utility.loadResourceAsString(ChangePassword.class, "ChangePassword.html").replaceAll(
+      html = Utility.loadResourceAsString("aces/webctrl/centralizer/addon/web/ChangePassword.html").replaceAll(
         "(?m)^[ \\t]++",
         ""
       ).replace(
@@ -27,9 +26,9 @@ public class ChangePassword extends SecureServlet {
   }
   @Override public void process(final HttpServletRequest req, final HttpServletResponse res) throws Exception {
     if (Initializer.isConnected()){
-      com.controlj.green.addonsupport.access.Operator webop = DirectAccess.getDirectAccess().getUserSystemConnection(req).getOperator();
-      if (webop instanceof CentralOperator){
-        final aces.webctrl.centralizer.common.Operator op = ((CentralOperator)webop).getOperator();
+      CentralOperator webop = getOperator(req);
+      if (webop!=null){
+        final aces.webctrl.centralizer.common.Operator op = webop.getOperator();
         final PrintWriter out = res.getWriter();
         if (req.getParameter("submit")!=null){//AJAX request to submit new password
           res.setContentType("text/plain");

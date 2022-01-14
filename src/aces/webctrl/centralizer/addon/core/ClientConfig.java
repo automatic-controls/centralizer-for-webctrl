@@ -4,6 +4,7 @@ import java.nio.*;
 import java.nio.file.*;
 import java.nio.channels.*;
 import java.util.Calendar;
+import java.util.concurrent.locks.*;
 public class ClientConfig {
   /**
    * The filepath specifying where to load and save the primary configuration file.
@@ -13,6 +14,15 @@ public class ClientConfig {
    * The IP address of the database.
    */
   public volatile static String host = null;
+  /**
+   * Specifies where the database binds to listen for connections.
+   * Default value is 1978, the year Automatic Controls Equipment Systems, Inc. was founded.
+   */
+  public volatile static int port = 1978;
+  /**
+   * Lock which controls access to host and port.
+   */
+  public final static ReentrantReadWriteLock ipLock = new ReentrantReadWriteLock();
   /**
    * The public key of the central database.
    */
@@ -34,11 +44,6 @@ public class ClientConfig {
    * This server's description.
    */
   public volatile static String description = null;
-  /**
-   * Specifies where the database binds to listen for connections
-   * Default value is 1978, the year Automatic Controls Equipment Systems, Inc. was founded.
-   */
-  public volatile static int port = 1978;
   /**
    * Specifies the hour (0-23) to backup data in RAM to the hard-drive.
    * Default value is 3.
@@ -131,6 +136,10 @@ public class ClientConfig {
     }
   }
   private static byte[] serialize(){
+    ipLock.readLock().lock();
+    int port = ClientConfig.port;
+    String host = ClientConfig.host;
+    ipLock.readLock().unlock();
     byte[] hostBytes = (host==null?"NULL":host).getBytes(java.nio.charset.StandardCharsets.UTF_8);
     byte[] nameBytes = (name==null?"NULL":name).getBytes(java.nio.charset.StandardCharsets.UTF_8);
     byte[] descriptionBytes = (description==null?"NULL":description).getBytes(java.nio.charset.StandardCharsets.UTF_8);
@@ -165,7 +174,7 @@ public class ClientConfig {
   }
   private static void deserialize(byte[] arr){
     SerializationStream s = new SerializationStream(arr);
-    host = s.readString();
+    String host = s.readString();
     if (host.equals("NULL")){
       host = null;
     }
@@ -177,7 +186,11 @@ public class ClientConfig {
     if (description.equals("NULL")){
       description = null;
     }
-    port = s.readInt();
+    int port = s.readInt();
+    ipLock.writeLock().lock();
+    ClientConfig.port = port;
+    ClientConfig.host = host;
+    ipLock.writeLock().unlock();
     backupHr = s.readInt();
     backupMin = s.readInt();
     backupSec = s.readInt();

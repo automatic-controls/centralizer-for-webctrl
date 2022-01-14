@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Centralizer
+    </title>
+    <style>
+      body {
+        background-color:black;
+        color:white;
+      }
+      .e {
+        margin-left:0.5em;
+        margin-right:0.5em;
+        margin-top:0.25em;
+        margin-bottom:0.25em;
+      }
+    </style>
+    <script>
+      function obfuscate(str){
+        let s = ""
+        for (var i=str.length-1;i>=0;--i){
+          s+=String.fromCharCode(str.charCodeAt(i)^4);
+        }
+        return s
+      }
+      function validateNumber(obj){
+        let str = obj.value;
+        if (str.length>0){
+          let c = str.charAt(0);
+          if (c==='-'){
+            str = str.substring(1);
+          }else{
+            c = '';
+          }
+          str = str.replace(/\D/g,"");
+          if (str.length>9){
+            str = str.substring(0,9);
+          }
+          obj.value = c+str;
+        }
+      }
+      function validateLong(obj){
+        let str = obj.value;
+        if (str.length>0){
+          str = str.replace(/\D/g,"");
+          if (str.length>18){
+            str = str.substring(0,18);
+          }
+          obj.value = str;
+        }
+      }
+      function validatePort(obj){
+        let str = obj.value;
+        if (str.length>0){
+          str = str.replace(/\D/g, "");
+          if (str.length>0){
+            let num = Number(str);
+            if (num>65535){
+              num = 65535;
+            }
+            str = String(num).replace(/\D/g, "");
+          }
+          obj.value = str;
+        }
+      }
+      function clearAdmin(){
+        username.value = '';
+        password.value = '';
+        displayName.value = '';
+        navTimeout.value = '';
+        description.value = '';
+      }
+      function saveAdmin(){
+        adminSaveButton.disabled = true;
+        let user = username.value;
+        let pass = password.value;
+        let dis = displayName.value;
+        let nav = navTimeout.value;
+        let desc = description.value;
+        if (nav.length===0){
+          adminStatus.innerHTML = 'Please specify the navigation timeout.';
+        }else if (!/-?\d{1,9}/.test(nav)){
+          adminStatus.innerHTML = 'Invalid navigation timeout.';
+        }else if (dis.length<1){
+          adminStatus.innerHTML = 'Please specify the display name.';
+        }else if (dis.length>32){
+          adminStatus.innerHTML = 'Display name is too long.';
+        }else if (dis.charAt(0)===' ' || dis.charAt(dis.length-1)===' '){
+          adminStatus.innerHTML = 'Display name cannot begin or end with a space.';
+        }else if (!/^[\w ]*$/.test(dis)){
+          adminStatus.innerHTML = "Display name can only contain letters, numbers, underscores, and spaces.";
+        }else if (user.length<1){
+          adminStatus.innerHTML = 'Please specify the username.';
+        }else if (user.length>32){
+          adminStatus.innerHTML = 'Username is too long.';
+        }else if (!/^\w*$/.test(user)){
+          adminStatus.innerHTML = "Username can only contain letters, numbers, and underscores.";
+        }else if (pass.length<8){
+          adminStatus.innerHTML = 'Password must be at least 8 characters long.';
+        }else if (pass.length>128){
+          adminStatus.innerHTML = 'Password can be at most 128 characters long.';
+        }else{
+          let min = pass.charCodeAt(0)
+          let max = min
+          for (var i=1;i<pass.length;++i){
+            var j = pass.charCodeAt(i)
+            if (j<min){
+              min = j;
+            }
+            if (j>max){
+              max = j;
+            }
+          }
+          if (max-min<13){
+            adminStatus.innerHTML = 'Password complexity requirements have not been met. Try adding special characters.';
+          }else{
+            adminStatus.innerHTML = "Submitting...";
+            pass = obfuscate(pass);
+            let req = new XMLHttpRequest();
+            req.open("POST","__PREFIX__index",true);
+            req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
+            req.onreadystatechange = function(){
+              if (this.readyState==4){
+                if (this.status==200){
+                  adminStatus.innerHTML = "Saved successfully!";
+                }else{
+                  adminStatus.innerHTML = "Error code: "+this.status;
+                }
+                adminSaveButton.disabled = false;
+              }
+            }
+            req.send("blankConfig&user="+encodeURIComponent(user)+"&pass="+encodeURIComponent(pass)+"&dis="+encodeURIComponent(dis)+"&nav="+encodeURIComponent(nav)+"&desc="+encodeURIComponent(desc));
+            return;
+          }
+        }
+        adminSaveButton.disabled = false;
+      }
+      function resetConfig(){
+        configResetButton.disabled = true;
+        configSaveButton.disabled = true;
+        host.value = currentHost;
+        port.value = currentPort;
+        backupTime.value = currentBackupTime;
+        timeout.value = currentTimeout;
+        deleteLog.value = currentDeleteLog;
+        serverName.value = currentServerName;
+        serverDesc.value = currentServerDesc;
+        packetCapture.checked = currentPacketCapture;
+        configStatus.innerHTML = '';
+      }
+      function updateConfigResets(){
+        configResetButton.disabled = true;
+        configSaveButton.disabled = true;
+        currentHost = host.value;
+        currentPort = port.value;
+        currentBackupTime = backupTime.value;
+        currentTimeout = timeout.value;
+        currentDeleteLog = deleteLog.value;
+        currentServerName = serverName.value;
+        currentServerDesc = serverDesc.value;
+        currentPacketCapture = packetCapture.checked;
+        configStatus.innerHTML = 'Saved successfully!';
+      }
+      function onConfigChange(){
+        configResetButton.disabled = false;
+        configSaveButton.disabled = false;
+        configStatus.innerHTML = 'Changes unsaved.';
+      }
+      function saveConfig(){
+        configResetButton.disabled = true;
+        configSaveButton.disabled = true;
+        validatePort(port);
+        validateLong(timeout);
+        validateLong(deleteLog);
+        serverName.value = serverName.value.replace(/[^\w ]/g,'');
+        if (host.value.length===0){
+          configStatus.innerHTML = 'Please specify the host.';
+        }else if (port.value.length===0){
+          configStatus.innerHTML = 'Please specify the port.'
+        }else if (backupTime.value.length===0){
+          configStatus.innerHTML = 'Please specify the backup time.';
+        }else if (!/^(?:\d|[0-2]\d):(?:\d|[0-5]\d):(?:\d|[0-5]\d)$/.test(backupTime.value)){
+          configStatus.innerHTML = 'Invalid backup time.';
+        }else if (timeout.value.length===0){
+          configStatus.innerHTML = 'Please specify the timeout.';
+        }else if (deleteLog.value.length===0){
+          configStatus.innerHTML = 'Please specify when to delete log entries.';
+        }else if (serverName.value.length===0){
+          configStatus.innerHTML = 'Please specify the server name.';
+        }else if (serverName.value.charAt(0)===' ' || serverName.value.charAt(serverName.value.length-1)===' '){
+          configStatus.innerHTML = 'Server name cannot begin or end with a space.';
+        }else{
+          configStatus.innerHTML = "Submitting...";
+          let req = new XMLHttpRequest();
+          req.open("POST","__PREFIX__index",true);
+          req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
+          req.onreadystatechange = function(){
+            if (this.readyState==4){
+              if (this.status==200){
+                updateConfigResets();
+              }else{
+                configResetButton.disabled = false;
+                configSaveButton.disabled = false;
+                configStatus.innerHTML = "Error code: "+this.status;
+              }
+            }
+          }
+          req.send("config&host="+encodeURIComponent(host.value)+"&port="+encodeURIComponent(port.value)+"&backupTime="+encodeURIComponent(backupTime.value)+"&timeout="+encodeURIComponent(timeout.value)+"&deleteLog="+encodeURIComponent(deleteLog.value)+"&serverName="+encodeURIComponent(serverName.value)+"&serverDesc="+encodeURIComponent(serverDesc.value)+"&packetCapture="+encodeURIComponent(String(packetCapture.checked)));
+          return;
+        }
+        configResetButton.disabled = false;
+        configSaveButton.disabled = false;
+      }
+      function updateStatus(){
+        let req = new XMLHttpRequest();
+        req.open("GET", "__PREFIX__index?status", true);
+        req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
+        req.onreadystatechange = function(){
+          if (this.readyState==4){
+            if (this.status==200){
+              statusText.innerHTML = this.responseText;
+            }else{
+              statusText.innerHTML = "Error code: "+this.status;
+            }
+            setTimeout(updateStatus,1000);
+          }
+        }
+        req.send();
+      }
+    </script>
+  </head>
+  <body>
+    <div style="text-align:center">
+      <h1>WebCTRL Centralizer Add-On __VERSION__</h1>
+      <h3 id="statusText" class="e" style="color:red">Retrieving status...</h3>
+      <br>
+      <h2 class="e">Configuration Settings</h2>
+      <label for="host">Host:</label>
+      <input id="host" class="e" type="text" autocomplete="off" oninput="onConfigChange()">
+      <br>
+      <label for="port">Port:</label>
+      <input id="port" class="e" type="text" autocomplete="off" oninput="validatePort(this);onConfigChange()"><span>1 - 65535</span>
+      <br>
+      <label for="backupTime"><span title="Given in the format HR[0-23]:MIN[0-59]:SEC[0-59]. For example, 3:0:0 specifies to backup at 3:00AM each day.">Daily Backup Time:</span></label>
+      <input id="backupTime" class="e" type="text" autocomplete="off" oninput="this.value = this.value.replace(/[^\d:]/g,'');onConfigChange()"><span>HR[0-23]:MIN[0-59]:SEC[0-59]</span>
+      <br>
+      <label for="timeout"><span title="Milliseconds to wait for the database to respond before terminating the connection.">Timeout:</span></label>
+      <input id="timeout" class="e" type="text" autocomplete="off" oninput="validateLong(this);onConfigChange()"><span>milliseconds</span>
+      <br>
+      <label for="deleteLog"><span title="Specifies the number of milliseconds to wait before deleting log entries.">Delete Log Entries After:</span></label>
+      <input id="deleteLog" class="e" type="text" autocomplete="off" oninput="validateLong(this);onConfigChange()"><span>milliseconds</span>
+      <br>
+      <label for="serverName">Server Name:</label>
+      <input id="serverName" class="e" type="text" autocomplete="off" oninput="this.value = this.value.replace(/[^\w ]/g,'');onConfigChange()">
+      <br>
+      <label for="serverDesc">Server Description:</label>
+      <br>
+      <textarea id="serverDesc" class="e" rows="4" cols="50" oninput="onConfigChange()"></textarea>
+      <br>
+      <label for="packetCapture"><span title="Specifies whether to record a log of all transmitted/received information from the database. All traffic is encrypted, so sensitive details will not be visible in the log.">Packet Capture:</span></label>
+      <input id="packetCapture" class="e" type="checkbox" onchange="onConfigChange()">
+      <br>
+      <button id="configResetButton" class="e" onclick="resetConfig()">Reset</button>
+      <button id="configSaveButton" class="e" onclick="saveConfig()">Save</button>
+      <h3 id="configStatus" class="e" style="color:red"></h3>
+      <br>
+      <h2 class="e">Administrator Account For Initial Setup</h2>
+      <label for="username">Username:</label>
+      <input id="username" class="e" type="text" autocomplete="off" oninput="this.value = this.value.replace(/\W/g,'')">
+      <br>
+      <label for="password"><span id="passHover">Password:</span></label>
+      <input id="password" class="e" type="password" autocomplete="off" oninput="passHover.title = this.value">
+      <br>
+      <label for="displayName">Display Name:</label>
+      <input id="displayName" class="e" type="text" autocomplete="off" oninput="this.value = this.value.replace(/[^\w ]/g,'')">
+      <br>
+      <label for="navTimeout"><span title="Positive numbers specify the seconds until automatic logoff.&#10;Negative numbers indicate that the system-wide timeout should be used (usually 30 minutes).&#10;Zero disabled automatic logoff.">Navigation Timeout</span>:</label>
+      <input id="navTimeout" class="e" type="text" autocomplete="off" oninput="validateNumber(this)"><span>seconds</span>
+      <br>
+      <label for="description">Description:</label>
+      <br>
+      <textarea id="description" class="e" rows="4" cols="50"></textarea>
+      <br>
+      <button class="e" onclick="clearAdmin()">Clear</button>
+      <button id="adminSaveButton" class="e" onclick="saveAdmin()">Save</button>
+      <h3 id="adminStatus" class="e" style="color:red"></h3>
+    </div>
+    <script>
+      var currentHost = "__HOST__";
+      var currentPort = "__PORT__";
+      var currentBackupTime = "__BACKUP_TIME__";
+      var currentTimeout = "__TIMEOUT__";
+      var currentDeleteLog = "__DELETE_LOG__";
+      var currentServerName = "__SERVER_NAME__";
+      var currentServerDesc = "__SERVER_DESC__";
+      var currentPacketCapture = __PACKET_CAPTURE__;
+      resetConfig();
+      updateStatus();
+    </script>
+  </body>
+</html>
