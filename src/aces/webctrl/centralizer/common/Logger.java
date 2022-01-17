@@ -47,7 +47,7 @@ public class Logger {
       log(str);
     }else{
       final Date d = new Date();
-      asyncLogConsumer.accept(new DelayedRunnable(0){
+      asyncLogConsumer.accept(new DelayedRunnable(d.getTime()){
         public void run(){
           log(str, d);
         }
@@ -84,7 +84,7 @@ public class Logger {
       log(desc,e);
     }else{
       final Date d = new Date();
-      asyncLogConsumer.accept(new DelayedRunnable(0){
+      asyncLogConsumer.accept(new DelayedRunnable(d.getTime()){
         public void run(){
           log(desc, e, d);
         }
@@ -123,7 +123,7 @@ public class Logger {
     if (asyncLogConsumer==null){
       log(e);
     }else{
-      asyncLogConsumer.accept(new DelayedRunnable(0){
+      asyncLogConsumer.accept(new DelayedRunnable(System.currentTimeMillis()){
         public void run(){
           log(e);
         }
