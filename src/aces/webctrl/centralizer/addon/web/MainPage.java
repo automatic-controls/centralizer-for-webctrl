@@ -111,6 +111,9 @@ public class MainPage extends SecureServlet {
               ClientConfig.port = portNum;
               ClientConfig.ipLock.writeLock().unlock();
               Initializer.forceDisconnect();
+              ClientConfig.ID = -1;
+              ClientConfig.identifier = null;
+              ClientConfig.databaseKey = null;
               out.flush();
             }else if (!serverName.equals(prevName) || !serverDesc.equals(prevDesc)){
               if (Initializer.isConnected()){
