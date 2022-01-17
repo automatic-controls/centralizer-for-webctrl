@@ -95,14 +95,15 @@ public class StreamCipher {
       key[i]^=b;
       b+=key[i];
     }
-    k = key.length<<1;
-    for (i=0;i<k;++i){
-      j = b%key.length;
-      if (j<0){
-        j+=key.length;
+    for (k=0;k<2;++k){
+      for (i=0;i<key.length;++i){
+        j = b%key.length;
+        if (j<0){
+          j+=key.length;
+        }
+        b+=key[j];
+        key[i]^=b;
       }
-      b+=key[j];
-      key[i]^=b;
     }
     keyXOR = 0;
     for (i=0;i<key.length;++i){
