@@ -9,11 +9,41 @@
         background-color:black;
         color:white;
       }
+      a:link {
+        color: lightgreen;
+        background-color: transparent;
+        text-decoration: none;
+      }
+      a:visited {
+        color: green;
+        background-color: transparent;
+        text-decoration: none;
+      }
+      a:hover {
+        color: red;
+        background-color: transparent;
+        text-decoration: underline;
+      }
+      a:active {
+        color: yellow;
+        background-color: transparent;
+        text-decoration: underline;
+      }
       .e {
         margin-left:0.5em;
         margin-right:0.5em;
         margin-top:0.25em;
         margin-bottom:0.25em;
+      }
+      .column {
+        float:left;
+        width:50%;
+      }
+      .row {
+        content: "";
+        display:table;
+        clear:both;
+        width:100%;
       }
     </style>
     <script>
@@ -46,6 +76,16 @@
           str = str.replace(/\D/g,"");
           if (str.length>18){
             str = str.substring(0,18);
+          }
+          obj.value = str;
+        }
+      }
+      function validatePositiveInt(obj){
+        let str = obj.value;
+        if (str.length>0){
+          str = str.replace(/\D/g,"");
+          if (str.length>9){
+            str = str.substring(0,9);
           }
           obj.value = str;
         }
@@ -228,63 +268,153 @@
         }
         req.send();
       }
+      function sendCommand(obj, status, cmd, msg){
+        obj.disabled = true;
+        let req = new XMLHttpRequest();
+        req.open("GET", "__PREFIX__index?"+cmd, true);
+        req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
+        req.onreadystatechange = function(){
+          if (this.readyState==4){
+            if (this.status==200){
+              status.innerHTML = msg;
+            }else{
+              status.innerHTML = "Error code: "+this.status;
+            }
+            obj.disabled = false;
+          }
+        }
+        req.send();
+      }
+      function restartDatabase(obj){
+        sendCommand(obj,dataStatus,"restart","Database restart initiated.");
+      }
+      function genKey(obj){
+        sendCommand(obj,dataStatus,"genkey","New key generated.");
+      }
+      function setProvider(obj){
+        sendCommand(obj,configStatus,"setprovider","Authentication provider set.");
+      }
+      function refreshData(){
+
+      }
+      function saveData(){
+
+      }
     </script>
   </head>
   <body>
     <div style="text-align:center">
-      <h1>WebCTRL Centralizer Add-On __VERSION__</h1>
+      <h1>WebCTRL Centralizer __VERSION__</h1>
       <h3 id="statusText" class="e" style="color:red">Retrieving status...</h3>
       <br>
-      <h2 class="e">Configuration Settings</h2>
-      <label for="host">Host:</label>
-      <input id="host" class="e" type="text" autocomplete="off" oninput="onConfigChange()">
-      <br>
-      <label for="port">Port:</label>
-      <input id="port" class="e" type="text" autocomplete="off" oninput="validatePort(this);onConfigChange()"><span>1 - 65535</span>
-      <br>
-      <label for="backupTime"><span title="Given in the format HR[0-23]:MIN[0-59]:SEC[0-59]. For example, 3:0:0 specifies to backup at 3:00AM each day.">Daily Backup Time:</span></label>
-      <input id="backupTime" class="e" type="text" autocomplete="off" oninput="this.value = this.value.replace(/[^\d:]/g,'');onConfigChange()"><span>HR[0-23]:MIN[0-59]:SEC[0-59]</span>
-      <br>
-      <label for="timeout"><span title="Milliseconds to wait for the database to respond before terminating the connection.">Timeout:</span></label>
-      <input id="timeout" class="e" type="text" autocomplete="off" oninput="validateLong(this);onConfigChange()"><span>milliseconds</span>
-      <br>
-      <label for="deleteLog"><span title="Specifies the number of milliseconds to wait before deleting log entries.">Delete Log Entries After:</span></label>
-      <input id="deleteLog" class="e" type="text" autocomplete="off" oninput="validateLong(this);onConfigChange()"><span>milliseconds</span>
-      <br>
-      <label for="serverName">Server Name:</label>
-      <input id="serverName" class="e" type="text" autocomplete="off" oninput="this.value = this.value.replace(/[^\w ]/g,'');onConfigChange()">
-      <br>
-      <label for="serverDesc">Server Description:</label>
-      <br>
-      <textarea id="serverDesc" class="e" rows="4" cols="50" oninput="onConfigChange()"></textarea>
-      <br>
-      <label for="packetCapture"><span title="Specifies whether to record a log of all transmitted/received information from the database. All traffic is encrypted, so sensitive details will not be visible in the log.">Packet Capture:</span></label>
-      <input id="packetCapture" class="e" type="checkbox" onchange="onConfigChange()">
-      <br>
-      <button id="configResetButton" class="e" onclick="resetConfig()">Reset</button>
-      <button id="configSaveButton" class="e" onclick="saveConfig()">Save</button>
-      <h3 id="configStatus" class="e" style="color:red"></h3>
-      <br>
-      <h2 class="e">Administrator Account For Initial Setup</h2>
-      <label for="username">Username:</label>
-      <input id="username" class="e" type="text" autocomplete="off" oninput="this.value = this.value.replace(/\W/g,'')">
-      <br>
-      <label for="password"><span id="passHover">Password:</span></label>
-      <input id="password" class="e" type="password" autocomplete="off" oninput="passHover.title = this.value">
-      <br>
-      <label for="displayName">Display Name:</label>
-      <input id="displayName" class="e" type="text" autocomplete="off" oninput="this.value = this.value.replace(/[^\w ]/g,'')">
-      <br>
-      <label for="navTimeout"><span title="Positive numbers specify the seconds until automatic logoff.&#10;Negative numbers indicate that the system-wide timeout should be used (usually 30 minutes).&#10;Zero disabled automatic logoff.">Navigation Timeout</span>:</label>
-      <input id="navTimeout" class="e" type="text" autocomplete="off" oninput="validateNumber(this)"><span>seconds</span>
-      <br>
-      <label for="description">Description:</label>
-      <br>
-      <textarea id="description" class="e" rows="4" cols="50"></textarea>
-      <br>
-      <button class="e" onclick="clearAdmin()">Clear</button>
-      <button id="adminSaveButton" class="e" onclick="saveAdmin()">Save</button>
-      <h3 id="adminStatus" class="e" style="color:red"></h3>
+      <div class="row">
+        <div class="column">
+          <h2 class="e">Add-On Settings</h2>
+          <label for="host">Host:</label>
+          <input id="host" class="e" type="text" autocomplete="off" oninput="onConfigChange()">
+          <br>
+          <label for="port">Port:</label>
+          <input id="port" class="e" type="text" autocomplete="off" oninput="validatePort(this);onConfigChange()"><span>1 - 65535</span>
+          <br>
+          <label for="backupTime"><span title="Given in the format HR[0-23]:MIN[0-59]:SEC[0-59]. For example, 3:0:0 specifies to backup at 3:00AM each day.">Daily Backup Time:</span></label>
+          <input id="backupTime" class="e" type="text" autocomplete="off" oninput="this.value = this.value.replace(/[^\d:]/g,'');onConfigChange()"><span>HR[0-23]:MIN[0-59]:SEC[0-59]</span>
+          <br>
+          <label for="timeout"><span title="Milliseconds to wait for a response before terminating the connection.">Timeout:</span></label>
+          <input id="timeout" class="e" type="text" autocomplete="off" oninput="validateLong(this);onConfigChange()"><span>milliseconds</span>
+          <br>
+          <label for="deleteLog"><span title="Specifies the number of milliseconds to wait before deleting log entries.">Delete Log Entries After:</span></label>
+          <input id="deleteLog" class="e" type="text" autocomplete="off" oninput="validateLong(this);onConfigChange()"><span>milliseconds</span>
+          <br>
+          <label for="serverName">Server Name:</label>
+          <input id="serverName" class="e" type="text" autocomplete="off" oninput="this.value = this.value.replace(/[^\w ]/g,'');onConfigChange()">
+          <br>
+          <label for="serverDesc">Server Description:</label>
+          <br>
+          <textarea id="serverDesc" class="e" rows="4" cols="50" oninput="onConfigChange()"></textarea>
+          <br>
+          <label for="packetCapture"><span title="Specifies whether to record a log of all transmitted/received information from the database. All traffic is encrypted, so sensitive details will not be visible in the log.">Raw Packet Capture:</span></label>
+          <input id="packetCapture" class="e" type="checkbox" onchange="onConfigChange()">
+          <br>
+          <button id="configResetButton" class="e" onclick="resetConfig()">Reset</button>
+          <button id="configSaveButton" class="e" onclick="saveConfig()">Save</button>
+          <br><br>
+          <span title="Attempts to set this add-on as the authentication provider for the server. For changes to take effect, the server must be restarted (e.g, use the manual command 'rebootserver')."><button class="e" onclick="setProvider(this)">Set Authentication Provider</button></span>
+          <h3 id="configStatus" class="e" style="color:red"></h3>
+          <br>
+          <h2 class="e">Admin Account For Blank Setup</h2>
+          <label for="username">Username:</label>
+          <input id="username" class="e" type="text" autocomplete="off" oninput="this.value = this.value.replace(/\W/g,'')">
+          <br>
+          <label for="password"><span id="passHover">Password:</span></label>
+          <input id="password" class="e" type="password" autocomplete="off" oninput="passHover.title = this.value">
+          <br>
+          <label for="displayName">Display Name:</label>
+          <input id="displayName" class="e" type="text" autocomplete="off" oninput="this.value = this.value.replace(/[^\w ]/g,'')">
+          <br>
+          <label for="navTimeout"><span title="Positive numbers specify the seconds until automatic logoff.&#10;Negative numbers indicate that the system-wide timeout should be used (usually 30 minutes).&#10;Zero disabled automatic logoff.">Navigation Timeout</span>:</label>
+          <input id="navTimeout" class="e" type="text" autocomplete="off" oninput="validateNumber(this)"><span>seconds</span>
+          <br>
+          <label for="description">Description:</label>
+          <br>
+          <textarea id="description" class="e" rows="4" cols="50"></textarea>
+          <br>
+          <button class="e" onclick="clearAdmin()">Clear</button>
+          <button id="adminSaveButton" class="e" onclick="saveAdmin()">Save</button>
+          <h3 id="adminStatus" class="e" style="color:red"></h3>
+        </div>
+        <div class="column">
+          <h2 class="e">Database Settings</h2>
+          <label for="dataPort">Port:</label>
+          <input id="dataPort" class="e" type="text" autocomplete="off" oninput="validatePort(this)"><span>1 - 65535</span>
+          <br>
+          <label for="dataBackupTime"><span title="Given in the format HR[0-23]:MIN[0-59]:SEC[0-59]. For example, 3:0:0 specifies to backup at 3:00AM each day.">Daily Backup Time:</span></label>
+          <input id="dataBackupTime" class="e" type="text" autocomplete="off" oninput="this.value = this.value.replace(/[^\d:]/g,'')"><span>HR[0-23]:MIN[0-59]:SEC[0-59]</span>
+          <br>
+          <label for="dataBacklog"><span title="Specifies the maximum number of pending connections.">Maximum Connection Waitlist:</span></label>
+          <input id="dataBacklog" class="e" type="text" autocomplete="off" oninput="validatePositiveInt(this)">
+          <br>
+          <label for="dataTimeout"><span title="Milliseconds to wait for a response before terminating the connection.">Response Timeout:</span></label>
+          <input id="dataTimeout" class="e" type="text" autocomplete="off" oninput="validateLong(this)"><span>milliseconds</span>
+          <br>
+          <label for="dataOpTimeout"><span title="Specifies how long (in milliseconds) it takes for an operator to be logged off the database due to inactivity.
+            ">Operator Timeout:</span></label>
+          <input id="dataOpTimeout" class="e" type="text" autocomplete="off" oninput="validateLong(this)"><span>milliseconds</span>
+          <br>
+          <label for="dataDeleteLog"><span title="Specifies the number of milliseconds to wait before deleting log entries.">Delete Log Entries After:</span></label>
+          <input id="dataDeleteLog" class="e" type="text" autocomplete="off" oninput="validateLong(this)"><span>milliseconds</span>
+          <br>
+          <label for="dataPingInterval"><span title="Connected servers attempt to ping the database every so often, as specified by this value in milliseconds.">Ping Interval:</span></label>
+          <input id="dataPingInterval" class="e" type="text" autocomplete="off" oninput="validateLong(this)"><span>milliseconds</span>
+          <br>
+          <label for="dataLoginAttempts"><span title="Operators are allowed a maximum of [LoginAttempts] failed logins during any period of [LoginPeriod]. If exceeded, an operator lockout of [LockoutPeriod] is incurred. Setting [LoginAttempts] to -1 disables the lockout mechanism.">Login Attempts:</span></label>
+          <input id="dataLoginAttempts" class="e" type="text" autocomplete="off" oninput="validateNumber(this)">
+          <br>
+          <label for="dataLoginTime"><span title="Operators are allowed a maximum of [LoginAttempts] failed logins during any period of [LoginPeriod]. If exceeded, an operator lockout of [LockoutPeriod] is incurred. Setting [LoginAttempts] to -1 disables the lockout mechanism.">Login Period:</span></label>
+          <input id="dataLoginTime" class="e" type="text" autocomplete="off" oninput="validateLong(this)"><span>milliseconds</span>
+          <br>
+          <label for="dataLockoutTime"><span title="Operators are allowed a maximum of [LoginAttempts] failed logins during any period of [LoginPeriod]. If exceeded, an operator lockout of [LockoutPeriod] is incurred. Setting [LoginAttempts] to -1 disables the lockout mechanism.">Lockout Period:</span></label>
+          <input id="dataLockoutTime" class="e" type="text" autocomplete="off" oninput="validateLong(this)"><span>milliseconds</span>
+          <br>
+          <label for="dataPacketCapture"><span title="Specifies whether to record a log of all transmitted/received information. All traffic is encrypted, so sensitive details will not be visible in the log.">Raw Packet Capture:</span></label>
+          <input id="dataPacketCapture" class="e" type="checkbox">
+          <br>
+          <button id="dataRefreshButton" class="e" onclick="refreshData()">Refresh</button>
+          <button id="dataSaveButton" class="e" onclick="saveData()">Save</button>
+          <br><br>
+          <button class="e" onclick="restartDatabase(this)">Restart Database</button>
+          <button class="e" onclick="genKey(this)">Regenerate Preshared Key</button>
+          <h3 id="dataStatus" class="e" style="color:red"></h3>
+          <br>
+          <h2 class="e">Other Links</h2>
+          <a target="_blank" href="https://github.com/automatic-controls/webctrl-centralizer/blob/main/README.md">Documentation</a><br><br>
+          <a href="__PREFIX__ChangePassword">Change Your Password</a><br>
+          <a href="__PREFIX__ManageOperators">Manage Operators</a><br>
+          <a href="__PREFIX__ManageServers">Manage Servers</a><br>
+          <a href="__PREFIX__ManageFileSync">Manage File Synchronization</a><br>
+          <a href="__PREFIX__ManageDataCollection">Manage Data Collection</a><br>
+          <a href="__PREFIX__ManageScripts">Manage Scripts</a><br>
+        </div>
+      </div>
     </div>
     <script>
       var currentHost = "__HOST__";
@@ -294,9 +424,10 @@
       var currentDeleteLog = "__DELETE_LOG__";
       var currentServerName = "__SERVER_NAME__";
       var currentServerDesc = "__SERVER_DESC__";
-      var currentPacketCapture = __PACKET_CAPTURE__;
+      var currentPacketCapture = "__PACKET_CAPTURE__";
       resetConfig();
       updateStatus();
+      refreshData();
     </script>
   </body>
 </html>

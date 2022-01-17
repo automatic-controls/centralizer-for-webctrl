@@ -18,6 +18,8 @@ public class Initializer implements ServletContextListener {
   private volatile static String prefix;
   /** The main processing thread */
   private volatile static Thread mainThread = null;
+  /** Tracks results to perform callbacks if the socket should be disconnected before normal result resolution can occur. */
+  private final static List<Result<?>> results = Collections.synchronizedList(new LinkedList<Result<?>>());
   /** Task processing queue */
   private final static DelayQueue<DelayedRunnable> queue = new DelayQueue<DelayedRunnable>();
   /** Becomes true when the servlet context is destroyed */
@@ -238,6 +240,7 @@ public class Initializer implements ServletContextListener {
         cancelNextPing();
         connected = false;
         taskExecuting = false;
+        clearResults();
         status = "Disconnected";
         Logger.logAsync("Forcibly disconnected from central database.");
         enqueueConnect(System.currentTimeMillis()+(ClientConfig.reconnectTimeout>>1));
@@ -245,6 +248,7 @@ public class Initializer implements ServletContextListener {
     }catch(Exception e){
       cancelNextPing();
       connected = false;
+      taskExecuting = false;
       status = "Disconnected";
       if (verboseLogging){ Logger.logAsync("Error occurred while forcibly disconnecting.", e); }
       enqueueConnect(System.currentTimeMillis()+(ClientConfig.reconnectTimeout>>1));
@@ -257,9 +261,20 @@ public class Initializer implements ServletContextListener {
     ch = null;
     wrap = null;
     cancelNextPing();
+    clearResults();
     status = "Disconnected";
     Logger.logAsync("Task failed with error.", e);
     enqueueConnect(System.currentTimeMillis()+(ClientConfig.reconnectTimeout>>3));
+  }
+  private static void clearResults(){
+    synchronized (results){
+      for (Result<?> r:results){
+        if (!r.isFinished()){
+          r.setResult(null);
+        }
+      }
+      results.clear();
+    }
   }
   /** Enqueues a task on the primary processing queue */
   public static void enqueue(DelayedRunnable r){
@@ -788,6 +803,7 @@ public class Initializer implements ServletContextListener {
         ret.setResult(stat);
       }else if (stat.operator.checkCredentials(username,password.clone())){
         if (connected){
+          results.add(ret);
           enqueue(new RunnableProtocol(Protocol.LOGIN){
             public void run(final SocketWrapper wrapper){
               if (verboseLogging){ Logger.logAsync("Protocol.LOGIN"); }

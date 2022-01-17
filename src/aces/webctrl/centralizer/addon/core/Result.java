@@ -7,6 +7,7 @@ public class Result<T> {
   private volatile T result = null;
   private volatile boolean finished = false;
   private volatile Consumer<T> consumer = null;
+  private volatile long timestamp = -1;
   /**
    * Whenever the result is ready, the given consumer will be invoked.
    * If the result is ready at the time of this method's invokation,
@@ -23,12 +24,15 @@ public class Result<T> {
    */
   public void reset(){
     finished = false;
+    result = null;
+    timestamp = -1;
   }
   /**
    * Sets the result and invokes {@code notifyAll()}.
    */
   public void setResult(T result){
     this.result = result;
+    timestamp = System.currentTimeMillis();
     synchronized (this){
       finished = true;
       notifyAll();
@@ -43,6 +47,18 @@ public class Result<T> {
    */
   public T getResult(){
     return result;
+  }
+  /**
+   * @return whether the result has been set.
+   */
+  public boolean isFinished(){
+    return finished;
+  }
+  /**
+   * @return the value of {@code System.currentTimeMillis()} as recorded at the time of the last invokation of {@code setResult(T)}, or {@code -1} if no result has been set.
+   */
+  public long getTimestamp(){
+    return timestamp;
   }
   /**
    * <ul>

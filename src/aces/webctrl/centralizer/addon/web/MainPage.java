@@ -96,6 +96,9 @@ public class MainPage extends SecureServlet {
             ClientConfig.backupHr = backupHr;
             ClientConfig.backupMin = backupMin;
             ClientConfig.backupSec = backupSec;
+            if (deleteLogNum<ClientConfig.deleteLogAfter){
+              Logger.trim(deleteLogNum);
+            }
             ClientConfig.deleteLogAfter = deleteLogNum;
             ClientConfig.timeout = timeoutNum;
             ClientConfig.ipLock.readLock().lock();
@@ -110,10 +113,10 @@ public class MainPage extends SecureServlet {
               ClientConfig.host = host;
               ClientConfig.port = portNum;
               ClientConfig.ipLock.writeLock().unlock();
-              Initializer.forceDisconnect();
               ClientConfig.ID = -1;
               ClientConfig.identifier = null;
               ClientConfig.databaseKey = null;
+              Initializer.forceDisconnect();
               out.flush();
             }else if (!serverName.equals(prevName) || !serverDesc.equals(prevDesc)){
               if (Initializer.isConnected()){
@@ -181,7 +184,7 @@ public class MainPage extends SecureServlet {
           host = "";
         }
         out.print(html.replace(
-          "__PACKET_CAPTURE__",
+          "\"__PACKET_CAPTURE__\"",
           String.valueOf(PacketLogger.isWorking())
         ).replace(
           "__HOST__",
