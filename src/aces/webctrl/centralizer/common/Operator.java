@@ -4,8 +4,6 @@ import java.nio.file.*;
 import java.nio.channels.*;
 import java.util.*;
 import java.util.concurrent.locks.*;
-//TODO (New Feature) - custom start locations
-//TODO (New Feature) - location dependent security
 /**
  * Thread-safe class encapsulating a single operator.
  */

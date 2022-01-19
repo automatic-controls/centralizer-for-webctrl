@@ -15,19 +15,14 @@ public abstract class SecureServlet extends HttpServlet {
     try{
       req.setCharacterEncoding("UTF-8");
       res.setCharacterEncoding("UTF-8");
-      if (req.isSecure()){
+      if (aces.webctrl.centralizer.addon.core.Initializer.debugMode || req.isSecure()){
         process(req,res);
       }else{
         res.sendError(403, "You are using an insecure connection protocol.");
       }
     }catch(Exception e){
-      if (e instanceof ServletException){
-        throw (ServletException)e;
-      }else if (e instanceof IOException){
-        throw (IOException)e;
-      }else{
-        throw new ServletException(e);
-      }
+      aces.webctrl.centralizer.common.Logger.logAsync("Error occurred in SecureServlet.", e);
+      res.sendError(500);
     }
   }
   public abstract void process(HttpServletRequest req, HttpServletResponse res) throws Exception;

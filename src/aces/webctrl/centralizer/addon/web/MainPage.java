@@ -2,12 +2,16 @@ package aces.webctrl.centralizer.addon.web;
 import aces.webctrl.centralizer.addon.core.*;
 import aces.webctrl.centralizer.addon.Utility;
 import aces.webctrl.centralizer.common.*;
+import com.controlj.green.addonsupport.web.auth.AuthenticationManager;
+import com.controlj.green.extensionsupport.Extension;
 import java.io.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
 import java.util.*;
+import java.nio.file.*;
 public class MainPage extends SecureServlet {
   private volatile static String html = null;
+  private volatile static Path addonFile = null;
   @Override public void init() throws ServletException {
     try{
       html = Utility.loadResourceAsString("aces/webctrl/centralizer/addon/web/MainPage.html").replaceAll(
@@ -20,6 +24,11 @@ public class MainPage extends SecureServlet {
         "__VERSION__",
         'v'+Config.VERSION
       );
+      if (Initializer.info.getServerVersion().getVersionNumber().equals("7.0")){
+        addonFile = Paths.get(MainPage.class.getProtectionDomain().getCodeSource().getLocation().getPath());
+      }else{
+        addonFile = Paths.get(MainPage.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+      }
     }catch(Exception e){
       if (e instanceof ServletException){
         throw (ServletException)e;
@@ -34,7 +43,67 @@ public class MainPage extends SecureServlet {
       if (req.getParameter("status")!=null){
         res.setContentType("text/plain");
         out.print(Initializer.getStatus());
-        out.flush();
+      }else if (req.getParameter("restart")!=null){
+        if (Initializer.isConnected()){
+          CentralOperator webop = getOperator(req);
+          if (webop==null){
+            res.setStatus(401);
+          }else{
+            Operator op = webop.getOperator();
+            if ((op.getPermissions()&Permissions.ADMINISTRATOR)==0){
+              res.setStatus(401);
+            }else{
+              Result<Byte> ret = Initializer.restartDatabase(op.getID());
+              if (ret.waitForResult(System.currentTimeMillis()+10000)){
+                if (ret.getResult()!=Protocol.SUCCESS){
+                  res.setStatus(401);
+                }
+              }else{
+                res.setStatus(504);
+              }
+            }
+          }
+        }else{
+          res.setStatus(504);
+        }
+      }else if (req.getParameter("genkey")!=null){
+        if (Initializer.isConnected()){
+          CentralOperator webop = getOperator(req);
+          if (webop==null){
+            res.setStatus(401);
+          }else{
+            Operator op = webop.getOperator();
+            if ((op.getPermissions()&Permissions.ADMINISTRATOR)==0){
+              res.setStatus(401);
+            }else{
+              Result<Byte> ret = Initializer.generatePresharedKey(op.getID());
+              if (ret.waitForResult(System.currentTimeMillis()+10000)){
+                if (ret.getResult()!=Protocol.SUCCESS){
+                  res.setStatus(401);
+                }
+              }else{
+                res.setStatus(504);
+              }
+            }
+          }
+        }else{
+          res.setStatus(504);
+        }
+      }else if (req.getParameter("setprovider")!=null){
+        AuthenticationManager auth = new AuthenticationManager();
+        List<Extension> list = auth.findWebOperatorProviders();
+        Extension thisExtension = null;
+        for (Extension e:list){
+          if (Files.isSameFile(e.getSourceFile().toPath(), addonFile)){
+            thisExtension = e;
+          }
+        }
+        if (thisExtension==null){
+          res.setStatus(500);
+          Logger.logAsync("Failed to set authentication provider because this Extension could not be found.");
+        }else{
+          auth.activateProvider(thisExtension);
+        }
       }else if (req.getParameter("blankConfig")!=null){
         final String user = req.getParameter("user");
         final String pass = req.getParameter("pass");
@@ -42,21 +111,19 @@ public class MainPage extends SecureServlet {
         final String nav = req.getParameter("nav");
         final String desc = req.getParameter("desc");
         if (user==null || pass==null || dis==null || nav==null || desc==null){
-          res.sendError(400);
+          res.setStatus(400);
         }else{
           int navNum;
           try{
             navNum = Integer.parseInt(nav);
           }catch(Exception e){
-            res.sendError(400);
+            res.setStatus(400);
             return;
           }
           char[] password = pass.toCharArray();
           Utility.obfuscate(password);
-          if (Initializer.configureBlank(user, password, dis, navNum, desc)){
-            out.flush();
-          }else{
-            res.sendError(400);
+          if (!Initializer.configureBlank(user, password, dis, navNum, desc)){
+            res.setStatus(400);
           }
         }
       }else if (req.getParameter("config")!=null){
@@ -69,7 +136,7 @@ public class MainPage extends SecureServlet {
         final String serverDesc = req.getParameter("serverDesc");
         final String packetCapture = req.getParameter("packetCapture");
         if (host==null || port==null || backupTime==null || timeout==null || deleteLog==null || serverName==null || serverDesc==null || packetCapture==null){
-          res.sendError(400);
+          res.setStatus(400);
         }else{
           try{
             final int portNum = Integer.parseInt(port);
@@ -78,14 +145,14 @@ public class MainPage extends SecureServlet {
             final boolean packets = Boolean.parseBoolean(packetCapture);
             final String[] arr = backupTime.split(":");
             if (arr.length!=3){
-              res.sendError(400);
+              res.setStatus(400);
               return;
             }
             final int backupHr = Integer.parseInt(arr[0]);
             final int backupMin = Integer.parseInt(arr[1]);
             final int backupSec = Integer.parseInt(arr[2]);
             if (backupHr<0 || backupHr>23 || backupMin<0 || backupMin>59 || backupSec<0 || backupSec>59){
-              res.sendError(400);
+              res.setStatus(400);
               return;
             }
             if (packets){
@@ -117,16 +184,15 @@ public class MainPage extends SecureServlet {
               ClientConfig.identifier = null;
               ClientConfig.databaseKey = null;
               Initializer.forceDisconnect();
-              out.flush();
             }else if (!serverName.equals(prevName) || !serverDesc.equals(prevDesc)){
               if (Initializer.isConnected()){
                 CentralOperator webop = getOperator(req);
                 if (webop==null){
-                  res.sendError(401);
+                  res.setStatus(401);
                 }else{
                   Operator op = webop.getOperator();
                   if ((op.getPermissions()&Permissions.ADMINISTRATOR)==0){
-                    res.sendError(401);
+                    res.setStatus(401);
                   }else{
                     LinkedList<ServerModification> list = new LinkedList<ServerModification>();
                     if (!serverName.equals(prevName)){
@@ -135,43 +201,22 @@ public class MainPage extends SecureServlet {
                     if (!serverDesc.equals(prevDesc)){
                       list.add(ServerModification.changeDescription(serverDesc));
                     }
-                    final Object asyncLock = new Object();
-                    final AsyncContext async = req.startAsync();
-                    async.setTimeout(20000);
-                    async.addListener(new AsyncAdapter(){
-                      @Override public void onTimeout(AsyncEvent e){
-                        synchronized (asyncLock){
-                          if (res.isCommitted()){
-                            return;
-                          }
-                          res.setStatus(504);
-                          async.complete();
-                        }
+                    Result<Byte> ret = Initializer.modifyServer(op.getID(),ClientConfig.ID,list);
+                    if (ret.waitForResult(System.currentTimeMillis()+12000)){
+                      if (ret.getResult()!=Protocol.SUCCESS){
+                        res.setStatus(403);
                       }
-                    });
-                    Initializer.modifyServer(op.getID(),ClientConfig.ID,list).onResult(new java.util.function.Consumer<Byte>(){
-                      public void accept(Byte b){
-                        synchronized (asyncLock){
-                          if (res.isCommitted()){
-                            return;
-                          }
-                          if (b!=Protocol.SUCCESS){
-                            res.setStatus(403);
-                          }
-                          async.complete();
-                        }
-                      }
-                    });
+                    }else{
+                      res.setStatus(504);
+                    }
                   }
                 }
               }else{
-                res.sendError(504);
+                res.setStatus(504);
               }
-            }else{
-              out.flush();
             }
           }catch(Exception e){
-            res.sendError(400);
+            res.setStatus(400);
           }
         }
       }else{

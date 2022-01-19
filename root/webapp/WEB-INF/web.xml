@@ -13,7 +13,6 @@
   <servlet>
     <servlet-name>MainPage</servlet-name>
     <servlet-class>aces.webctrl.centralizer.addon.web.MainPage</servlet-class>
-    <async-supported>true</async-supported>
   </servlet>
   <servlet-mapping>
     <servlet-name>MainPage</servlet-name>
@@ -23,7 +22,6 @@
   <servlet>
     <servlet-name>ChangePassword</servlet-name>
     <servlet-class>aces.webctrl.centralizer.addon.web.ChangePassword</servlet-class>
-    <async-supported>true</async-supported>
   </servlet>
   <servlet-mapping>
     <servlet-name>ChangePassword</servlet-name>

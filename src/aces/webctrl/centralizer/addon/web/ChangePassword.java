@@ -37,57 +37,28 @@ public class ChangePassword extends SecureServlet {
           byte[] oldPasswordBytes = Utility.toBytes(oldPassword);
           java.util.Arrays.fill(oldPassword,(char)0);
           oldPassword = null;
-          //Prevents the response from being committed more than once in separate threads (AsyncAdapter.onTimeout and Result.setConsumer)
-          final Object asyncLock = new Object();
-          final AsyncContext async = req.startAsync();
-          async.setTimeout(20000);
-          async.addListener(new AsyncAdapter(){
-            @Override public void onTimeout(AsyncEvent e){
-              synchronized (asyncLock){
-                if (res.isCommitted()){
-                  return;
-                }
-                out.write('0');
-                async.complete();
-              }
+          Result<OperatorStatus> ret = Initializer.login(op.getUsername(), oldPasswordBytes);
+          if (ret.waitForResult(System.currentTimeMillis()+10000)){
+            OperatorStatus opstat = ret.getResult();
+            byte stat = opstat==null?Protocol.FAILURE:opstat.status;
+            if (Initializer.isConnected() && (stat==Protocol.SUCCESS || stat==Protocol.CHANGE_PASSWORD)){
+              char[] password = req.getParameter("newPassword").toCharArray();
+              Utility.obfuscate(password);
+              byte[] passwordBytes = Utility.toBytes(password);
+              java.util.Arrays.fill(password,(char)0);
+              password = null;
+              int id = op.getID();
+              Result<Byte> ret2 = Initializer.modifyOperator(id, id, java.util.Arrays.asList(OperatorModification.changePassword(passwordBytes)));
+              out.write(ret2.waitForResult(System.currentTimeMillis()+10000) && ret2.getResult()==Protocol.SUCCESS?'1':'0');
+            }else{
+              out.write('0');
             }
-          });
-          Initializer.login(op.getUsername(), oldPasswordBytes).onResult(new java.util.function.Consumer<OperatorStatus>(){
-            public void accept(OperatorStatus opstat){
-              synchronized (asyncLock){
-                if (res.isCommitted()){
-                  return;
-                }
-                byte stat = opstat.status;
-                if (Initializer.isConnected() && (stat==Protocol.SUCCESS || stat==Protocol.CHANGE_PASSWORD)){
-                  char[] password = req.getParameter("newPassword").toCharArray();
-                  Utility.obfuscate(password);
-                  byte[] passwordBytes = Utility.toBytes(password);
-                  java.util.Arrays.fill(password,(char)0);
-                  password = null;
-                  int id = op.getID();
-                  Initializer.modifyOperator(id, id, java.util.Arrays.asList(OperatorModification.changePassword(passwordBytes))).onResult(new java.util.function.Consumer<Byte>(){
-                    public void accept(Byte b){
-                      synchronized (asyncLock){
-                        if (res.isCommitted()){
-                          return;
-                        }
-                        out.write(b==Protocol.SUCCESS?'1':'0');
-                        async.complete();
-                      }
-                    }
-                  });
-                }else{
-                  out.write('0');
-                  async.complete();
-                }
-              }
-            }
-          });
+          }else{
+            out.write('0');
+          }
         }else{//Send HTML document that allows the operator to change his or her password
           res.setContentType("text/html");
           out.print(html.replace("__USERNAME__", op.getUsername()));
-          out.flush();
         }
       }else{
         res.sendError(403, "Local operators cannot change their password using this webpage.");

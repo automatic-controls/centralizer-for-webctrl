@@ -28,7 +28,9 @@ public class CentralProvider extends StandardWebOperatorProvider {
       Result<OperatorStatus> ret = Initializer.login(username, Utility.toBytes(password));
       if (ret.waitForResult(System.currentTimeMillis()+20000)){
         OperatorStatus stat = ret.getResult();
-        if (stat.status==Protocol.DOES_NOT_EXIST){
+        if (stat==null){
+          throw new ValidationException("Database connection has been reset. Please try again later.");
+        }else if (stat.status==Protocol.DOES_NOT_EXIST){
           return super.validate(username, password, host);
         }else if (stat.status==Protocol.LOCKED_OUT){
           throw new ValidationException("Operator has been locked out.");
@@ -38,7 +40,7 @@ public class CentralProvider extends StandardWebOperatorProvider {
           return new CentralOperator(stat.operator, stat.status==Protocol.CHANGE_PASSWORD);
         }
       }else{
-        throw new ValidationException("Validation request exceeded timeout.");
+        throw new ValidationException("Validation request exceeded timeout. Please try again later.");
       }
     }catch(InterruptedException e){
       Logger.logAsync("Interrupted while validating operator "+username+".", e);

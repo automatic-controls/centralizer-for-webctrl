@@ -1,7 +1,7 @@
 package aces.webctrl.centralizer.addon.core;
 import java.util.function.Consumer;
 /**
- * Provides behavior similar to {@code java.util.concurrent.Future<T>}.
+ * Provides behavior comparable to {@code java.util.concurrent.Future<T>} and {@code java.nio.channels.CompletionHandler<T,Void>}.
  */
 public class Result<T> {
   private volatile T result = null;
@@ -9,20 +9,32 @@ public class Result<T> {
   private volatile Consumer<T> consumer = null;
   private volatile long timestamp = -1;
   /**
-   * Whenever the result is ready, the given consumer will be invoked.
-   * If the result is ready at the time of this method's invokation,
-   * then the given consumer is immediately invoked.
+   * Convenience method which calls {@code onResult(consumer, true)}.
    */
-  public synchronized void onResult(Consumer<T> consumer){
-    this.consumer = consumer;
-    if (finished && consumer!=null){
+  public void onResult(Consumer<T> consumer){
+    onResult(consumer, true);
+  }
+  /**
+   * Whenever the result is ready, the given consumer will be invoked.
+   * If the result is ready at the time of this method's invokation, and {@code executeNow} is {@code true},
+   * then the given consumer is immediately invoked.
+   * The given consumer is guaranteed to be invoked at most one time.
+   * If you want the consumer to be invoked multiple times on many results, then
+   * you should use {@code onResult(this,false)} within the body of the consumer.
+   */
+  public synchronized void onResult(Consumer<T> consumer, boolean executeNow){
+    if (consumer==null){
+      this.consumer = null;
+    }else if (executeNow && finished){
       consumer.accept(result);
+    }else{
+      this.consumer = consumer;
     }
   }
   /**
    * Sets {@code finished} to {@code false}, which means {@code waitForResult(-1)} will block until the next invokation of {@code setResult(T)}.
    */
-  public void reset(){
+  public synchronized void reset(){
     finished = false;
     result = null;
     timestamp = -1;
@@ -30,16 +42,16 @@ public class Result<T> {
   /**
    * Sets the result and invokes {@code notifyAll()}.
    */
-  public void setResult(T result){
+  public synchronized void setResult(T result){
     this.result = result;
     timestamp = System.currentTimeMillis();
-    synchronized (this){
-      finished = true;
-      notifyAll();
-      if (consumer!=null){
-        consumer.accept(result);
-      }
+    finished = true;
+    if (consumer!=null){
+      Consumer<T> tmp = consumer;
+      consumer = null;
+      tmp.accept(result);
     }
+    notifyAll();
   }
   /**
    * You should use {@code waitForResult(long)} before invoking this method.

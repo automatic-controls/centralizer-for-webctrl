@@ -1,12 +1,23 @@
 package aces.webctrl.centralizer.addon.web;
 import aces.webctrl.centralizer.common.*;
 import java.util.*;
+import com.controlj.green.addonsupport.web.*;
 public class CentralOperator implements com.controlj.green.addonsupport.web.auth.WebOperator {
   private volatile Operator op;
   private volatile boolean change;
+  private volatile Link startLink = null;
   public CentralOperator(Operator op, boolean changePassword){
     this.op = op;
     change = changePassword;
+    /*try{
+      com.controlj.green.addonsupport.access.DirectAccess.getDirectAccess().getRootSystemConnection().runReadAction(com.controlj.green.addonsupport.access.FieldAccessFactory.newDisabledFieldAccess(), new com.controlj.green.addonsupport.access.ReadAction(){
+        public void execute(com.controlj.green.addonsupport.access.SystemAccess sys){
+           startLink = Link.createLink(UITree.GEO, sys.getGeoRoot());
+        }
+      });
+    }catch(Exception e){
+      Logger.logAsync("Failed to create start link for CentralOperator.", e);
+    }*/
   }
   public boolean changePassword(){
     return change;
@@ -23,8 +34,8 @@ public class CentralOperator implements com.controlj.green.addonsupport.web.auth
   @Override public String getLoginName(){
     return op.getUsername();
   }
-  @Override public com.controlj.green.addonsupport.web.Link getStartLocation(){
-    return null;
+  @Override public Link getStartLocation(){
+    return startLink;
   }
   @Override public Locale getLocale(){
     return Locale.getDefault();
@@ -46,8 +57,10 @@ public class CentralOperator implements com.controlj.green.addonsupport.web.auth
       return true;
     }
   };
-  private final static Set<String> priv = new HashSet<String>();
+  private volatile static Set<String> priv;
   static {
+    Set<String> priv = new HashSet<String>();
     priv.add("administrator");
+    CentralOperator.priv = Collections.unmodifiableSet(priv);
   }
 }

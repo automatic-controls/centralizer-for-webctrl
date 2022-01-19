@@ -292,7 +292,7 @@
         sendCommand(obj,dataStatus,"genkey","New key generated.");
       }
       function setProvider(obj){
-        sendCommand(obj,configStatus,"setprovider","Authentication provider set.");
+        sendCommand(obj,configStatus,"setprovider","Authentication provider activated.");
       }
       function refreshData(){
 
@@ -338,7 +338,7 @@
           <button id="configResetButton" class="e" onclick="resetConfig()">Reset</button>
           <button id="configSaveButton" class="e" onclick="saveConfig()">Save</button>
           <br><br>
-          <span title="Attempts to set this add-on as the authentication provider for the server. For changes to take effect, the server must be restarted (e.g, use the manual command 'rebootserver')."><button class="e" onclick="setProvider(this)">Set Authentication Provider</button></span>
+          <span title="Attempts to set this add-on as the authentication provider for the server. For changes to take effect, the server must be restarted (e.g, use the manual command 'rebootserver')."><button class="e" onclick="setProvider(this)">Activate Authentication Provider</button></span>
           <h3 id="configStatus" class="e" style="color:red"></h3>
           <br>
           <h2 class="e">Admin Account For Blank Setup</h2>
