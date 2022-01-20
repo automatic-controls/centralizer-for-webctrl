@@ -134,9 +134,6 @@ public class Initializer implements ServletContextListener {
     }catch(Exception e){
       e.printStackTrace();
     }
-    ClientConfig.init(root.resolve("config.txt"));
-    ClientConfig.load();
-    Logger.trim(ClientConfig.deleteLogAfter);
     SocketWrapper.config = new SocketWrapperConfig(){
       public long getTimeout(){
         return ClientConfig.timeout;
@@ -146,6 +143,9 @@ public class Initializer implements ServletContextListener {
       }
     };
     Database.init(root, false);
+    ClientConfig.init(root.resolve("config.txt"));
+    ClientConfig.load();
+    Logger.trim(ClientConfig.deleteLogAfter);
     mainThread = new Thread(){
       public void run(){
         enqueueConfigure(0);
@@ -383,7 +383,9 @@ public class Initializer implements ServletContextListener {
                                   if (debugMode){ Logger.logAsync("Analyzing received key..."); }
                                   final Key kk = Key.deserialize(new SerializationStream(arr),false);
                                   //Ensure the key meets expectations
-                                  if (k!=null && !k.equals(kk)){
+                                  if (k==null){
+                                    ClientConfig.databaseKey = kk;
+                                  }else if (!k.equals(kk)){
                                     if (debugMode){ Logger.logAsync("Key does not meet expectations."); }
                                     forceDisconnect();
                                   }

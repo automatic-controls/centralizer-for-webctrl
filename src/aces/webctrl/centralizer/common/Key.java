@@ -17,7 +17,7 @@ public class Key {
   /** The private key used for decryption. */
   private volatile PrivateKey privateKey = null;
   /** Hex string hash of the public key. */
-  private String hash = null;
+  private volatile String hash = null;
   /**
    * Used for deserialization.
    */
