@@ -24,6 +24,15 @@ public class CentralProvider extends StandardWebOperatorProvider {
     return op;
   }
   @Override public WebOperator validate(final String username, char[] password, String host) throws ValidationException {
+    
+    // hack to force loading of "DirectAccessInternal" first.
+    try{
+       Class.forName("com.controlj.green.directaccess.DirectAccessInternal").getMethod("getDirectAccessInternal").invoke(null);
+       com.controlj.green.addonsupport.access.DirectAccess.getDirectAccess();
+    }catch (Throwable t){
+      Logger.logAsync("Error occurred while enforcing temporary hack.", t);
+    }
+
     try{
       Result<OperatorStatus> ret = Initializer.login(username, Utility.toBytes(password));
       if (ret.waitForResult(System.currentTimeMillis()+20000)){

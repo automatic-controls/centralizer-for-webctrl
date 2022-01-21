@@ -261,7 +261,7 @@
             if (this.status==200){
               let i = this.responseText.indexOf(';');
               statusText.innerHTML = this.responseText.substring(i+1);
-              keyHash.innerHTML = this.reponseText.substring(0,i);
+              keyHash.innerHTML = this.responseText.substring(0,i);
             }else{
               statusText.innerHTML = "Error code: "+this.status;
               keyHash.innerHTML = "NULL";
@@ -313,7 +313,7 @@
         req.onreadystatechange = function(){
           if (this.readyState==4){
             if (this.status==200){
-              status.innerHTML = "Data refreshed.";
+              dataStatus.innerHTML = "Data refreshed.";
               let x = this.responseText.split(';');
               if (x.length===11){
                 dataPort.value = x[0];
@@ -328,10 +328,10 @@
                 dataLockoutTime.value = x[9];
                 dataPacketCapture.checked = x[10]=="true";
               }else{
-                status.innerHTML = "Received response of incorrect length.";
+                dataStatus.innerHTML = "Received response of incorrect length.";
               }
             }else{
-              status.innerHTML = "Error code: "+this.status;
+              dataStatus.innerHTML = "Error code: "+this.status;
             }
             dataRefreshButton.disabled = false;
           }
@@ -357,7 +357,7 @@
   </head>
   <body>
     <div style="text-align:center">
-      <h1>WebCTRL Centralizer __VERSION__</h1>
+      <h1>Centralizer __VERSION__ for WebCTRL</h1>
       <h3 class="e">Database Key Hash: <span id="keyHash">Retrieving...</span></h3>
       <h3 id="statusText" class="e" style="color:red">Retrieving...</h3>
       <br>
@@ -461,7 +461,7 @@
           <h3 id="dataStatus" class="e" style="color:red"></h3>
           <br>
           <h2 class="e">Other Links</h2>
-          <a target="_blank" href="https://github.com/automatic-controls/webctrl-centralizer/blob/main/README.md">Documentation</a><br>
+          <a target="_blank" href="https://github.com/automatic-controls/centralizer-for-webctrl/blob/main/README.md">Documentation</a><br>
           <br>
           <a href="__PREFIX__ChangePassword">Change Your Password</a><br>
           <a href="__PREFIX__ManageOperators">Manage Operators</a><br>

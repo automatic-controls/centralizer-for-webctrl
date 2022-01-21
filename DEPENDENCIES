@@ -7,14 +7,14 @@ Compilation Flags:
 --release 8
 
 Runtime Dependencies:
-addonsupport-api-addon-1.6.0
-alarmmanager-api-addon-1.6.0
-bacnet-api-addon-1.6.0
-directaccess-api-addon-1.6.0
-tomcat-embed-core-7.0.82
-webaccess-api-addon-1.6.0
-xdatabase-api-addon-1.6.0
-extensionsupport-api-7.0.003
-webaccess-api-7.0.003
+addonsupport-api-addon-1.7.0
+alarmmanager-api-addon-1.7.0
+bacnet-api-addon-1.7.012
+directaccess-api-addon-1.7.0
+tomcat-embed-core-9.0.37
+webaccess-api-addon-1.7.0
+xdatabase-api-addon-1.7.0
+extensionsupport-api-8.0.002
+webaccess-api-8.0.002
 
 Packaged Dependencies:

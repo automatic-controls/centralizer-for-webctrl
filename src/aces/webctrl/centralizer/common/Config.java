@@ -24,7 +24,7 @@ public class Config {
   /**
    * This application's display name
    */
-  public final static String NAME = "WebCTRL Centralizer Database";
+  public final static String NAME = "Centralizer Database for WebCTRL";
   /**
    * The filepath specifying where to load and save the primary configuration file.
    */
@@ -306,7 +306,7 @@ public class Config {
   public static boolean save(){
     try{
       StringBuilder sb = new StringBuilder(1024);
-      sb.append(';'+NAME+" Primary Configuration File\n");
+      sb.append(';'+NAME+" - Primary Configuration File\n");
       sb.append(";Note all time intervals are specified in milliseconds.");
       sb.append("\n\n;Used to determine compatibility\n");
       sb.append("Version=").append(VERSION);

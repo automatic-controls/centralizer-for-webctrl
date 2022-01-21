@@ -46,7 +46,7 @@ public class Main {
     try{
       //Minimal initialization sequence to establish logging capabilities
       
-      rootFolder = Paths.get(System.getenv("HomeDrive"), "WebCTRL Centralizer");
+      rootFolder = Paths.get(System.getenv("HomeDrive"), "Centralizer for WebCTRL");
       lockFile = rootFolder.resolve("lock");
       if (!Files.exists(rootFolder)){
         Files.createDirectory(rootFolder);

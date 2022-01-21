@@ -28,7 +28,7 @@ public class Logger {
     }
     f = logFile.toFile();
     tmp = logFile.resolveSibling("tmp_"+f.getName()).toFile();
-    out = new PrintWriter(new FileWriter(f,java.nio.charset.StandardCharsets.UTF_8,true));
+    out = new PrintWriter(new FileWriter(f,true));
     PacketLogger.init(logFile.getParent().resolve("packet_capture.txt"));
   }
   public synchronized static void transferTo(PrintWriter o){
@@ -36,12 +36,16 @@ public class Logger {
       try{
         out.close();
         try(
-          FileReader r = new FileReader(f,java.nio.charset.StandardCharsets.UTF_8);
+          FileReader r = new FileReader(f);
         ){
-          r.transferTo(o);
+          char[] buffer = new char[8192];
+          int nRead;
+          while ((nRead = r.read(buffer, 0, 8192)) >= 0) {
+              o.write(buffer, 0, nRead);
+          }
         }
       }finally{
-        out = new PrintWriter(new FileWriter(f,java.nio.charset.StandardCharsets.UTF_8,true));
+        out = new PrintWriter(new FileWriter(f,true));
       }
     }catch(Exception e){
       log("Failed to transfer data in log file.", e);
@@ -226,7 +230,7 @@ public class Logger {
           throw new IOException("Unable to rename temporary log file.");
         }
       } finally {
-        out = new PrintWriter(new FileWriter(f,java.nio.charset.StandardCharsets.UTF_8,true));
+        out = new PrintWriter(new FileWriter(f,true));
       }
     }catch(Exception e){
       Logger.log("Error occurred while deleting expired log entries.", e);
