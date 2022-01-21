@@ -1,5 +1,5 @@
 @echo off
-title WebCTRL Centralizer Installation Manager
+title Centralizer for WebCTRL Installation Manager
 setlocal EnableDelayedExpansion
 net session >nul 2>&1
 if %ErrorLevel% NEQ 0 (
@@ -74,7 +74,7 @@ exit /b
   if "%stat%" EQU "NonExistent" (
     echo The service is not installed.
   ) else (
-    echo Are you sure you want to uninstall WebCTRL Centralizer?
+    echo Are you sure you want to uninstall Centralizer for WebCTRL?
     echo Type YES to initiate the uninstallation procedure.
     set /p "x=>"
     if /i "!x!" EQU "YES" (
@@ -94,7 +94,7 @@ exit /b
 
 :uninstallFunc
   "%~dp0winsw" uninstall "%~dp0service.xml"
-  rmdir /S /Q "%HomeDrive%\WebCTRL Centralizer"
+  rmdir /S /Q "%HomeDrive%\Centralizer for WebCTRL"
   echo.
   echo To complete uninstallation, please delete "%~dp0".
   echo Or run "%~dp0install.vbs" to reinstall the service.
@@ -104,7 +104,7 @@ exit /b
   (
     echo ^<service^>
     echo   ^<id^>centralizerDatabaseForWebCTRL^</id^>
-    echo   ^<name^>WebCTRL Centralizer^</name^>
+    echo   ^<name^>Centralizer for WebCTRL^</name^>
     echo   ^<description^>This service manages a database which is intended to interface with the corresponding WebCTRL add-on.^</description^>
     echo   ^<env name="HomeDrive" value="%HomeDrive%"/^>
     echo   ^<executable^>%%BASE%%\jre\bin\java^</executable^>
