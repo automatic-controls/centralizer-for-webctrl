@@ -59,7 +59,7 @@ public class PacketLogger {
         if (!Files.exists(p)){
           p = Files.createFile(p);
         }
-        out = new PrintWriter(new FileWriter(f,true));
+        out = new PrintWriter(new FileWriter(f,java.nio.charset.StandardCharsets.UTF_8,true));
         log("Packet capture started.", d);
       }catch(Exception e){
         working = false;

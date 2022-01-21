@@ -95,6 +95,10 @@ public class Config {
    */
   public volatile static long loginLockoutTime = 3600000L;
   /**
+   * Used in the add-on to record whether the database is doing packetCapture.
+   */
+  public volatile static boolean packetCapture = false;
+  /**
    * Compares the given version string to the hardcoded version string of this application.
    * Assuming each version string is of the form "MAJOR.MINOR.PATCH",
    * two version strings are compatible whenever the MAJOR and MINOR versions agree.
@@ -151,7 +155,7 @@ public class Config {
     s.write(backupHr);
     s.write(backupMin);
     s.write(backupSec);
-    s.write(PacketLogger.isWorking());
+    s.write(Database.isServer()?PacketLogger.isWorking():packetCapture);
   }
   /**
    * Decodes parameters which may be remotely configured by clients.
@@ -173,10 +177,13 @@ public class Config {
     backupHr = s.readInt();
     backupMin = s.readInt();
     backupSec = s.readInt();
-    if (s.readBoolean()){
-      PacketLogger.startAsync();
-    }else{
-      PacketLogger.stopAsync();
+    packetCapture = s.readBoolean();
+    if (Database.isServer()){
+      if (packetCapture){
+        PacketLogger.startAsync();
+      }else{
+        PacketLogger.stopAsync();
+      }
     }
     return tmp!=pingInterval;
   }

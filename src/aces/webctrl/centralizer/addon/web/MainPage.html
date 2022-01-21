@@ -259,17 +259,21 @@
         req.onreadystatechange = function(){
           if (this.readyState==4){
             if (this.status==200){
-              statusText.innerHTML = this.responseText;
+              let i = this.responseText.indexOf(';');
+              statusText.innerHTML = this.responseText.substring(i+1);
+              keyHash.innerHTML = this.reponseText.substring(0,i);
             }else{
               statusText.innerHTML = "Error code: "+this.status;
+              keyHash.innerHTML = "NULL";
             }
-            setTimeout(updateStatus,1000);
+            setTimeout(updateStatus,2000);
           }
         }
         req.send();
       }
       function sendCommand(obj, status, cmd, msg){
         obj.disabled = true;
+        status.innerHTML = "Submitting...";
         let req = new XMLHttpRequest();
         req.open("GET", "__PREFIX__index?"+cmd, true);
         req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
@@ -294,18 +298,68 @@
       function setProvider(obj){
         sendCommand(obj,configStatus,"setprovider","Authentication provider activated.");
       }
+      function enableRemoval(obj){
+        sendCommand(obj, configStatus, "enableRemoval", "Add-on removal enabled.");
+      }
+      function disableRemoval(obj){
+        sendCommand(obj, configStatus, "disableRemoval", "Add-on removal disabled.");
+      }
       function refreshData(){
-
+        dataRefreshButton.disabled = true;
+        dataStatus.innerHTML = "Refreshing...";
+        let req = new XMLHttpRequest();
+        req.open("GET", "__PREFIX__index?refreshData", true);
+        req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
+        req.onreadystatechange = function(){
+          if (this.readyState==4){
+            if (this.status==200){
+              status.innerHTML = "Data refreshed.";
+              let x = this.responseText.split(';');
+              if (x.length===11){
+                dataPort.value = x[0];
+                dataBackupTime.value = x[1];
+                dataBacklog.value = x[2];
+                dataTimeout.value = x[3];
+                dataOpTimeout.value = x[4];
+                dataDeleteLog.value = x[5];
+                dataPingInterval.value = x[6];
+                dataLoginAttempts.value = x[7];
+                dataLoginTime.value = x[8];
+                dataLockoutTime.value = x[9];
+                dataPacketCapture.checked = x[10]=="true";
+              }else{
+                status.innerHTML = "Received response of incorrect length.";
+              }
+            }else{
+              status.innerHTML = "Error code: "+this.status;
+            }
+            dataRefreshButton.disabled = false;
+          }
+        }
+        req.send();
       }
       function saveData(){
-
+        dataSaveButton.disabled = true;
+        validatePort(dataPort);
+        dataBackupTime.value = dataBackupTime.value.replace(/[^\d:]/g,'')
+        validatePositiveInt(dataBacklog);
+        validateLong(dataTimeout);
+        validateLong(dataOpTimeout);
+        validateLong(dataDeleteLog);
+        validateLong(dataPingInterval);
+        validateNumber(dataLoginAttempts);
+        validateLong(dataLoginTime);
+        validateLong(dataLockoutTime);
+        //TODO
+        dataSaveButton.disabled = false;
       }
     </script>
   </head>
   <body>
     <div style="text-align:center">
       <h1>WebCTRL Centralizer __VERSION__</h1>
-      <h3 id="statusText" class="e" style="color:red">Retrieving status...</h3>
+      <h3 class="e">Database Key Hash: <span id="keyHash">Retrieving...</span></h3>
+      <h3 id="statusText" class="e" style="color:red">Retrieving...</h3>
       <br>
       <div class="row">
         <div class="column">
@@ -338,7 +392,9 @@
           <button id="configResetButton" class="e" onclick="resetConfig()">Reset</button>
           <button id="configSaveButton" class="e" onclick="saveConfig()">Save</button>
           <br><br>
-          <span title="Attempts to set this add-on as the authentication provider for the server. For changes to take effect, the server must be restarted (e.g, use the manual command 'rebootserver')."><button class="e" onclick="setProvider(this)">Activate Authentication Provider</button></span>
+          <span title="Attempts to set this add-on as the authentication provider for the server."><button class="e" onclick="setProvider(this)">Activate Authentication Provider</button></span>
+          <button class="e" onclick="enableRemoval(this)">Enable Add-On Removal</button>
+          <button class="e" onclick="disableRemoval(this)">Disable Add-On Removal</button>
           <h3 id="configStatus" class="e" style="color:red"></h3>
           <br>
           <h2 class="e">Admin Account For Blank Setup</h2>
@@ -376,8 +432,7 @@
           <label for="dataTimeout"><span title="Milliseconds to wait for a response before terminating the connection.">Response Timeout:</span></label>
           <input id="dataTimeout" class="e" type="text" autocomplete="off" oninput="validateLong(this)"><span>milliseconds</span>
           <br>
-          <label for="dataOpTimeout"><span title="Specifies how long (in milliseconds) it takes for an operator to be logged off the database due to inactivity.
-            ">Operator Timeout:</span></label>
+          <label for="dataOpTimeout"><span title="Specifies how long (in milliseconds) it takes for an operator to be logged off the database due to inactivity.">Operator Timeout:</span></label>
           <input id="dataOpTimeout" class="e" type="text" autocomplete="off" oninput="validateLong(this)"><span>milliseconds</span>
           <br>
           <label for="dataDeleteLog"><span title="Specifies the number of milliseconds to wait before deleting log entries.">Delete Log Entries After:</span></label>
@@ -406,13 +461,16 @@
           <h3 id="dataStatus" class="e" style="color:red"></h3>
           <br>
           <h2 class="e">Other Links</h2>
-          <a target="_blank" href="https://github.com/automatic-controls/webctrl-centralizer/blob/main/README.md">Documentation</a><br><br>
+          <a target="_blank" href="https://github.com/automatic-controls/webctrl-centralizer/blob/main/README.md">Documentation</a><br>
+          <br>
           <a href="__PREFIX__ChangePassword">Change Your Password</a><br>
           <a href="__PREFIX__ManageOperators">Manage Operators</a><br>
           <a href="__PREFIX__ManageServers">Manage Servers</a><br>
           <a href="__PREFIX__ManageFileSync">Manage File Synchronization</a><br>
           <a href="__PREFIX__ManageDataCollection">Manage Data Collection</a><br>
           <a href="__PREFIX__ManageScripts">Manage Scripts</a><br>
+          <br>
+          <a href="__PREFIX__index?downloadLog" target="_blank" download="log.txt" >Download Log</a>
         </div>
       </div>
     </div>

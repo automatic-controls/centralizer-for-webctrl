@@ -299,32 +299,71 @@ public class Initializer implements ServletContextListener {
   public static void enqueue(DelayedRunnable r){
     queue.offer(r);
   }
-  /** Enqueues a task to edit system WebCTRL files. */
+  /** Enqueues a task to apply custom edits to system WebCTRL files. */
   private static void enqueueConfigure(long expiry){
     enqueue(new DelayedRunnable(expiry){
       public void run(){
-        try{
-          if (Files.exists(webapps_lite)){
-            ByteBuffer buf = ByteBuffer.wrap(new String(Files.readAllBytes(webapps_lite), java.nio.charset.StandardCharsets.UTF_8).replaceAll(
-              "(?<!function )executeWebappCommand\\(\\s*+(?!'start')[^,]++,\\s*+(\\w++)\\s*+\\);?+(?!/\\*EDITED\\*/)",
-              "if ($1!=\""+name+"\"){ $0/*EDITED*/ }"
-            ).getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            try(
-              FileChannel ch = FileChannel.open(webapps_lite, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-              FileLock lock = ch.tryLock();
-            ){
-              while (buf.hasRemaining()){
-                ch.write(buf);
-              }
-            }
-          }else{
-            Logger.log("Warning - Cannot locate 'webapps_lite.jsp'.");
-          }
-        }catch(Exception e){
-          Logger.log("Error occurred while configuring system WebCTRL files.", e);
-        }
+        disableAddonRemoval();
       }
     });
+  }
+  /**
+   * Edits systems WebCTRL files to disable removal of this addon.
+   * @return {@code true} if successful; {@code false} otherwise.
+   */
+  public static boolean disableAddonRemoval(){
+    try{
+      if (Files.exists(webapps_lite)){
+        ByteBuffer buf = ByteBuffer.wrap(new String(Files.readAllBytes(webapps_lite), java.nio.charset.StandardCharsets.UTF_8).replaceAll(
+          "(?<!function )executeWebappCommand\\(\\s*+(?!'start')[^,]++,\\s*+(\\w++)\\s*+\\);?+(?!/\\*EDITED\\*/)",
+          "if ($1!=\""+name+"\"){ $0/*EDITED*/ }"
+        ).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        try(
+          FileChannel ch = FileChannel.open(webapps_lite, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+          FileLock lock = ch.tryLock();
+        ){
+          while (buf.hasRemaining()){
+            ch.write(buf);
+          }
+        }
+        return true;
+      }else{
+        Logger.logAsync("Could not disable addon removal because webapps_lite cannot be found.");
+        return false;
+      }
+    }catch(Exception e){
+      Logger.logAsync("Error occurred while disabling addon removal.", e);
+      return false;
+    }
+  }
+  /**
+   * Edits systems WebCTRL files to enable removal of this addon.
+   * @return {@code true} if successful; {@code false} otherwise.
+   */
+  public static boolean enableAddonRemoval(){
+    try{
+      if (Files.exists(webapps_lite)){
+        ByteBuffer buf = ByteBuffer.wrap(new String(Files.readAllBytes(webapps_lite), java.nio.charset.StandardCharsets.UTF_8).replaceAll(
+          "if \\(\\w++!=\""+name+"\"\\)\\{ (.+?)/*EDITED*/ \\}",
+          "$1"
+        ).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        try(
+          FileChannel ch = FileChannel.open(webapps_lite, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+          FileLock lock = ch.tryLock();
+        ){
+          while (buf.hasRemaining()){
+            ch.write(buf);
+          }
+        }
+        return true;
+      }else{
+        Logger.logAsync("Could not enable addon removal because webapps_lite cannot be found.");
+        return false;
+      }
+    }catch(Exception e){
+      Logger.logAsync("Error occurred while enabling addon removal.", e);
+      return false;
+    }
   }
   /** Enqueues a task which attempts to connect to the database */
   private static void enqueueConnect(long expiry){
@@ -677,6 +716,7 @@ public class Initializer implements ServletContextListener {
                   }
                 }else if (stamp==-1L){
                   Operators.remove(op);
+                  Logger.logAsync("Operator "+op.getUsername()+" deleted.");
                   ping1(wrapper);
                 }else if (op.getStamp()>=stamp){
                   wrapper.write((byte)0, null, new Handler<Void>(){
@@ -842,11 +882,13 @@ public class Initializer implements ServletContextListener {
                 public boolean onSuccess(Void v){
                   wrapper.read(null, new Handler<Byte>(){
                     public boolean onSuccess(Byte b){
+                      results.remove(ret);
                       stat.status = b.byteValue();
                       if (stat.status==Protocol.DOES_NOT_EXIST){
                         Operators.remove(stat.operator);
+                      }else if (stat.status==Protocol.SUCCESS || stat.status==Protocol.CHANGE_PASSWORD){
+                        Logger.logAsync("Operator "+stat.operator.getUsername()+" logged in.");
                       }
-                      results.remove(ret);
                       ret.setResult(stat);
                       ping2(wrapper);
                       return true;
@@ -861,6 +903,7 @@ public class Initializer implements ServletContextListener {
         }else{
           Arrays.fill(password,(byte)0);
           stat.status = Protocol.SUCCESS;
+          Logger.logAsync("Operator "+stat.operator.getUsername()+" logged in locally.");
           ret.setResult(stat);
         }
       }else{
@@ -1137,6 +1180,7 @@ public class Initializer implements ServletContextListener {
   public static Result<Byte> disconnectServer(final int authID, final int sID){
     final Result<Byte> ret = new Result<Byte>();
     if (sID==ClientConfig.ID){
+      if (debugMode){ Logger.logAsync("Protocol.DISCONNECT_SERVER"); }
       forceDisconnect();
       ret.setResult(Protocol.SUCCESS);
     }else{

@@ -206,6 +206,31 @@ public class Operators {
     }
   }
   /**
+   * Clears all operators.
+   * @return {@code true} on success; {@code false} if an error occurs.
+   */
+  public static boolean clear(){
+    lock.writeLock().lock();
+    try{
+      count.set(0);
+      Operator op;
+      int s = operators.size();
+      for (int i=0;i<s;++i){
+        op = operators.get(i);
+        if (op!=null){
+          op.dispose();
+          operators.set(i,null);
+        }
+      }
+      return true;
+    }catch(Exception e){
+      Logger.logAsync("Error occurred while clearing operators.", e);
+      return false;
+    }finally{
+      lock.writeLock().unlock();
+    }
+  }
+  /**
    * Removes an operator from the operator list.
    * @return {@code true} on success; {@code false} if an error occurs.
    */

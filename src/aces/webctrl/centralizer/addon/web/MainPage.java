@@ -42,21 +42,97 @@ public class MainPage extends SecureServlet {
       final PrintWriter out = res.getWriter();
       if (req.getParameter("status")!=null){
         res.setContentType("text/plain");
+        final Key k = ClientConfig.databaseKey;
+        out.print(k==null?"NULL":k.getHashString());
+        out.print(';');
         out.print(Initializer.getStatus());
+      }else if (req.getParameter("refreshData")!=null){
+        CentralOperator webop = getOperator(req);
+        boolean nullAll = false;
+        if (webop==null){
+          nullAll = true;
+        }else{
+          Operator op = webop.getOperator();
+          if ((op.getPermissions()&Permissions.ADMINISTRATOR)==0){
+            nullAll = true;
+          }else{
+            if (Initializer.isConnected()){
+              Result<Byte> ret = Initializer.getConfig(op.getID());
+              if (ret.waitForResult(System.currentTimeMillis()+10000) && ret.getResult()==Protocol.SUCCESS){
+                out.print(Config.port);
+                out.print(';');
+                out.print(Config.backupHr+":"+Config.backupMin+":"+Config.backupSec);
+                out.print(';');
+                out.print(Config.backlog);
+                out.print(';');
+                out.print(Config.timeout);
+                out.print(';');
+                out.print(Config.operatorTimeout);
+                out.print(';');
+                out.print(Config.deleteLogAfter);
+                out.print(';');
+                out.print(Config.pingInterval);
+                out.print(';');
+                out.print(Config.loginAttempts);
+                out.print(';');
+                out.print(Config.loginTimePeriod);
+                out.print(';');
+                out.print(Config.loginLockoutTime);
+                out.print(';');
+                out.print(Config.packetCapture);
+              }else{
+                nullAll = true;
+              }
+            }else{
+              nullAll = true;
+            }
+          }
+        }
+        if (nullAll){
+          out.print("NULL;NULL;NULL;NULL;NULL;NULL;NULL;NULL;NULL;NULL;NULL");
+        }
+      }else if (req.getParameter("downloadLog")!=null){
+        res.setContentType("application/octet-stream");
+        res.setHeader("Content-Disposition","attachment;filename=\"log.txt\"");
+        Logger.transferTo(out);
+      }else if (req.getParameter("enableRemoval")!=null){
+        CentralOperator webop = getOperator(req);
+        if (webop==null){
+          res.setStatus(403);
+        }else{
+          Operator op = webop.getOperator();
+          if ((op.getPermissions()&Permissions.ADMINISTRATOR)==0){
+            res.setStatus(403);
+          }else if (!Initializer.enableAddonRemoval()){
+            res.setStatus(500);
+          }
+        }
+      }else if (req.getParameter("disableRemoval")!=null){
+        CentralOperator webop = getOperator(req);
+        if (webop==null){
+          res.setStatus(403);
+        }else{
+          Operator op = webop.getOperator();
+          if ((op.getPermissions()&Permissions.ADMINISTRATOR)==0){
+            res.setStatus(403);
+          }else if (!Initializer.disableAddonRemoval()){
+            res.setStatus(500);
+          }
+        }
       }else if (req.getParameter("restart")!=null){
         if (Initializer.isConnected()){
           CentralOperator webop = getOperator(req);
           if (webop==null){
-            res.setStatus(401);
+            res.setStatus(403);
           }else{
             Operator op = webop.getOperator();
             if ((op.getPermissions()&Permissions.ADMINISTRATOR)==0){
-              res.setStatus(401);
+              res.setStatus(403);
             }else{
               Result<Byte> ret = Initializer.restartDatabase(op.getID());
               if (ret.waitForResult(System.currentTimeMillis()+10000)){
                 if (ret.getResult()!=Protocol.SUCCESS){
-                  res.setStatus(401);
+                  res.setStatus(403);
                 }
               }else{
                 res.setStatus(504);
@@ -70,16 +146,16 @@ public class MainPage extends SecureServlet {
         if (Initializer.isConnected()){
           CentralOperator webop = getOperator(req);
           if (webop==null){
-            res.setStatus(401);
+            res.setStatus(403);
           }else{
             Operator op = webop.getOperator();
             if ((op.getPermissions()&Permissions.ADMINISTRATOR)==0){
-              res.setStatus(401);
+              res.setStatus(403);
             }else{
               Result<Byte> ret = Initializer.generatePresharedKey(op.getID());
               if (ret.waitForResult(System.currentTimeMillis()+10000)){
                 if (ret.getResult()!=Protocol.SUCCESS){
-                  res.setStatus(401);
+                  res.setStatus(403);
                 }
               }else{
                 res.setStatus(504);
@@ -140,80 +216,89 @@ public class MainPage extends SecureServlet {
         }else{
           try{
             final int portNum = Integer.parseInt(port);
-            final long timeoutNum = Long.parseLong(timeout);
-            final long deleteLogNum = Long.parseLong(deleteLog);
-            final boolean packets = Boolean.parseBoolean(packetCapture);
-            final String[] arr = backupTime.split(":");
-            if (arr.length!=3){
-              res.setStatus(400);
-              return;
-            }
-            final int backupHr = Integer.parseInt(arr[0]);
-            final int backupMin = Integer.parseInt(arr[1]);
-            final int backupSec = Integer.parseInt(arr[2]);
-            if (backupHr<0 || backupHr>23 || backupMin<0 || backupMin>59 || backupSec<0 || backupSec>59){
-              res.setStatus(400);
-              return;
-            }
-            if (packets){
-              PacketLogger.start();
-            }else{
-              PacketLogger.stop();
-            }
-            ClientConfig.backupHr = backupHr;
-            ClientConfig.backupMin = backupMin;
-            ClientConfig.backupSec = backupSec;
-            if (deleteLogNum<ClientConfig.deleteLogAfter){
-              Logger.trim(deleteLogNum);
-            }
-            ClientConfig.deleteLogAfter = deleteLogNum;
-            ClientConfig.timeout = timeoutNum;
-            ClientConfig.ipLock.readLock().lock();
-            boolean changeIP = !host.equals(ClientConfig.host) || portNum!=ClientConfig.port;
-            ClientConfig.ipLock.readLock().unlock();
-            String prevName = ClientConfig.name;
-            String prevDesc = ClientConfig.description;
-            ClientConfig.name = serverName;
-            ClientConfig.description = serverDesc;
-            if (changeIP){
-              ClientConfig.ipLock.writeLock().lock();
-              ClientConfig.host = host;
-              ClientConfig.port = portNum;
-              ClientConfig.ipLock.writeLock().unlock();
-              ClientConfig.ID = -1;
-              ClientConfig.identifier = null;
-              ClientConfig.databaseKey = null;
-              Initializer.forceDisconnect();
-            }else if (!serverName.equals(prevName) || !serverDesc.equals(prevDesc)){
-              if (Initializer.isConnected()){
-                CentralOperator webop = getOperator(req);
-                if (webop==null){
-                  res.setStatus(401);
-                }else{
-                  Operator op = webop.getOperator();
-                  if ((op.getPermissions()&Permissions.ADMINISTRATOR)==0){
-                    res.setStatus(401);
-                  }else{
-                    LinkedList<ServerModification> list = new LinkedList<ServerModification>();
-                    if (!serverName.equals(prevName)){
-                      list.add(ServerModification.changeName(serverName));
-                    }
-                    if (!serverDesc.equals(prevDesc)){
-                      list.add(ServerModification.changeDescription(serverDesc));
-                    }
-                    Result<Byte> ret = Initializer.modifyServer(op.getID(),ClientConfig.ID,list);
-                    if (ret.waitForResult(System.currentTimeMillis()+12000)){
-                      if (ret.getResult()!=Protocol.SUCCESS){
-                        res.setStatus(403);
-                      }
-                    }else{
-                      res.setStatus(504);
-                    }
-                  }
-                }
+            boolean go = true;
+            Operator op = null;
+            boolean connected = Initializer.isConnected();
+            if (connected){
+              CentralOperator webop = getOperator(req);
+              if (webop==null){
+                go = false;
               }else{
-                res.setStatus(504);
+                op = webop.getOperator();
+                if ((op.getPermissions()&Permissions.ADMINISTRATOR)==0){
+                  go = false;
+                }
               }
+            }
+            if (go){
+              final long timeoutNum = Long.parseLong(timeout);
+              final long deleteLogNum = Long.parseLong(deleteLog);
+              final boolean packets = Boolean.parseBoolean(packetCapture);
+              final String[] arr = backupTime.split(":");
+              if (arr.length!=3){
+                res.setStatus(400);
+                return;
+              }
+              final int backupHr = Integer.parseInt(arr[0]);
+              final int backupMin = Integer.parseInt(arr[1]);
+              final int backupSec = Integer.parseInt(arr[2]);
+              if (backupHr<0 || backupHr>23 || backupMin<0 || backupMin>59 || backupSec<0 || backupSec>59){
+                res.setStatus(400);
+                return;
+              }
+              if (packets){
+                PacketLogger.start();
+              }else{
+                PacketLogger.stop();
+              }
+              ClientConfig.backupHr = backupHr;
+              ClientConfig.backupMin = backupMin;
+              ClientConfig.backupSec = backupSec;
+              if (deleteLogNum<ClientConfig.deleteLogAfter){
+                Logger.trim(deleteLogNum);
+              }
+              ClientConfig.deleteLogAfter = deleteLogNum;
+              ClientConfig.timeout = timeoutNum;
+              String prevName = ClientConfig.name;
+              String prevDesc = ClientConfig.description;
+              ClientConfig.name = serverName;
+              ClientConfig.description = serverDesc;
+              ClientConfig.ipLock.readLock().lock();
+              boolean changeIP = !host.equals(ClientConfig.host) || portNum!=ClientConfig.port;
+              ClientConfig.ipLock.readLock().unlock();
+              if (changeIP){
+                ClientConfig.ipLock.writeLock().lock();
+                ClientConfig.host = host;
+                ClientConfig.port = portNum;
+                ClientConfig.ipLock.writeLock().unlock();
+                ClientConfig.ID = -1;
+                ClientConfig.identifier = null;
+                ClientConfig.databaseKey = null;
+                Initializer.forceDisconnect();
+                Operators.clear();
+              }else if (!serverName.equals(prevName) || !serverDesc.equals(prevDesc)){
+                if (connected){
+                  LinkedList<ServerModification> list = new LinkedList<ServerModification>();
+                  if (!serverName.equals(prevName)){
+                    list.add(ServerModification.changeName(serverName));
+                  }
+                  if (!serverDesc.equals(prevDesc)){
+                    list.add(ServerModification.changeDescription(serverDesc));
+                  }
+                  Result<Byte> ret = Initializer.modifyServer(op.getID(),ClientConfig.ID,list);
+                  if (ret.waitForResult(System.currentTimeMillis()+12000)){
+                    if (ret.getResult()!=Protocol.SUCCESS){
+                      res.setStatus(403);
+                    }
+                  }else{
+                    res.setStatus(504);
+                  }
+                }else{
+                  res.setStatus(504);
+                }
+              }
+            }else{
+              res.setStatus(403);
             }
           }catch(Exception e){
             res.setStatus(400);
@@ -256,7 +341,7 @@ public class MainPage extends SecureServlet {
         out.flush();
       }
     }else{
-      res.sendError(401);
+      res.sendError(403);
     }
   }
 }
