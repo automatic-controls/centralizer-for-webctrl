@@ -136,7 +136,7 @@ public class Initializer implements ServletContextListener {
       });
       rootWebCTRL = root.getParent().getParent().getParent().getParent().getParent();
       webapps_lite = rootWebCTRL.resolve("webroot").resolve("_common").resolve("lvl5").resolve("config").resolve("webapps_lite.jsp");
-    }catch(Exception e){
+    }catch(Throwable e){
       e.printStackTrace();
     }
     SocketWrapper.config = new SocketWrapperConfig(){
@@ -175,7 +175,7 @@ public class Initializer implements ServletContextListener {
                       taskExecuting = true;
                       try{
                         t.run();
-                      }catch(Exception e){
+                      }catch(Throwable e){
                         Logger.log("Error occurred while running task in primary queue.", e);
                         forceDisconnect();
                       }
@@ -185,7 +185,7 @@ public class Initializer implements ServletContextListener {
               }else{
                 try{
                   r.run();
-                }catch(Exception e){
+                }catch(Throwable e){
                   Logger.log("Error occurred while running action in primary queue.", e);
                 }
               }
@@ -224,7 +224,7 @@ public class Initializer implements ServletContextListener {
         while (!stopped){
           try{
             Initializer.class.wait(1000);
-          }catch(Exception err){}
+          }catch(Throwable err){}
         }
       }
     }
@@ -258,7 +258,7 @@ public class Initializer implements ServletContextListener {
         Logger.logAsync("Forcibly disconnected from central database.");
         enqueueConnect(System.currentTimeMillis()+(ClientConfig.reconnectTimeout>>1));
       }
-    }catch(Exception e){
+    }catch(Throwable e){
       cancelNextPing();
       connected = false;
       taskExecuting = false;
@@ -279,7 +279,7 @@ public class Initializer implements ServletContextListener {
     if (grp!=null){
       try{
         grp.shutdownNow();
-      }catch(Exception err){
+      }catch(Throwable err){
         if (debugMode){ Logger.logAsync("Error occurred while disconnecting.", err); }
       }
       grp = null;
@@ -336,7 +336,7 @@ public class Initializer implements ServletContextListener {
         Logger.logAsync("Could not disable addon removal because webapps_lite cannot be found.");
         return false;
       }
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.logAsync("Error occurred while disabling addon removal.", e);
       return false;
     }
@@ -365,7 +365,7 @@ public class Initializer implements ServletContextListener {
         Logger.logAsync("Could not enable addon removal because webapps_lite cannot be found.");
         return false;
       }
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.logAsync("Error occurred while enabling addon removal.", e);
       return false;
     }
@@ -527,7 +527,7 @@ public class Initializer implements ServletContextListener {
                                                                         enqueuePing(wrapper,0);
                                                                         if (debugMode){ Logger.logAsync("Server setup successful."); }
                                                                         return false;
-                                                                      }catch(Exception e){
+                                                                      }catch(Throwable e){
                                                                         ClientConfig.ID = -1;
                                                                         if (debugMode){ Logger.logAsync("Error occurred in final server setup.", e); }
                                                                         forceDisconnect();
@@ -591,7 +591,7 @@ public class Initializer implements ServletContextListener {
                                                 return true;
                                               }
                                             });
-                                          }catch(Exception e){
+                                          }catch(Throwable e){
                                             if (debugMode){ Logger.logAsync("Error occurred in handshake phase 2.", e); }
                                             forceDisconnect();
                                           }
@@ -601,7 +601,7 @@ public class Initializer implements ServletContextListener {
                                       return true;
                                     }
                                   });
-                                }catch(Exception e){
+                                }catch(Throwable e){
                                   if (debugMode){ Logger.logAsync("Error occurred in handshake phase 1.", e); }
                                   forceDisconnect();
                                 }
@@ -617,14 +617,14 @@ public class Initializer implements ServletContextListener {
                   });
                 }
               });
-            }catch(Exception e){
+            }catch(Throwable e){
               connected = false;
               ch = null;
               wrap = null;
               if (grp!=null){
                 try{
                   grp.shutdownNow();
-                }catch(Exception err){
+                }catch(Throwable err){
                   if (debugMode){ Logger.logAsync("Error occurred while shutting down AsynchronousChannelGroup.", err); }
                 }
                 grp = null;
@@ -742,7 +742,7 @@ public class Initializer implements ServletContextListener {
                             Operator op = Operator.deserialize(data);
                             Operators.update(op);
                             Logger.logAsync("Operator "+op.getUsername()+" updated.");
-                          }catch(Exception e){
+                          }catch(Throwable e){
                             Logger.logAsync("Error occurred while updating operator.", e);
                           }
                           ping1(wrapper);
@@ -763,7 +763,7 @@ public class Initializer implements ServletContextListener {
                 try{
                   ClientConfig.databaseKey = Key.deserialize(new SerializationStream(data), false);
                   Logger.logAsync("Preshared key updated.");
-                }catch(Exception e){
+                }catch(Throwable e){
                   Logger.logAsync("Error occurred while updating preshared key.", e);
                 }
                 ping1(wrapper);
@@ -1282,7 +1282,7 @@ public class Initializer implements ServletContextListener {
                       results.remove(ret);
                       try{
                         list.populate(new SerializationStream(data));
-                      }catch(Exception e){
+                      }catch(Throwable e){
                         Logger.logAsync("Error occurred in GET_SERVER_LIST protocol.", e);
                         list.status = Protocol.FAILURE;
                       }
@@ -1335,7 +1335,7 @@ public class Initializer implements ServletContextListener {
                       results.remove(ret);
                       try{
                         list.populate(new SerializationStream(data));
-                      }catch(Exception e){
+                      }catch(Throwable e){
                         list.status = Protocol.FAILURE;
                       }
                       ret.setResult(list);
@@ -1391,7 +1391,7 @@ public class Initializer implements ServletContextListener {
                       try{
                         Config.deserialize(new SerializationStream(data));
                         ret.setResult(Protocol.SUCCESS);
-                      }catch(Exception e){
+                      }catch(Throwable e){
                         ret.setResult(Protocol.FAILURE);
                         Logger.logAsync("Error occurred in GET_CONFIG protocol.", e);
                       }

@@ -20,7 +20,7 @@ public class CentralOperator implements com.controlj.green.addonsupport.web.auth
            startLink = Link.createLink(UITree.GEO, sys.getGeoRoot());
         }
       });
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.logAsync("Failed to create start link for CentralOperator.", e);
     }*/
   }

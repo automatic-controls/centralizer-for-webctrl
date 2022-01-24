@@ -42,7 +42,7 @@ public class Keys {
       }
       keys.set(ID,k);
       return k;
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.logAsync("Error occurred while generating new key.", e);
       return null;
     }finally{
@@ -91,7 +91,7 @@ public class Keys {
         newestKey.set(0);
       }
       return ret;
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.log("Error occurred while initializing key-pairs used for database authentication.", e);
       return false;
     }
@@ -99,7 +99,7 @@ public class Keys {
   /**
    * Initializes the global {@code KeyFactory} and {@code KeyPairGenerator} instances for this application.
    */
-  protected static void initCrypto(int keySize) throws Exception {
+  protected static void initCrypto(int keySize) throws Throwable {
     keyFactory = KeyFactory.getInstance("RSA");
     keyPairGen = KeyPairGenerator.getInstance("RSA");
     keyPairGen.initialize(keySize, Database.entropy);
@@ -133,7 +133,7 @@ public class Keys {
       }
       Keys.newestKey.set(newestKey);
       return true;
-    }catch(Exception e){
+    }catch(Throwable e){
       keys.clear();
       Logger.log("Error occurred while loading key-pairs used for database authentication.", e);
       return false;
@@ -173,7 +173,7 @@ public class Keys {
         }
       }
       return true;
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.log("Error occurred while saving database authentication key-pair data.", e);
       return false;
     }

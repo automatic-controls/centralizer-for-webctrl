@@ -45,7 +45,7 @@ public class Operators {
         Files.createDirectory(p);
         return true;
       }
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.log("Error occurred while creating operators directory.", e);
       return false;
     }
@@ -67,7 +67,7 @@ public class Operators {
           Operator op = Operator.deserialize(Files.readAllBytes(entry));
           ops.add(op);
           size = Math.max(size, op.getID());
-        }catch(Exception e){
+        }catch(Throwable e){
           ret = false;
           Logger.log("Error occurred while loading operator from data file: "+entry.toString(), e);
         }
@@ -92,7 +92,7 @@ public class Operators {
         }
       }
       return ret;
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.log("Error occurred while loading operators.", e);
       return false;
     }
@@ -169,7 +169,7 @@ public class Operators {
       }
       count.incrementAndGet();
       return newOp;
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.logAsync("Error occurred while creating an operator with username "+username+'.', e);
       return null;
     }finally{
@@ -203,7 +203,7 @@ public class Operators {
       }
       operators.set(ID,op);
       return true;
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.logAsync("Error occurred while updating operator: "+op.getUsername()+'.', e);
       return false;
     }finally{
@@ -228,7 +228,7 @@ public class Operators {
         }
       }
       return true;
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.logAsync("Error occurred while clearing operators.", e);
       return false;
     }finally{
@@ -257,7 +257,7 @@ public class Operators {
         count.decrementAndGet();
       }
       return true;
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.logAsync("Error occurred while removing an operator with ID="+ID+'.', e);
       return false;
     }finally{
@@ -281,7 +281,7 @@ public class Operators {
           for (Path entry:stream){
             Files.delete(entry);
           }
-        }catch(Exception e){
+        }catch(Throwable e){
           Logger.log("Error occurred while clearing operator data.", e);
         }
       }else{
@@ -294,7 +294,7 @@ public class Operators {
         }
       }
       return ret;
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.log("Error occurred while saving operators.", e);
       return false;
     }
@@ -317,7 +317,7 @@ public class Operators {
         }
       }
       return true;
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.logAsync("Error occured while iterating over the operator list.", e);
       return false;
     }finally{

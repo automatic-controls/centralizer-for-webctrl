@@ -25,12 +25,12 @@ public abstract class SecureServlet extends HttpServlet {
       }else{
         res.sendError(403, "You are using an insecure connection protocol.");
       }
-    }catch(Exception e){
+    }catch(Throwable e){
       aces.webctrl.centralizer.common.Logger.logAsync("Error occurred in SecureServlet.", e);
       res.sendError(500);
     }
   }
-  public abstract void process(HttpServletRequest req, HttpServletResponse res) throws Exception;
+  public abstract void process(HttpServletRequest req, HttpServletResponse res) throws Throwable;
   /**
    * @return the {@code CentralOperator} attached to the given request, or {@code null} if none is attached.
    */

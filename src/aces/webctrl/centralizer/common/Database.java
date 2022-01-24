@@ -51,7 +51,7 @@ public class Database {
     }else{
       try{
         Keys.initCrypto(2048);
-      }catch(Exception e){
+      }catch(Throwable e){
         ret = false;
         Logger.log("Error occurred while initializing cryptographic objects.", e);
       }

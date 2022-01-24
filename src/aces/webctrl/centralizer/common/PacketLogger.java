@@ -66,7 +66,7 @@ public class PacketLogger {
         }
         out = new PrintWriter(new FileWriter(f,true));
         log("Packet capture started.", d);
-      }catch(Exception e){
+      }catch(Throwable e){
         working = false;
         Logger.log("Error occurred while initiating packet capture.", e);
       }
@@ -103,7 +103,7 @@ public class PacketLogger {
         log("Packet capture stopped.", d);
         out.close();
         out = null;
-      }catch(Exception e){
+      }catch(Throwable e){
         Logger.log("Error occurred while terminating packet capture.", e);
       }
       working = false;

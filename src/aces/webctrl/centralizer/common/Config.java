@@ -245,7 +245,7 @@ public class Config {
         return false;
       }
       return true;
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.log("Error occured while parsing configuration file.", e);
       return false;
     }
@@ -298,7 +298,7 @@ public class Config {
         ret&=setConfigParameter(key.toString(),value.toString());
       }
       return ret;
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.log("Error occured while loading primary configuration file.", e);
       return false;
     }
@@ -348,7 +348,7 @@ public class Config {
         }
       }
       return true;
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.log("Error occured while saving primary configuration file.", e);
       return false;
     }

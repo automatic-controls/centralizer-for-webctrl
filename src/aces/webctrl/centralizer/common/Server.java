@@ -121,7 +121,7 @@ public class Server {
         }
       }
       return true;
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.log("Error occurred while attempting to save server data for "+name+'.', e);
       return false;
     }

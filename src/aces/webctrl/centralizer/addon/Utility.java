@@ -10,7 +10,7 @@ public class Utility {
    * Loads all bytes from the given resource and convert to a {@code UTF-8} string.
    * @return the {@code UTF-8} string representing the given resource.
    */
-  public static String loadResourceAsString(String name) throws Exception {
+  public static String loadResourceAsString(String name) throws Throwable {
     
     /* The following code is only usable for WebCTRL8.0 and later because readAllBytes() is not available in earlier JRE versions.
     byte[] arr;

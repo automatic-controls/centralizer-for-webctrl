@@ -196,7 +196,7 @@ public class Connection implements Comparable<Connection> {
         public void func(Void v){
           try{
             t.run();
-          }catch(Exception e){
+          }catch(Throwable e){
             Logger.logAsync("Unexpected error occurred.",e);
             close(true);
           }
@@ -292,7 +292,7 @@ public class Connection implements Comparable<Connection> {
                                             close(true);
                                           }
                                         });
-                                      }catch(Exception e){
+                                      }catch(Throwable e){
                                         Logger.logAsync("Database configuration error.");
                                         close(true);
                                       }
@@ -341,7 +341,7 @@ public class Connection implements Comparable<Connection> {
                                                   }
                                                 });
                                               }
-                                            }catch(Exception e){
+                                            }catch(Throwable e){
                                               Logger.logAsync("Error occurred while configuring new server.");
                                               close(true);
                                             }
@@ -378,7 +378,7 @@ public class Connection implements Comparable<Connection> {
                                                   }
                                                 });
                                               }
-                                            }catch(Exception e){
+                                            }catch(Throwable e){
                                               Logger.logAsync("Error occurred while determining identity of server.");
                                               close(true);
                                             }
@@ -396,7 +396,7 @@ public class Connection implements Comparable<Connection> {
                             });
                           }
                         });
-                      }catch(Exception e){
+                      }catch(Throwable e){
                         Logger.logAsync("Cipher negotiation error occurred.",e);
                         close(true);
                       }

@@ -53,7 +53,7 @@ public class ProtocolMap {
                   c.listen3();
                 }
               });
-            }catch(Exception e){
+            }catch(Throwable e){
               Logger.logAsync("Error occurred in LOGIN protocol.",e);
               c.close(true);
               return;
@@ -77,7 +77,7 @@ public class ProtocolMap {
                   c.listen3();
                 }
               });
-            }catch(Exception e){
+            }catch(Throwable e){
               Logger.logAsync("Error occurred in LOGOUT protocol.",e);
               c.close(true);
               return;
@@ -137,7 +137,7 @@ public class ProtocolMap {
                   c.listen3();
                 }
               });
-            }catch(Exception e){
+            }catch(Throwable e){
               Logger.logAsync("Error occurred in CREATE_OPERATOR protocol.",e);
               c.close(true);
               return;
@@ -253,7 +253,7 @@ public class ProtocolMap {
                   c.listen3();
                 }
               });
-            }catch(Exception e){
+            }catch(Throwable e){
               Logger.logAsync("Error occurred in MODIFY_OPERATOR protocol.",e);
               c.close(true);
               return;
@@ -308,7 +308,7 @@ public class ProtocolMap {
                   c.listen3();
                 }
               });
-            }catch(Exception e){
+            }catch(Throwable e){
               Logger.logAsync("Error occurred in DELETE_OPERATOR protocol.",e);
               c.close(true);
               return;
@@ -378,7 +378,7 @@ public class ProtocolMap {
                   c.listen3();
                 }
               });
-            }catch(Exception e){
+            }catch(Throwable e){
               Logger.logAsync("Error occurred in MODIFY_SERVER protocol.",e);
               c.close(true);
               return;
@@ -438,7 +438,7 @@ public class ProtocolMap {
                   c.listen3();
                 }
               });
-            }catch(Exception e){
+            }catch(Throwable e){
               Logger.logAsync("Error occurred in DISCONNECT_SERVER protocol.",e);
               c.close(true);
               return;
@@ -498,7 +498,7 @@ public class ProtocolMap {
                   c.listen3();
                 }
               });
-            }catch(Exception e){
+            }catch(Throwable e){
               Logger.logAsync("Error occurred in DELETE_SERVER protocol.",e);
               c.close(true);
               return;
@@ -566,7 +566,7 @@ public class ProtocolMap {
                   }
                 }
               });
-            }catch(Exception e){
+            }catch(Throwable e){
               Logger.logAsync("Error occurred in GET_SERVER_LIST protocol.",e);
               c.close(true);
               return;
@@ -647,7 +647,7 @@ public class ProtocolMap {
                   }
                 }
               });
-            }catch(Exception e){
+            }catch(Throwable e){
               Logger.logAsync("Error occurred in GET_ACTIVE_OPERATORS protocol.",e);
               c.close(true);
               return;
@@ -695,7 +695,7 @@ public class ProtocolMap {
                   }
                 }
               });
-            }catch(Exception e){
+            }catch(Throwable e){
               Logger.logAsync("Error occurred in GET_CONFIG protocol.",e);
               c.close(true);
               return;
@@ -741,7 +741,7 @@ public class ProtocolMap {
                   c.listen3();
                 }
               });
-            }catch(Exception e){
+            }catch(Throwable e){
               Logger.logAsync("Error occurred in CONFIGURE protocol.",e);
               c.close(true);
               return;
@@ -787,7 +787,7 @@ public class ProtocolMap {
                   c.listen3();
                 }
               });
-            }catch(Exception e){
+            }catch(Throwable e){
               Logger.logAsync("Error occurred in GENERATE_PRESHARED_KEY protocol.",e);
               c.close(true);
               return;
@@ -832,7 +832,7 @@ public class ProtocolMap {
                   }
                 }
               });
-            }catch(Exception e){
+            }catch(Throwable e){
               Logger.logAsync("Error occurred in RESTART_DATABASE protocol.",e);
               c.close(true);
               return;

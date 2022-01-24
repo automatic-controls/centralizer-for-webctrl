@@ -38,7 +38,7 @@ public class Servers {
         Files.createDirectory(p);
         return true;
       }
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.log("Error occurred while creating servers directory.", e);
       return false;
     }
@@ -87,7 +87,7 @@ public class Servers {
         servers.set(ID,newServer);
       }
       return newServer;
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.logAsync("Error occurred while creating an server with name "+name+'.', e);
       return null;
     }finally{
@@ -128,7 +128,7 @@ public class Servers {
       }
       servers.set(ID,s);
       return true;
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.logAsync("Error occurred while updating server: "+s.getName()+'.', e);
       return false;
     }finally{
@@ -155,7 +155,7 @@ public class Servers {
       }
       servers.set(ID,null);
       return true;
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.logAsync("Error occurred while removing an server with ID="+ID+'.', e);
       return false;
     }finally{
@@ -179,7 +179,7 @@ public class Servers {
           Server s = Server.deserialize(Files.readAllBytes(entry.resolve("data")), true);
           arr.add(s);
           size = Math.max(size, s.getID());
-        }catch(Exception e){
+        }catch(Throwable e){
           ret = false;
           Logger.log("Error occurred while loading server data: "+entry.toString(), e);
         }
@@ -204,7 +204,7 @@ public class Servers {
         }
       }
       return ret;
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.log("Error occurred while loading servers.", e);
       return false;
     }
@@ -237,7 +237,7 @@ public class Servers {
               }
             }
           });
-        }catch(Exception e){
+        }catch(Throwable e){
           Logger.log("Error occurred while clearing server data.", e);
         }
       }
@@ -249,7 +249,7 @@ public class Servers {
         }
       }
       return ret;
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.log("Error occurred while saving servers.", e);
       return false;
     }
@@ -272,7 +272,7 @@ public class Servers {
         }
       }
       return true;
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.logAsync("Error occured while iterating over the server list.", e);
       return false;
     }finally{

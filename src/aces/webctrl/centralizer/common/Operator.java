@@ -242,7 +242,7 @@ public class Operator {
         }
       }
       return true;
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.log("Error occurred while attempting to save operator data for "+username+'.', e);
       return false;
     }

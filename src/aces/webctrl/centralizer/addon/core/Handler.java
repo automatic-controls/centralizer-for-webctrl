@@ -18,7 +18,7 @@ public abstract class Handler<T> implements CompletionHandler<T,Void> {
       if (!onSuccess(ret)){
         Initializer.taskExecuting = false;
       }
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.log("Error occurred in Handler.", e);
     }
   }

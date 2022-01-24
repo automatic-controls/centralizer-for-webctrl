@@ -30,7 +30,7 @@ public class Key {
   /**
    * Generate a new key pair with the given identification number.
    */
-  protected Key(int ID) throws Exception {
+  protected Key(int ID) throws Throwable {
     this.ID = ID;
     KeyPair pair;
     synchronized (Keys.keyPairGen){
@@ -44,7 +44,7 @@ public class Key {
   /**
    * Encrypts data using the public key.
    */
-  public byte[] encrypt(byte[] data) throws Exception {
+  public byte[] encrypt(byte[] data) throws Throwable {
     Cipher c = Cipher.getInstance(Database.CIPHER);
     c.init(Cipher.ENCRYPT_MODE, publicKey, Database.entropy);
     return c.doFinal(data);
@@ -52,7 +52,7 @@ public class Key {
   /**
    * Decrypts data using the private key.
    */
-  public byte[] decrypt(byte[] data) throws Exception {
+  public byte[] decrypt(byte[] data) throws Throwable {
     Cipher c = Cipher.getInstance(Database.CIPHER);
     c.init(Cipher.DECRYPT_MODE, privateKey, Database.entropy);
     return c.doFinal(data);
@@ -82,7 +82,7 @@ public class Key {
   /**
    * Deserializes a key from the given data.
    */
-  public static Key deserialize(SerializationStream s, boolean includePrivate) throws Exception {
+  public static Key deserialize(SerializationStream s, boolean includePrivate) throws Throwable {
     Key k = new Key();
     k.ID = s.readInt();
     k.publicKeyRaw = s.readBytes();

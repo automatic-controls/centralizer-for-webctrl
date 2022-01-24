@@ -69,7 +69,7 @@ public class Main {
         }
       });
       Logger.log(Config.NAME+" initializing...");
-    }catch(Exception e){
+    }catch(Throwable e){
       try{
         e.printStackTrace();
         if (Logger.isInitialized()){
@@ -81,7 +81,7 @@ public class Main {
         if (lockFileChannel!=null && lockFileChannel.isOpen()){
           lockFileChannel.close();
         }
-      }catch(Exception err){
+      }catch(Throwable err){
         err.printStackTrace();
       }
       System.exit(1);
@@ -103,7 +103,7 @@ public class Main {
           }catch(ShutdownChannelGroupException e){
             //Occurs when asyncGroup.shutdown() is called from another thread
             //Do nothing
-          }catch(final Exception e){
+          }catch(final Throwable e){
             enqueue(new DelayedRunnable(0){
               public void run(){
                 Logger.log("Connection acceptor encountered error.", e);
@@ -145,7 +145,7 @@ public class Main {
           }
         }
       }
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.log("Error occurred in main loop.", e);
     }
     gracefulExit(true);
@@ -183,7 +183,7 @@ public class Main {
         Logger.close();
         lockFileLock.release();
         lockFileChannel.close();
-      }catch(Exception err){
+      }catch(Throwable err){
         err.printStackTrace();
       }
       if (exit){
@@ -205,7 +205,7 @@ public class Main {
         server.accept(null, clientAcceptor);
         Logger.log("Database successfully bound to port "+port+" using a fixed thread pool of size "+threads+'.');
         return true;
-      }catch(Exception e){
+      }catch(Throwable e){
         running.set(false);
         Logger.log("Database bind error.", e);
         return false;
@@ -225,7 +225,7 @@ public class Main {
         asyncGroup.shutdownNow();
         Logger.log("Database successfully unbound.");
         return true;
-      }catch(Exception err){
+      }catch(Throwable err){
         Logger.log("Error occurred while unbinding database.", err);
         return false;
       }
@@ -241,7 +241,7 @@ public class Main {
     try{
       Runtime.getRuntime().exec("cmd /c start \"\" "+WINSW+" restart "+serviceXML);
       return true;
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.logAsync("Error occurred during attempted system restart.", e);
       return false;
     }

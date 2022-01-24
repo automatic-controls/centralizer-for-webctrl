@@ -61,7 +61,7 @@ public class SocketWrapper {
     this.socket = socket;
     try{
       IP = socket.getRemoteAddress().toString();
-    }catch(Exception e){
+    }catch(Throwable e){
       IP = "Unknown";
     }
   }
@@ -173,7 +173,7 @@ public class SocketWrapper {
                   req.buf = arr;
                   req.transfer = ByteBuffer.wrap(req.buf);
                   req.ch.write(req.transfer, req.pos, null, req.TRANSFER);
-                }catch(Exception e){
+                }catch(Throwable e){
                   Logger.logAsync("Error occurred while writing data to file \""+file.toString()+"\".", e);
                   write(Protocol.FILE_ERROR, null, req.ERROR);
                 }
@@ -187,7 +187,7 @@ public class SocketWrapper {
                 try{
                   req.transfer = ByteBuffer.wrap(req.buf, 0, x);
                   req.ch.write(req.transfer, req.pos, null, req.TRANSFER);
-                }catch(Exception e){
+                }catch(Throwable e){
                   Logger.logAsync("Error occurred while writing data to file \""+file.toString()+"\".", e);
                   write(Protocol.FILE_ERROR, null, req.ERROR);
                 }
@@ -206,7 +206,7 @@ public class SocketWrapper {
                     req.transfer = null;
                     write(Protocol.CONTINUE, null, req.HEADER);
                   }
-                }catch(Exception e){
+                }catch(Throwable e){
                   this.failed(e,null);
                 }
               }
@@ -224,7 +224,7 @@ public class SocketWrapper {
               }
             };
             write(Protocol.CONTINUE, null, req.HEADER);
-          }catch(Exception e){
+          }catch(Throwable e){
             if (ch==null){
               Logger.logAsync("Error occurred while opening file \""+file.toString()+"\" for writing.", e);
             }else{
@@ -232,13 +232,13 @@ public class SocketWrapper {
               if (lock!=null){
                 try{
                   lock.release();
-                }catch(Exception err){
+                }catch(Throwable err){
                   Logger.logAsync("Error occurred while closing FileLock for \""+file.toString()+"\".", err);
                 }
               }
               try{
                 ch.close();
-              }catch(Exception err){
+              }catch(Throwable err){
                 Logger.logAsync("Error occurred while closing AsynchronousFileChannel to \""+file.toString()+"\".", err);
               }
             }
@@ -290,7 +290,7 @@ public class SocketWrapper {
       try{
         lock.release();
         ch.close();
-      }catch(Exception err){
+      }catch(Throwable err){
         Logger.logAsync("Error occurred while closing AsynchronousFileChannel to \""+file.toString()+"\".", err);
       }
       func.completed(transfer, attach);
@@ -300,7 +300,7 @@ public class SocketWrapper {
       try{
         lock.release();
         ch.close();
-      }catch(Exception err){
+      }catch(Throwable err){
         Logger.logAsync("Error occurred while closing AsynchronousFileChannel to \""+file.toString()+"\".", err);
       }
       func.failed(e,attach);
@@ -356,7 +356,7 @@ public class SocketWrapper {
                 req.fileBuf.clear();
               }
               req.ch.read(req.fileBuf, req.pos, null, req.TRANSFER);
-            }catch(Exception e){
+            }catch(Throwable e){
               Logger.logAsync("Error occurred while reading data from file \""+file.toString()+"\".", e);
               write(Protocol.FILE_ERROR, null, req.ERROR);
             }
@@ -377,7 +377,7 @@ public class SocketWrapper {
           }else if (req.x==0){
             try{
               req.ch.read(req.fileBuf, req.pos, null, req.TRANSFER);
-            }catch(Exception e){
+            }catch(Throwable e){
               this.failed(e,null);
             }
           }else{
@@ -415,14 +415,14 @@ public class SocketWrapper {
         }
       };
       write(Protocol.CONTINUE, null, req.RESPONSE);
-    }catch(Exception e){
+    }catch(Throwable e){
       if (ch==null){
         Logger.logAsync("Error occurred while opening file \""+file.toString()+"\" for reading.", e);
       }else{
         Logger.logAsync("Error occurred while writing file \""+file.toString()+"\" to socket.", e);
         try{
           ch.close();
-        }catch(Exception err){
+        }catch(Throwable err){
           Logger.logAsync("Error occurred while closing AsynchronousFileChannel to \""+file.toString()+"\".", err);
         }
       }
@@ -461,7 +461,7 @@ public class SocketWrapper {
       fileBuf = null;
       try{
         ch.close();
-      }catch(Exception err){
+      }catch(Throwable err){
         Logger.logAsync("Error occurred while closing AsynchronousFileChannel to \""+file.toString()+"\".", err);
       }
       func.completed(transfer, attach);
@@ -470,7 +470,7 @@ public class SocketWrapper {
       fileBuf = null;
       try{
         ch.close();
-      }catch(Exception err){
+      }catch(Throwable err){
         Logger.logAsync("Error occurred while closing AsynchronousFileChannel to \""+file.toString()+"\".", err);
       }
       func.failed(e,attach);
@@ -526,7 +526,7 @@ public class SocketWrapper {
         */
         readInternal(req, false);
       }
-    }catch(Exception e){
+    }catch(Throwable e){
       req.fail(e);
     }
   }
@@ -681,7 +681,7 @@ public class SocketWrapper {
         */
         readInternal(req, false);
       }
-    }catch(Exception e){
+    }catch(Throwable e){
       req.fail(e);
     }
   }
@@ -846,7 +846,7 @@ public class SocketWrapper {
         */
         writeInternal(req, false);
       }
-    }catch(Exception e){
+    }catch(Throwable e){
       req.fail(e);
     }
   }
@@ -983,7 +983,7 @@ public class SocketWrapper {
       ReadByte<T> req = new ReadByte<T>(attach,func);
       try{
         readInternal(req);
-      }catch(Exception e){
+      }catch(Throwable e){
         req.fail(e);
       }
     }
@@ -1073,7 +1073,7 @@ public class SocketWrapper {
       WriteByte<T> req = new WriteByte<T>(attach, func, c.encrypt(b), c.encrypt(c.hash(1)[0]));
       try{
         writeInternal(req);
-      }catch(Exception e){
+      }catch(Throwable e){
         req.fail(e);
       }
     }
@@ -1158,7 +1158,7 @@ public class SocketWrapper {
           close();
         }
       });
-    }catch(Exception e){
+    }catch(Throwable e){
       func.failed(e,attach);
       close();
     }
@@ -1181,7 +1181,7 @@ public class SocketWrapper {
           close();
         }
       });
-    }catch(Exception e){
+    }catch(Throwable e){
       func.failed(e,attach);
       close();
     }

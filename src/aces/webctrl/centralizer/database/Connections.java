@@ -72,7 +72,7 @@ public class Connections {
         }
       }
       return true;
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.logAsync("Error occured while iterating over the connection list.", e);
       return false;
     }finally{

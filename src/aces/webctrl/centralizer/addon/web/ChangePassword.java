@@ -21,7 +21,7 @@ public class ChangePassword extends SecureServlet {
         "__PREFIX__",
         Initializer.getPrefix()
       );
-    }catch(Exception e){
+    }catch(Throwable e){
       if (e instanceof ServletException){
         throw (ServletException)e;
       }else{
@@ -29,7 +29,7 @@ public class ChangePassword extends SecureServlet {
       }
     }
   }
-  @Override public void process(final HttpServletRequest req, final HttpServletResponse res) throws Exception {
+  @Override public void process(final HttpServletRequest req, final HttpServletResponse res) throws Throwable {
     if (Initializer.isConnected()){
       CentralOperator webop = getOperator(req);
       if (webop!=null){

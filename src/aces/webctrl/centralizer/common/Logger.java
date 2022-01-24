@@ -52,7 +52,7 @@ public class Logger {
       }finally{
         out = new PrintWriter(new FileWriter(f,true));
       }
-    }catch(Exception e){
+    }catch(Throwable e){
       log("Failed to transfer data in log file.", e);
     }
   }
@@ -237,7 +237,7 @@ public class Logger {
       } finally {
         out = new PrintWriter(new FileWriter(f,true));
       }
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.log("Error occurred while deleting expired log entries.", e);
     }
   }

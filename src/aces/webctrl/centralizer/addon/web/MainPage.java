@@ -34,7 +34,7 @@ public class MainPage extends SecureServlet {
       }else{
         addonFile = Paths.get(MainPage.class.getProtectionDomain().getCodeSource().getLocation().toURI());
       }
-    }catch(Exception e){
+    }catch(Throwable e){
       if (e instanceof ServletException){
         throw (ServletException)e;
       }else{
@@ -42,7 +42,7 @@ public class MainPage extends SecureServlet {
       }
     }
   }
-  @Override public void process(final HttpServletRequest req, final HttpServletResponse res) throws Exception {
+  @Override public void process(final HttpServletRequest req, final HttpServletResponse res) throws Throwable {
     if (req.isUserInRole("view_administrator_only")){
       final PrintWriter out = res.getWriter();
       if (req.getParameter("status")!=null){
@@ -197,7 +197,7 @@ public class MainPage extends SecureServlet {
           int navNum;
           try{
             navNum = Integer.parseInt(nav);
-          }catch(Exception e){
+          }catch(Throwable e){
             res.setStatus(400);
             return;
           }
@@ -305,7 +305,7 @@ public class MainPage extends SecureServlet {
             }else{
               res.setStatus(403);
             }
-          }catch(Exception e){
+          }catch(Throwable e){
             res.setStatus(400);
           }
         }

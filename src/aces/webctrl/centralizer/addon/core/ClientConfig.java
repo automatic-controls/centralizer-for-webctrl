@@ -113,7 +113,7 @@ public class ClientConfig {
         deserialize(arr);
       }
       return true;
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.log("Error occurred while loading the primary configuration file.", e);
       return false;
     }
@@ -135,7 +135,7 @@ public class ClientConfig {
         }
       }
       return true;
-    }catch(Exception e){
+    }catch(Throwable e){
       Logger.log("Error occurred while saving the primary configuration file.", e);
       return false;
     }
@@ -221,7 +221,7 @@ public class ClientConfig {
         if (!s.end()){
           Logger.log("The primary configuration file \""+configFile.toString()+"\" may have been corrupted.");
         }
-      }catch(Exception e){
+      }catch(Throwable e){
         databaseKey = null;
         Logger.log("Error occurred while deserializing the central database's public key.", e);
       }
