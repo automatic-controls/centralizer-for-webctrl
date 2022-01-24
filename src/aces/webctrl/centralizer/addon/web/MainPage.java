@@ -51,6 +51,92 @@ public class MainPage extends SecureServlet {
         out.print(k==null?"NULL":k.getHashString());
         out.print(';');
         out.print(Initializer.getStatus());
+      }else if (req.getParameter("configData")!=null){
+        CentralOperator webop = getOperator(req);
+        if (webop==null){
+          res.setStatus(403);
+        }else{
+          Operator op = webop.getOperator();
+          if ((op.getPermissions()&Permissions.ADMINISTRATOR)==0){
+            res.setStatus(403);
+          }else if (!Initializer.isConnected()){
+            res.setStatus(504);
+          }else{
+            final String port = req.getParameter("port");
+            final String backupTime = req.getParameter("backupTime");
+            final String backlog = req.getParameter("backlog");
+            final String timeout = req.getParameter("timeout");
+            final String opTimeout = req.getParameter("opTimeout");
+            final String deleteLog = req.getParameter("deleteLog");
+            final String pingInterval = req.getParameter("pingInterval");
+            final String loginAttempts = req.getParameter("loginAttempts");
+            final String loginTime = req.getParameter("loginTime");
+            final String lockoutTime = req.getParameter("lockoutTime");
+            final String packetCapture = req.getParameter("packetCapture");
+            boolean isNull = false;
+            isNull|=port==null;
+            isNull|=backupTime==null;
+            isNull|=backlog==null;
+            isNull|=timeout==null;
+            isNull|=opTimeout==null;
+            isNull|=deleteLog==null;
+            isNull|=pingInterval==null;
+            isNull|=loginAttempts==null;
+            isNull|=loginTime==null;
+            isNull|=lockoutTime==null;
+            isNull|=packetCapture==null;
+            if (isNull){
+              res.setStatus(400);
+            }else{
+              int port_, backlog_, loginAttempts_, backupHr_, backupMin_, backupSec_;
+              long timeout_, opTimeout_, deleteLog_, pingInterval_, loginTime_, lockoutTime_;
+              boolean packetCapture_;
+              try{
+                port_ = Integer.parseInt(port);
+                backlog_ = Integer.parseInt(backlog);
+                loginAttempts_ = Integer.parseInt(loginAttempts);
+                timeout_ = Long.parseLong(timeout);
+                opTimeout_ = Long.parseLong(opTimeout);
+                deleteLog_ = Long.parseLong(deleteLog);
+                pingInterval_ = Long.parseLong(pingInterval);
+                loginTime_ = Long.parseLong(loginTime);
+                lockoutTime_ = Long.parseLong(lockoutTime);
+                packetCapture_ = Boolean.parseBoolean(packetCapture);
+                String[] arr = backupTime.split(":");
+                if (arr.length==3){
+                  backupHr_ = Integer.parseInt(arr[0]);
+                  backupMin_ = Integer.parseInt(arr[1]);
+                  backupSec_ = Integer.parseInt(arr[2]);
+                }else{
+                  throw new Exception("Invalid backup time.");
+                }
+                Config.port = port_;
+                Config.backlog = backlog_;
+                Config.loginAttempts = loginAttempts_;
+                Config.backupHr = backupHr_;
+                Config.backupMin = backupMin_;
+                Config.backupSec = backupSec_;
+                Config.timeout = timeout_;
+                Config.operatorTimeout = opTimeout_;
+                Config.deleteLogAfter = deleteLog_;
+                Config.pingInterval = pingInterval_;
+                Config.loginTimePeriod = loginTime_;
+                Config.loginLockoutTime = lockoutTime_;
+                Config.packetCapture = packetCapture_;
+                Result<Byte> ret = Initializer.configure(op.getID());
+                if (ret.waitForResult(System.currentTimeMillis()+12000)){
+                  if (ret.getResult()!=Protocol.SUCCESS){
+                    res.setStatus(403);
+                  }
+                }else{
+                  res.setStatus(504);
+                }
+              }catch(Throwable e){
+                res.setStatus(400);
+              }
+            }
+          }
+        }
       }else if (req.getParameter("refreshData")!=null){
         CentralOperator webop = getOperator(req);
         boolean nullAll = false;
@@ -343,7 +429,6 @@ public class MainPage extends SecureServlet {
           "__SERVER_DESC__",
           ClientConfig.description==null?"":Utility.escapeJS(ClientConfig.description)
         ));
-        out.flush();
       }
     }else{
       res.sendError(403);

@@ -143,7 +143,7 @@ public class Config {
   /**
    * Used to precompute serialization length.
    */
-  public final static int LENGTH = 65;
+  public final static int LENGTH = 73;
   /**
    * Encodes parameters which may be remotely configured from clients.
    */
@@ -312,7 +312,8 @@ public class Config {
     try{
       StringBuilder sb = new StringBuilder(1024);
       sb.append(';'+NAME+" - Primary Configuration File\n");
-      sb.append(";Note all time intervals are specified in milliseconds.");
+      sb.append(";PublicKeyHash=").append(Keys.getPreferredKey().getHashString());
+      sb.append("\n;Note all time intervals are specified in milliseconds.");
       sb.append("\n\n;Used to determine compatibility\n");
       sb.append("Version=").append(VERSION);
       sb.append("\n\n;Specifies where the database binds to listen for connections\n");

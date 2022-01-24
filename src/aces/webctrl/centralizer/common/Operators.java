@@ -177,6 +177,26 @@ public class Operators {
     }
   }
   /**
+   * Used to change the username of an operator and checks that no other operator already has the specified name.
+   * @return {@code true} on success; {@code false} if another operator already has the target name.
+   */
+  public static boolean changeUsername(Operator op, String name){
+    lock.writeLock().lock();
+    try{
+      for (Operator o:operators){
+        if (o!=null && o!=op && o.getUsername().equalsIgnoreCase(name)){
+          return false;
+        }
+      }
+      return op.setUsername(name);
+    }catch(Throwable t){
+      Logger.logAsync("Error occurred while attempting to change an operator's name.", t);
+      return false;
+    }finally{
+      lock.writeLock().unlock();
+    }
+  }
+  /**
    * Updates an operator.
    * Used by clients to add/update deserialized operators retrieved from the database.
    * @return {@code true} on success; {@code false} if an error occurs.

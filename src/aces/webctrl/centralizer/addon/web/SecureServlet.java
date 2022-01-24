@@ -20,7 +20,7 @@ public abstract class SecureServlet extends HttpServlet {
     try{
       req.setCharacterEncoding("UTF-8");
       res.setCharacterEncoding("UTF-8");
-      if (aces.webctrl.centralizer.addon.core.Initializer.debugMode || req.isSecure()){
+      if (req.isSecure()){
         process(req,res);
       }else{
         res.sendError(403, "You are using an insecure connection protocol.");

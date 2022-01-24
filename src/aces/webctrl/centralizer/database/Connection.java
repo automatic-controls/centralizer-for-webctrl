@@ -58,12 +58,14 @@ public class Connection implements Comparable<Connection> {
    */
   public boolean close(boolean remove){
     if (closed.compareAndSet(false,true)){
-      Logger.logAsync("Connection closed to "+wrap.getIP());
       if (remove){
         Connections.remove(this);
       }
-      if (server!=null){
+      if (server==null){
+        Logger.logAsync("Connection closed to "+wrap.getIP());
+      }else{
         server.disconnect();
+        Logger.logAsync("Server disconnected: "+server.getName());
       }
       if (wrap.isClosed()){
         return true;

@@ -95,6 +95,26 @@ public class Servers {
     }
   }
   /**
+   * Used to change the name of a server and checks that no other server already has the specified name.
+   * @return {@code true} on success; {@code false} if another server already has the target name.
+   */
+  public static boolean changeName(Server server, String name){
+    lock.writeLock().lock();
+    try{
+      for (Server s:servers){
+        if (s!=null && s!=server && s.getName().equalsIgnoreCase(name)){
+          return false;
+        }
+      }
+      return server.setName(name);
+    }catch(Throwable t){
+      Logger.logAsync("Error occurred while attempting to change a server's name.", t);
+      return false;
+    }finally{
+      lock.writeLock().unlock();
+    }
+  }
+  /**
    * Updates a server.
    * Used to create/update deserialized servers retrieved from the database.
    * @return {@code true} on success; {@code false} if an error occurs.

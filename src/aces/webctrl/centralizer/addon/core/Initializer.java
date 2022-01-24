@@ -349,7 +349,7 @@ public class Initializer implements ServletContextListener {
     try{
       if (Files.exists(webapps_lite)){
         ByteBuffer buf = ByteBuffer.wrap(new String(Files.readAllBytes(webapps_lite), java.nio.charset.StandardCharsets.UTF_8).replaceAll(
-          "if \\(\\w++!=\""+name+"\"\\)\\{ (.+?)/*EDITED*/ \\}",
+          "if \\(\\w++!=\""+name+"\"\\)\\{ (.+?)/\\*EDITED\\*/ \\}",
           "$1"
         ).getBytes(java.nio.charset.StandardCharsets.UTF_8));
         try(
@@ -380,11 +380,9 @@ public class Initializer implements ServletContextListener {
           int port = ClientConfig.port;
           ClientConfig.ipLock.readLock().unlock();
           if (host==null){
-            if (debugMode){ Logger.logAsync("enqueueConnect() host is null, so scheduling for later..."); }
             enqueueConnect(System.currentTimeMillis()+ClientConfig.reconnectTimeout);
           }else{
             try{
-              if (debugMode){ Logger.logAsync("Opening AsynchronousSocketChannel..."); }
               status = "Connecting...";
               grp = AsynchronousChannelGroup.withFixedThreadPool(1, java.util.concurrent.Executors.defaultThreadFactory());
               ch = AsynchronousSocketChannel.open(grp);
@@ -401,12 +399,10 @@ public class Initializer implements ServletContextListener {
               logConnectionErrors = true;
               enqueue(new Task(wrap,0){
                 public void run(){
-                  if (debugMode){ Logger.logAsync("Reading the application version..."); }
                   //Read the application version
                   wrapper.readBytes(256, null, new Handler<byte[]>(){
                     public boolean onSuccess(byte[] arr){
                       String version = new SerializationStream(arr).readString();
-                      if (debugMode){ Logger.logAsync("Received version string: "+version); }
                       //Ensure the database and addon versions are compatible
                       if (!Config.isCompatibleVersion(version)){
                         Logger.logAsync("Incompatible versions: "+Config.VERSION+" and "+version);
@@ -415,22 +411,18 @@ public class Initializer implements ServletContextListener {
                         SerializationStream s = new SerializationStream(4);
                         final Key k = ClientConfig.databaseKey;
                         s.write(k==null?-1:k.getID());
-                        if (debugMode){ Logger.logAsync("Writing requested key ID="+(k==null?-1:k.getID())+"..."); }
                         //Write the requested key ID
                         wrapper.writeBytes(s.data, null, new Handler<Void>(){
                           public boolean onSuccess(Void v){
-                            if (debugMode){ Logger.logAsync("Reading the requested key..."); }
                             //Read the requested key
                             wrapper.readBytes(16384, null, new Handler<byte[]>(){
                               public boolean onSuccess(byte[] arr){
                                 try{
-                                  if (debugMode){ Logger.logAsync("Analyzing received key..."); }
                                   final Key kk = Key.deserialize(new SerializationStream(arr),false);
                                   //Ensure the key meets expectations
                                   if (k==null){
                                     ClientConfig.databaseKey = kk;
                                   }else if (!k.equals(kk)){
-                                    if (debugMode){ Logger.logAsync("Key does not meet expectations."); }
                                     forceDisconnect();
                                   }
                                   //Generate a temporary KeyPair for the handshake
@@ -439,16 +431,13 @@ public class Initializer implements ServletContextListener {
                                     pair = Keys.keyPairGen.generateKeyPair();
                                   }
                                   final java.security.PrivateKey pk = pair.getPrivate();
-                                  if (debugMode){ Logger.logAsync("Writing temporary public key..."); }
                                   //Encrypt and write the temporary public key
                                   wrapper.writeBytes(kk.encrypt(pair.getPublic().getEncoded()), null, new Handler<Void>(){
                                     public boolean onSuccess(Void v){
-                                      if (debugMode){ Logger.logAsync("Reading symmetric key..."); }
                                       //Read the encrypted symmetric key to use for this session
                                       wrapper.readBytes(16384, null, new Handler<byte[]>(){
                                         public boolean onSuccess(byte[] arr){
                                           try{
-                                            if (debugMode){ Logger.logAsync("Creating StreamCipher using the symmetric key..."); }
                                             javax.crypto.Cipher c = javax.crypto.Cipher.getInstance(Database.CIPHER);
                                             c.init(javax.crypto.Cipher.DECRYPT_MODE, pk);
                                             //Decrypt the symmetric key and use it to initialize a StreamCipher
@@ -457,7 +446,6 @@ public class Initializer implements ServletContextListener {
                                             wrapper.read(null, new Handler<Byte>(){
                                               public boolean onSuccess(Byte B){
                                                 if (B.byteValue()==Protocol.BLANK_INSTALL){
-                                                  if (debugMode){ Logger.logAsync("Blank install protocol initiated."); }
                                                   SerializationStream s;
                                                   synchronized (blankSetupLock){
                                                     if (setupBlank){
@@ -485,18 +473,15 @@ public class Initializer implements ServletContextListener {
                                                 }else{
                                                   final int ID = ClientConfig.ID;
                                                   if (ID<0){
-                                                    if (debugMode){ Logger.logAsync("Initiating NEW_SERVER protocol..."); }
                                                     final String name = ClientConfig.name;
                                                     final String desc = ClientConfig.description;
                                                     if (name==null || desc==null){
-                                                      if (debugMode){ Logger.logAsync("Forcibly disconnected because ClientConfig.name or ClientConfig.description is null."); }
                                                       forceDisconnect();
                                                       return true;
                                                     }
                                                     //Write a message indicating this is a new server
                                                     wrapper.write(Protocol.NEW_SERVER, null, new Handler<Void>(){
                                                       public boolean onSuccess(Void v){
-                                                        if (debugMode){ Logger.logAsync("Writing server details..."); }
                                                         byte[] nameBytes = name.getBytes(java.nio.charset.StandardCharsets.UTF_8);
                                                         byte[] descBytes = desc.getBytes(java.nio.charset.StandardCharsets.UTF_8);
                                                         SerializationStream s = new SerializationStream(nameBytes.length+descBytes.length+8);
@@ -505,7 +490,6 @@ public class Initializer implements ServletContextListener {
                                                         //Write the name and description to configure this as a new server
                                                         wrapper.writeBytes(s.data, null, new Handler<Void>(){
                                                           public boolean onSuccess(Void v){
-                                                            if (debugMode){ Logger.logAsync("Reading status..."); }
                                                             //Read a status message
                                                             wrapper.read(null, new Handler<Byte>(){
                                                               public boolean onSuccess(Byte b){
@@ -513,12 +497,10 @@ public class Initializer implements ServletContextListener {
                                                                   if (debugMode){ Logger.logAsync("Server setup unsuccessful."); }
                                                                   forceDisconnect();
                                                                 }else{
-                                                                  if (debugMode){ Logger.logAsync("Reading identifications parameters..."); }
                                                                   //Read identification parameters
                                                                   wrapper.readBytes(1028, null, new Handler<byte[]>(){
                                                                     public boolean onSuccess(byte[] arr){
                                                                       try{
-                                                                        if (debugMode){ Logger.logAsync("Finalizing server setup..."); }
                                                                         SerializationStream s = new SerializationStream(arr);
                                                                         ClientConfig.ID = s.readInt();
                                                                         ClientConfig.identifier = s.readBytes();
@@ -529,7 +511,7 @@ public class Initializer implements ServletContextListener {
                                                                         return false;
                                                                       }catch(Throwable e){
                                                                         ClientConfig.ID = -1;
-                                                                        if (debugMode){ Logger.logAsync("Error occurred in final server setup.", e); }
+                                                                        if (debugMode){ Logger.logAsync("Error occurred during server setup.", e); }
                                                                         forceDisconnect();
                                                                         return true;
                                                                       }
@@ -546,24 +528,20 @@ public class Initializer implements ServletContextListener {
                                                       }
                                                     });
                                                   }else{
-                                                    if (debugMode){ Logger.logAsync("Initiating EXISTING_SERVER protocol..."); }
                                                     final byte[] identifier = ClientConfig.identifier;
                                                     if (identifier==null){
                                                       ClientConfig.ID = -1;
-                                                      if (debugMode){ Logger.logAsync("Forcibly disconnected because internal identifier is null."); }
                                                       forceDisconnect();
                                                     }
                                                     //Write a message indicate this is an existing server
                                                     wrapper.write(Protocol.EXISTING_SERVER, null, new Handler<Void>(){
                                                       public boolean onSuccess(Void v){
-                                                        if (debugMode){ Logger.logAsync("Writing identifying information..."); }
                                                         SerializationStream s = new SerializationStream(identifier.length+8);
                                                         s.write(ID);
                                                         s.write(identifier);
                                                         //Write identifying information
                                                         wrapper.writeBytes(s.data, null, new Handler<Void>(){
                                                           public boolean onSuccess(Void v){
-                                                            if (debugMode){ Logger.logAsync("Reading status message..."); }
                                                             //Read a status message
                                                             wrapper.read(null, new Handler<Byte>(){
                                                               public boolean onSuccess(Byte b){
@@ -629,7 +607,7 @@ public class Initializer implements ServletContextListener {
                 }
                 grp = null;
               }
-              if (logConnectionErrors || debugMode){
+              if (logConnectionErrors){
                 logConnectionErrors = false;
                 Logger.log("Error connecting to database.", e);
               }
@@ -681,7 +659,6 @@ public class Initializer implements ServletContextListener {
               }
               lockoutCounter = 0;
               lockoutExpiry = 0;
-              if (debugMode){ Logger.logAsync("Ping phase 1 initiated."); }
               wrapper.ping(null, new Handler<Void>(){
                 public boolean onSuccess(Void v){
                   ping1(wrapper);
@@ -701,7 +678,6 @@ public class Initializer implements ServletContextListener {
         public boolean onSuccess(Byte B){
           byte b = B.byteValue();
           if (b==Protocol.NO_FURTHER_INSTRUCTIONS){
-            if (debugMode){ Logger.logAsync("Ping phase 2 initiated."); }
             ping2(wrapper);
             //Each of the following protocols should invoke ping1(SocketWrapper) when asynchronous execution is finished
           }else if (b==Protocol.UPDATE_OPERATORS){
@@ -818,7 +794,6 @@ public class Initializer implements ServletContextListener {
       if (r==null){
         wrapper.write(Protocol.NO_FURTHER_INSTRUCTIONS,null,new Handler<Void>(){
           public boolean onSuccess(Void v){
-            if (debugMode){ Logger.logAsync("Ping protocol completed."); }
             enqueuePing(wrapper, System.currentTimeMillis()+ClientConfig.pingInterval);
             return false;
           }

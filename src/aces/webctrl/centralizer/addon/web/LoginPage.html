@@ -1,0 +1,67 @@
+<!--
+  BSD 3-Clause License
+  Copyright (c) 2022, Automatic Controls Equipment Systems, Inc.
+  Contributors: Cameron Vogt (@cvogt729)
+-->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Login
+    </title>
+    <style>
+      body {
+        background-color:black;
+        color:white;
+      }
+      .e {
+        margin-left:0.5em;
+        margin-right:0.5em;
+        margin-top:0.25em;
+        margin-bottom:0.25em;
+      }
+    </style>
+    <script>
+      function obfuscate(str){
+        let s = ""
+        for (var i=str.length-1;i>=0;--i){
+          s+=String.fromCharCode(str.charCodeAt(i)^4);
+        }
+        return s
+      }
+      function submitLogin(){
+        submitButton.disabled = true;
+        const pass = obfuscate(password.value);
+        statusText.innerHTML = "Submitting...";
+        let req = new XMLHttpRequest()
+        req.open("POST","__PREFIX__Login",true)
+        req.setRequestHeader("content-type", "application/x-www-form-urlencoded")
+        req.onreadystatechange = function(){
+          if (this.readyState==4){
+            if (this.status==200){
+              window.location.href = "__PREFIX__index";
+              statusText.innerHTML = "SUCCESS";
+            }else if (this.status==403){
+              statusText.innerHTML = "Credentials are incorrect.";
+            }else{
+              statusText.innerHTML = "The centralizer database is currently inaccessible.";
+            }
+            submitButton.disabled = false;
+          }
+        }
+        req.send("submit&password="+encodeURIComponent(pass));
+      }
+    </script>
+  </head>
+  <body>
+    <div style="text-align:center">
+      <h1>Centralizer Database Login</h1>
+      <div class="e">Username: __USERNAME__</div>
+      <label for="password">Password:</label>
+      <input id="password" class="e" type="password" autocomplete="off" onkeydown="if (event.which===13){ submitLogin(); }">
+      <br>
+      <button id="submitButton" class="e" onclick="submitLogin()">Submit</button>
+      <h3 id="statusText" class="e" style="color:red"></h3>
+    </div>
+  </body>
+</html>

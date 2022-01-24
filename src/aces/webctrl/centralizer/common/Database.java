@@ -37,9 +37,9 @@ public class Database {
     Database.server = server;
     boolean ret = true;
     if (server){
+      ret&=Keys.init(rootFolder.resolve("keys"));
       ret&=Config.init(rootFolder.resolve("config.txt"));
       ret&=Servers.init(rootFolder.resolve("Servers"));
-      ret&=Keys.init(rootFolder.resolve("keys"));
       SocketWrapper.config = new SocketWrapperConfig(){
         public long getTimeout(){
           return Config.timeout;

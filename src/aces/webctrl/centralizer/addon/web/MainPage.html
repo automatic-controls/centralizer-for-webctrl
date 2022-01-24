@@ -175,7 +175,14 @@
                 adminSaveButton.disabled = false;
               }
             }
-            req.send("blankConfig&user="+encodeURIComponent(user)+"&pass="+encodeURIComponent(pass)+"&dis="+encodeURIComponent(dis)+"&nav="+encodeURIComponent(nav)+"&desc="+encodeURIComponent(desc));
+            req.send(
+              "blankConfig"+
+              "&user="+encodeURIComponent(user)+
+              "&pass="+encodeURIComponent(pass)+
+              "&dis="+encodeURIComponent(dis)+
+              "&nav="+encodeURIComponent(nav)+
+              "&desc="+encodeURIComponent(desc)
+            );
             return;
           }
         }
@@ -251,7 +258,17 @@
               }
             }
           }
-          req.send("config&host="+encodeURIComponent(host.value)+"&port="+encodeURIComponent(port.value)+"&backupTime="+encodeURIComponent(backupTime.value)+"&timeout="+encodeURIComponent(timeout.value)+"&deleteLog="+encodeURIComponent(deleteLog.value)+"&serverName="+encodeURIComponent(serverName.value)+"&serverDesc="+encodeURIComponent(serverDesc.value)+"&packetCapture="+encodeURIComponent(String(packetCapture.checked)));
+          req.send(
+            "config"+
+            "&host="+encodeURIComponent(host.value)+
+            "&port="+encodeURIComponent(port.value)+
+            "&backupTime="+encodeURIComponent(backupTime.value)+
+            "&timeout="+encodeURIComponent(timeout.value)+
+            "&deleteLog="+encodeURIComponent(deleteLog.value)+
+            "&serverName="+encodeURIComponent(serverName.value)+
+            "&serverDesc="+encodeURIComponent(serverDesc.value)+
+            "&packetCapture="+encodeURIComponent(String(packetCapture.checked))
+          );
           return;
         }
         configResetButton.disabled = false;
@@ -355,14 +372,66 @@
         validateNumber(dataLoginAttempts);
         validateLong(dataLoginTime);
         validateLong(dataLockoutTime);
-        //TODO
+        if (dataPort.value.length===0){
+          dataStatus.innerHTML = "Please specify port.";
+        }else if (dataBackupTime.value.length===0){
+          dataStatus.innerHTML = "Please specify backup time.";
+        }else if (!/^(?:\d|[0-2]\d):(?:\d|[0-5]\d):(?:\d|[0-5]\d)$/.test(dataBackupTime.value)){
+          dataStatus.innerHTML = "Invalid backup time.";
+        }else if (dataBacklog.value.length===0){
+          dataStatus.innerHTML = "Please specify maximum connection waitlist.";
+        }else if (dataTimeout.value.length===0){
+          dataStatus.innerHTML = "Please specify response timeout.";
+        }else if (dataOpTimeout.value.length===0){
+          dataStatus.innerHTML = "Please specify operator timeout.";
+        }else if (dataDeleteLog.value.length===0){
+          dataStatus.innerHTML = "Please specify when to delete log entries.";
+        }else if (dataPingInterval.value.length===0){
+          dataStatus.innerHTML = "Please specify ping interval.";
+        }else if (dataLoginAttempts.value.length===0){
+          dataStatus.innerHTML = "Please specify login attempts.";
+        }else if (dataLoginTime.value.length===0){
+          dataStatus.innerHTML = "Please specify login period.";
+        }else if (dataLockoutTime.value.length===0){
+          dataStatus.innerHTML = "Please specify lockout period.";
+        }else{
+          dataStatus.innerHTML = "Submitting...";
+          let req = new XMLHttpRequest();
+          req.open("POST","__PREFIX__index",true);
+          req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
+          req.onreadystatechange = function(){
+            if (this.readyState==4){
+              if (this.status==200){
+                dataStatus.innerHTML = "Saved successfully!";
+              }else{
+                dataStatus.innerHTML = "Error code: "+this.status;
+              }
+              dataSaveButton.disabled = false;
+            }
+          }
+          req.send(
+            "configData"+
+            "&port="+encodeURIComponent(dataPort.value)+
+            "&backupTime="+encodeURIComponent(dataBackupTime.value)+
+            "&backlog="+encodeURIComponent(dataBacklog.value)+
+            "&timeout="+encodeURIComponent(dataTimeout.value)+
+            "&opTimeout="+encodeURIComponent(dataOpTimeout.value)+
+            "&deleteLog="+encodeURIComponent(dataDeleteLog.value)+
+            "&pingInterval="+encodeURIComponent(dataPingInterval.value)+
+            "&loginAttempts="+encodeURIComponent(dataLoginAttempts.value)+
+            "&loginTime="+encodeURIComponent(dataLoginTime.value)+
+            "&lockoutTime="+encodeURIComponent(dataLockoutTime.value)+
+            "&packetCapture="+encodeURIComponent(String(dataPacketCapture.checked))
+          );
+          return;
+        }
         dataSaveButton.disabled = false;
       }
     </script>
   </head>
   <body>
     <div style="text-align:center">
-      <h1>Centralizer __VERSION__ for WebCTRL</h1>
+      <h1>Centralizer __VERSION__</h1>
       <h3 class="e">Database Key Hash: <span id="keyHash">Retrieving...</span></h3>
       <h3 id="statusText" class="e" style="color:red">Retrieving...</h3>
       <br>
@@ -468,7 +537,8 @@
           <h2 class="e">Other Links</h2>
           <a target="_blank" href="https://github.com/automatic-controls/centralizer-for-webctrl/blob/main/README.md">Documentation</a><br>
           <br>
-          <a href="__PREFIX__ChangePassword">Change Your Password</a><br>
+          <a href="__PREFIX__Login">Refresh Login</a><br>
+          <a href="__PREFIX__ChangePassword" target="_blank">Change Your Password</a><br>
           <a href="__PREFIX__ManageOperators">Manage Operators</a><br>
           <a href="__PREFIX__ManageServers">Manage Servers</a><br>
           <a href="__PREFIX__ManageFileSync">Manage File Synchronization</a><br>

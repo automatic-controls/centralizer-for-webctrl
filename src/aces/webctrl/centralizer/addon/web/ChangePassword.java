@@ -69,7 +69,7 @@ public class ChangePassword extends SecureServlet {
         res.sendError(403, "Local operators cannot change their password using this webpage.");
       }
     }else{
-      res.sendError(500, "WebCTRL is not currently connected to the credential database. Please try again later.");
+      res.sendError(504, "WebCTRL is not currently connected to the credential database. Please try again later.");
     }
   }
 }

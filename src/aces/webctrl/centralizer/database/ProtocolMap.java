@@ -176,7 +176,7 @@ public class ProtocolMap {
                       while (!s.end()){
                         switch (s.readByte()){
                           case 0:{//Username
-                            if (op.setUsername(s.readString())){
+                            if (Operators.changeUsername(op, s.readString())){
                               modified = true;
                             }else{
                               ret = Protocol.PARTIAL_SUCCESS;
@@ -344,7 +344,7 @@ public class ProtocolMap {
                     while (!s.end()){
                       switch (s.readByte()){
                         case 0:{//Name
-                          if (!server.setName(s.readString())){
+                          if (!Servers.changeName(server, s.readString())){
                             ret = Protocol.PARTIAL_SUCCESS;
                           }
                           break;
@@ -685,6 +685,9 @@ public class ProtocolMap {
                   if (go){
                     SerializationStream s = new SerializationStream(Config.LENGTH);
                     Config.serialize(s);
+                    if (!s.end()){
+                      Logger.logAsync("Config.LENGTH!="+s.pos);
+                    }
                     c.wrap.writeBytes(s.data, null, c.new Handler<Void>(){
                       public void func(Void v){
                         c.listen3();

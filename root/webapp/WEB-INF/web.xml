@@ -28,6 +28,15 @@
     <url-pattern>/ChangePassword</url-pattern>
   </servlet-mapping>
 
+  <servlet>
+    <servlet-name>LoginServlet</servlet-name>
+    <servlet-class>aces.webctrl.centralizer.addon.web.LoginServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>LoginServlet</servlet-name>
+    <url-pattern>/Login</url-pattern>
+  </servlet-mapping>
+
   <security-constraint>
     <web-resource-collection>
       <web-resource-name>WEB</web-resource-name>
