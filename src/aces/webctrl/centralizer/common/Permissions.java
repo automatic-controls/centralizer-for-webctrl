@@ -1,3 +1,8 @@
+/*
+  BSD 3-Clause License
+  Copyright (c) 2022, Automatic Controls Equipment Systems, Inc.
+  Contributors: Cameron Vogt (@cvogt729)
+*/
 package aces.webctrl.centralizer.common;
 /**
  * Contains bit-masking constants used for determining an operator's permissions level.

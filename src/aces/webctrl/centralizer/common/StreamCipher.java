@@ -1,3 +1,8 @@
+/*
+  BSD 3-Clause License
+  Copyright (c) 2022, Automatic Controls Equipment Systems, Inc.
+  Contributors: Cameron Vogt (@cvogt729)
+*/
 package aces.webctrl.centralizer.common;
 /**
  * This class is designed for continuous encryption/decryption operations on a stream.
