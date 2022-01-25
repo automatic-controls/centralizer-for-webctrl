@@ -194,6 +194,26 @@ public class Operator {
     return s.data;
   }
   /**
+   * Sets all properties of this Operator to that of the given Operator.
+   */
+  public void copy(Operator op){
+    passwordLock.writeLock().lock();
+    salt = op.salt;
+    hash = op.hash;
+    passwordLock.writeLock().unlock();
+    forceChange = op.forceChange;
+    creationTime = op.creationTime;
+    timestamp = op.timestamp;
+    //lastLogin is maintained locally by each client, so we shouldn't copy it from the database.
+    //lastLogin = op.lastLogin;
+    permissions = op.permissions;
+    navigationTimeout = op.navigationTimeout;
+    username = op.username;
+    displayName = op.displayName;
+    description = op.description;
+    op.dispose();
+  }
+  /**
    * Deserializes an operator from a byte array.
    * @param data the byte array containing the information to be deserialized.
    * @throws IndexOutOfBoundsException if {@code data} has been corrupted.

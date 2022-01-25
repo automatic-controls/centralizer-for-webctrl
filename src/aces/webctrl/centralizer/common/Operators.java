@@ -218,10 +218,10 @@ public class Operators {
       Operator prev = operators.get(ID);
       if (prev==null){
         count.incrementAndGet();
+        operators.set(ID,op);
       }else{
-        prev.dispose();
+        prev.copy(op);
       }
-      operators.set(ID,op);
       return true;
     }catch(Throwable e){
       Logger.logAsync("Error occurred while updating operator: "+op.getUsername()+'.', e);

@@ -82,7 +82,7 @@ public class Database {
    * Used to determine whether a given name is valid.
    * @param name the string to validate.
    * @param spaces whether {@code name} is allowed to include spaces.
-   * @return {@code true} if {@code name} is non-empty, has length less than or equal to {@code 32}, and contains only letters, numbers, underscores, and (possibly) spaces; {@code false} otherwise.
+   * @return {@code true} if {@code name} is non-empty, not equal to {@code NULL} (ignoring case), has length less than or equal to {@code 32}, and contains only letters, numbers, underscores, and (possibly) spaces; {@code false} otherwise.
    */
   public static boolean validateName(String name, boolean spaces){
     char c;
@@ -95,6 +95,9 @@ public class Database {
       if ((c<'a' || c>'z') && (c<'A' || c>'Z') && c!='_' && (c<'0' || c>'9') && (!spaces || c!=' ')){
         return false;
       }
+    }
+    if (name.equalsIgnoreCase("NULL")){
+      return false;
     }
     return true;
   }

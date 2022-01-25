@@ -53,6 +53,24 @@ public class Utility {
     return new String(arr, java.nio.charset.StandardCharsets.UTF_8);
   }
   /**
+   * Encodes a string to be parsed as a list.
+   * Intended to be used to encode AJAX responses.
+   * Escapes semi-colons and backslashes using the backslash character.
+   */
+  public static String encodeAJAX(String str){
+    int len = str.length();
+    StringBuilder sb = new StringBuilder(len+16);
+    char c;
+    for (int i=0;i<len;++i){
+      c = str.charAt(i);
+      if (c=='\\' || c==';'){
+        sb.append('\\');
+      }
+      sb.append(c);
+    }
+    return sb.toString();
+  }
+  /**
    * Escapes a {@code String} for usage in HTML attribute values.
    * @param str is the {@code String} to escape.
    * @return the escaped {@code String}.

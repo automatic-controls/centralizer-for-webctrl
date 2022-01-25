@@ -1,0 +1,457 @@
+<!--
+  BSD 3-Clause License
+  Copyright (c) 2022, Automatic Controls Equipment Systems, Inc.
+  Contributors: Cameron Vogt (@cvogt729)
+-->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Operators
+    </title>
+    <link rel="stylesheet" type="text/css" href="css/main.css"/>
+    <script>
+      function parse(str){
+        const list = [];
+        let token = "";
+        let b = false;
+        for (var i=0;i<str.length;++i){
+          const c = str.charAt(i);
+          if (b || c!=='\\'){
+            if (!b && c===';'){
+              list.push(token);
+              token = "";
+            }else{
+              token+=c;
+            }
+            b = false;
+          }else{
+            b = true;
+          }
+        }
+        if (token.length!==0){
+          list.push(token);
+        }
+        return list;
+      }
+      function obfuscate(str){
+        let s = ""
+        for (var i=str.length-1;i>=0;--i){
+          s+=String.fromCharCode(str.charCodeAt(i)^4);
+        }
+        return s
+      }
+      function validateNumber(obj){
+        let str = obj.value;
+        if (str.length>0){
+          let c = str.charAt(0);
+          if (c==='-'){
+            str = str.substring(1);
+          }else{
+            c = '';
+          }
+          str = str.replace(/\D/g,"");
+          if (str.length>9){
+            str = str.substring(0,9);
+          }
+          obj.value = c+str;
+        }
+      }
+      function validatePermissions(){
+        if (perm_admin.checked){
+          perm_operators.disabled = true;
+          perm_sync.disabled = true;
+          perm_ret.disabled = true;
+          perm_scripts.disabled = true;
+          perm_operators.checked = true;
+          perm_sync.checked = true;
+          perm_ret.checked = true;
+          perm_scripts.checked = true;
+        }else{
+          perm_operators.disabled = false;
+          perm_sync.disabled = false;
+          perm_ret.disabled = false;
+          perm_scripts.disabled = false;
+        }
+      }
+      function clearOperator(){
+        selectedOperator.innerHTML = "NULL";
+        username.value = "";
+        displayName.value = "";
+        password.value = "";
+        passwordForceChange.checked = false;
+        description.value = "";
+        navigationTimeout.value = "";
+        lastLogin.innerHTML = "NULL";
+        lastModified.innerHTML = "NULL";
+        creationTime.innerHTML = "NULL";
+        perm_admin.checked = false;
+        perm_operators.checked = false;
+        perm_sync.checked = false;
+        perm_ret.checked = false;
+        perm_scripts.checked = false;
+        validatePermissions();
+        statusText.innerHTML = "";
+      }
+      function disableButtons(){
+        refreshAllButton.disabled = true;
+        clearButton.disabled = true;
+        refreshButton.disabled = true;
+        unlockButton.disabled = true;
+        saveButton.disabled = true;
+        deleteButton.disabled = true;
+      }
+      function enableButtons(){
+        refreshAllButton.disabled = false;
+        clearButton.disabled = false;
+        refreshButton.disabled = false;
+        unlockButton.disabled = false;
+        saveButton.disabled = false;
+        deleteButton.disabled = false;
+      }
+      function unlockOperator(name){
+        name = name.toUpperCase();
+        if (name==="NULL"){
+          statusText.innerHTML = "Please select an operator.";
+        }else{
+          disableButtons();
+          statusText.innerHTML = "Submitting...";
+          let req = new XMLHttpRequest();
+          req.open("POST", "__PREFIX__ManageOperators", true);
+          req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
+          req.onreadystatechange = function(){
+            if (this.readyState===4){
+              if (this.status===200){
+                statusText.innerHTML = "Operator unlocked.";
+              }else if (this.status===403){
+                statusText.innerHTML = "Insufficient permissions.";
+              }else if (this.status===504){
+                statusText.innerHTML = "Request timed out.";
+              }else if (this.status===400){
+                statusText.innerHTML = "Operator does not exist.";
+              }else{
+                statusText.innerHTML = "Error code: "+this.status;
+              }
+              enableButtons();
+            }
+          }
+          req.send("type=unlock&name="+encodeURIComponent(name));
+        }
+      }
+      function deleteOperator(name){
+        name = name.toUpperCase();
+        if (name==="NULL"){
+          statusText.innerHTML = "Please select an operator.";
+        }else{
+          disableButtons();
+          statusText.innerHTML = "Submitting...";
+          let req = new XMLHttpRequest();
+          req.open("POST", "__PREFIX__ManageOperators", true);
+          req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
+          req.onreadystatechange = function(){
+            if (this.readyState===4){
+              if (this.status===200){
+                statusText.innerHTML = "Operator deleted.";
+                clearOperator();
+                const rows = operatorList.getElementsByTagName("TR");
+                for (var i=0;i<rows.length;++i){
+                  const child = rows[i].firstElementChild;
+                  if (child.tagName=="TD" && child.innerHTML.toUpperCase()==name){
+                    operatorList.removeChild(rows[i]);
+                  }
+                }
+              }else if (this.status===403){
+                statusText.innerHTML = "Insufficient permissions.";
+              }else if (this.status===504){
+                statusText.innerHTML = "Request timed out.";
+              }else if (this.status===400){
+                statusText.innerHTML = "Operator does not exist.";
+              }else{
+                statusText.innerHTML = "Error code: "+this.status;
+              }
+              enableButtons();
+            }
+          }
+          req.send("type=delete&name="+encodeURIComponent(name));
+        }
+      }
+      function refreshOperator(name){
+        name = name.toUpperCase();
+        if (name==="NULL"){
+          statusText.innerHTML = "Please select an operator.";
+        }else{
+          disableButtons();
+          statusText.innerHTML = "Loading...";
+          clearOperator();
+          let req = new XMLHttpRequest();
+          req.open("POST", "__PREFIX__ManageOperators", true);
+          req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
+          req.onreadystatechange = function(){
+            if (this.readyState===4){
+              if (this.status===200){
+                const list = parse(this.responseText);
+                if (list.length===13){
+                  statusText.innerHTML = "Operator loaded.";
+                  displayName.value = list[0];
+                  username.value = list[1];
+                  selectedOperator.innerHTML = list[1];
+                  passwordForceChange.checked = list[2]==="true";
+                  description.value = list[3];
+                  navigationTimeout.value = list[4];
+                  lastLogin.innerHTML = list[5];
+                  lastModified.innerHTML = list[6];
+                  creationTime.innerHTML = list[7];
+                  perm_admin.checked = list[8]==="true";
+                  perm_operators.checked = list[9]==="true";
+                  perm_sync.checked = list[10]==="true";
+                  perm_ret.checked = list[11]==="true";
+                  perm_scripts.checked = list[12]==="true";
+                  validatePermissions();
+                }else{
+                  statusText.innerHTML = "Reply has incorrect length.";
+                }
+              }else if (this.status===403){
+                statusText.innerHTML = "Insufficient permissions.";
+              }else if (this.status===504){
+                statusText.innerHTML = "Request timed out.";
+              }else if (this.status===400){
+                statusText.innerHTML = "Operator does not exist.";
+              }else{
+                statusText.innerHTML = "Error code: "+this.status;
+              }
+              enableButtons();
+            }
+          }
+          req.send("type=load&name="+encodeURIComponent(name));
+        }
+      }
+      function refreshAll(){
+        while (operatorList.firstElementChild!==operatorList.lastElementChild){
+          operatorList.removeChild(operatorList.lastElementChild)
+        }
+        disableButtons();
+        statusText.innerHTML = "Loading...";
+        clearOperator();
+        let req = new XMLHttpRequest();
+        req.open("POST", "__PREFIX__ManageOperators", true);
+        req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
+        req.onreadystatechange = function(){
+          if (this.readyState===4){
+            if (this.status===200){
+              statusText.innerHTML = "Operators loaded.";
+              const list = parse(this.responseText);
+              for (var i=0;i<list.length;++i){
+                const row = document.createElement("TR");
+                const box1 = document.createElement("TD");
+                const box2 = document.createElement("TD");
+                const box3 = document.createElement("TD");
+                row.appendChild(box1);
+                row.appendChild(box2);
+                row.appendChild(box3);
+                box1.innerHTML = list[i];
+                box2.innerHTML = list[++i];
+                box3.innerHTML = list[++i];
+                const user = list[i];
+                row.onmousedown = function(){
+                  refreshOperator(user);
+                }
+                operatorList.appendChild(row);
+              }
+            }else if (this.status===403){
+              statusText.innerHTML = "Insufficient permissions.";
+            }else if (this.status===504){
+              statusText.innerHTML = "Request timed out.";
+            }else{
+              statusText.innerHTML = "Error code: "+this.status;
+            }
+            enableButtons();
+          }
+        }
+        req.send("type=load");
+      }
+      function saveOperator(){
+        disableButtons();
+        const op = selectedOperator.innerHTML;
+        const dis = displayName.value.replace(/[^\w ]/g,'');
+        displayName.value = dis;
+        const user = username.value.replace(/\W/g,'').toUpperCase();
+        username.value = user;
+        const desc = description.value;
+        validateNumber(navigationTimeout);
+        const nav = navigationTimeout.value;
+        const force = String(passwordForceChange.checked);
+        validatePermissions();
+        const padmin = String(perm_admin.checked);
+        const pops = String(perm_operators.checked);
+        const psync = String(perm_sync.checked);
+        const pret = String(perm_ret.checked);
+        const pscript = String(perm_scripts.checked);
+        let pass = password.value;
+        if (dis.length<1){
+          statusText.innerHTML = 'Please specify the display name.';
+        }else if (dis.length>32){
+          statusText.innerHTML = 'Display name is too long.';
+        }else if (dis.charAt(0)===' ' || dis.charAt(dis.length-1)===' '){
+          statusText.innerHTML = 'Display name cannot begin or end with a space.';
+        }else if (user.length<1){
+          statusText.innerHTML = 'Please specify the username.';
+        }else if (user.length>32){
+          statusText.innerHTML = 'Username is too long.';
+        }else if (desc.length<1){
+          statusText.innerHTML = 'Please specify the description.';
+        }else if (nav.length<1){
+          statusText.innerHTML = 'Please specify the navigation timeout.';
+        }else if (pass.length>0 && pass.length<8){
+          statusText.innerHTML = 'Password must be at least 8 characters long.';
+        }else if (pass.length>128){
+          statusText.innerHTML = 'Password can be at most 128 characters long.';
+        }else{
+          let go = true;
+          if (pass.length>0){
+            let min = pass.charCodeAt(0)
+            let max = min
+            for (var i=1;i<pass.length;++i){
+              var j = pass.charCodeAt(i)
+              if (j<min){
+                min = j;
+              }
+              if (j>max){
+                max = j;
+              }
+            }
+            if (max-min<13){
+              statusText.innerHTML = 'Password complexity requirements have not been met. Try adding special characters.';
+              go = false;
+            }else{
+              pass = obfuscate(pass);
+            }
+          }
+          if (go){
+            statusText.innerHTML = "Submitting...";
+            let req = new XMLHttpRequest();
+            req.open("POST", "__PREFIX__ManageOperators", true);
+            req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
+            req.onreadystatechange = function(){
+              if (this.readyState===4){
+                if (this.status===200){
+                  statusText.innerHTML = op.toUpperCase()==="NULL"?"Operator created.":"Operator modified.";
+                }else if (this.status===403){
+                  statusText.innerHTML = "Insufficient permissions.";
+                }else if (this.status===504){
+                  statusText.innerHTML = "Request timed out.";
+                }else{
+                  statusText.innerHTML = "Error code: "+this.status;
+                }
+                enableButtons();
+              }
+            }
+            req.send(
+              "type=save"+
+              "&selected="+encodeURIComponent(op)+
+              "&user="+encodeURIComponent(user)+
+              "&pass="+encodeURIComponent(pass)+
+              "&disname="+encodeURIComponent(dis)+
+              "&desc="+encodeURIComponent(desc)+
+              "&navtime="+encodeURIComponent(nav)+
+              "&force="+encodeURIComponent(force)+
+              "&padmin="+encodeURIComponent(padmin)+
+              "&pops="+encodeURIComponent(pops)+
+              "&psync="+encodeURIComponent(psync)+
+              "&pret="+encodeURIComponent(pret)+
+              "&pscript="+encodeURIComponent(pscript)
+            );
+            return;
+          }
+        }
+        enableButtons();
+      }
+    </script>
+  </head>
+  <body>
+    <div style="text-align:center">
+      <h1>Operator Management</h1>
+      <div class="row">
+        <div class="column">
+          <h2 class="e">List</h2>
+          <br>
+          <div style="overflow-y:auto;max-height:75vh;width:100%;border:solid 1px white;">
+            <table id="operatorList" style="width:100%">
+              <tr>
+                <th>Operator</th>
+                <th>Display Name</th>
+                <th>Description</th>
+              </tr>
+            </table>
+          </div>
+          <br>
+          <button id="refreshAllButton" class="e" onclick="refreshAll()">Refresh List</button>
+        </div>
+        <div class="column">
+          <h2 class="e">Details</h2>
+          <br>
+          <label for="selectedOperator">Selected Operator:</label>
+          <span id="selectedOperator"></span>
+          <br><br>
+          <label for="username">Username:</label>
+          <input id="username" class="e" type="text" autocomplete="off" oninput="this.value = this.value.replace(/\W/g,'')">
+          <br>
+          <label for="displayName">Display Name:</label>
+          <input id="displayName" class="e" type="text" autocomplete="off" oninput="this.value = this.value.replace(/[^\w ]/g,'')">
+          <br>
+          <label for="password"><span id="passwordHover">Password:</span></label>
+          <input id="password" class="e" type="password" autocomplete="off" oninput="passwordHover.title = this.value">
+          <br>
+          <input id="passwordForceChange" class="e" type="checkbox">
+          <label for="passwordForceChange">Force password change at next login.</label>
+          <br><br>
+          <label for="description">Description:</label>
+          <br>
+          <textarea id="description" class="e" rows="4" cols="50"></textarea>
+          <br>
+          <label for="navigationTimeout"><span title="Positive numbers specify the seconds until automatic logoff.&#10;Negative numbers indicate that the system-wide timeout should be used (usually 30 minutes).&#10;Zero disabled automatic logoff.">Navigation Timeout:</span></label>
+          <input id="navigationTimeout" class="e" type="text" autocomplete="off" oninput="validateNumber(this)"><span>seconds</span>
+          <br><br>
+          <label for="lastLogin">Last Login Time:</label>
+          <span id="lastLogin"></span>
+          <br>
+          <label for="lastModified">Last Modified Time:</label>
+          <span id="lastModified"></span>
+          <br>
+          <label for="creationTime">Creation Time:</label>
+          <span id="creationTime"></span>
+          <br><br>
+          <h3>Permissions</h3>
+          <input id="perm_admin" class="e" type="checkbox" onchange="validatePermissions()">
+          <label for="perm_admin">Administrator</label>
+          <br>
+          <input id="perm_operators" class="e" type="checkbox">
+          <label for="perm_operators">Operator Management</label>
+          <br>
+          <input id="perm_sync" class="e" type="checkbox">
+          <label for="perm_sync">File Synchronization</label>
+          <br>
+          <input id="perm_ret" class="e" type="checkbox">
+          <label for="perm_ret">File Retrieval</label>
+          <br>
+          <input id="perm_scripts" class="e" type="checkbox">
+          <label for="perm_scripts">Script Execution</label>
+          <br><br><br>
+          <button id="clearButton" class="e" onclick="clearOperator()">New</button>
+          <button id="unlockButton" class="e" onclick="unlockOperator(selectedOperator.innerHTML)">Unlock</button>
+          <button id="refreshButton" class="e" onclick="refreshOperator(selectedOperator.innerHTML)">Refresh</button>
+          <button id="saveButton" class="e" onclick="saveOperator()">Save</button>
+          <button id="deleteButton" class="e" onclick="deleteOperator(selectedOperator.innerHTML)">Delete</button>
+          <br><br>
+          <a href="__PREFIX__index" class="e">Link To Primary Configuration Page</a>
+          <br><br>
+          <h3 id="statusText" class="e" style="color:red"></h3>
+        </div>
+      </div>
+    </div>
+    <script>
+      clearOperator();
+      refreshAll();
+      refreshOperator("__USERNAME__");
+    </script>
+  </body>
+</html>

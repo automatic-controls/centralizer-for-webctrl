@@ -1,0 +1,68 @@
+body, input, textarea {
+  background-color:black;
+  color:white;
+}
+button {
+  background-color:darkblue;
+  color:white;
+  border:solid 1px white;
+}
+button:hover {
+  background-color:darkred;
+}
+button:active {
+  background-color:darkgreen;
+}
+.e {
+  margin-left:0.5em;
+  margin-right:0.5em;
+  margin-top:0.25em;
+  margin-bottom:0.25em;
+}
+.column {
+  float:left;
+  width:50%;
+}
+.row {
+  content: "";
+  display:table;
+  clear:both;
+  width:100%;
+}
+a:link {
+  color: lightgreen;
+  background-color: transparent;
+  text-decoration: none;
+}
+a:visited {
+  color: green;
+  background-color: transparent;
+  text-decoration: none;
+}
+a:hover {
+  color: red;
+  background-color: transparent;
+  text-decoration: underline;
+}
+a:active {
+  color: yellow;
+  background-color: transparent;
+  text-decoration: underline;
+}
+td,th {
+  padding:4px;
+  border:solid 1px white;
+}
+tr:hover > td {
+  background-color:darkgreen;
+}
+tr:nth-child(odd) {
+  background-color:#222222;
+}
+tr:nth-child(even) {
+  background-color:#090909;
+}
+table {
+  border:solid 1px white;
+  border-collapse:collapse;
+}

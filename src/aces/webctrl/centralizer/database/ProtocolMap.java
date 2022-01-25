@@ -112,7 +112,7 @@ public class ProtocolMap {
               }else{
                 t.reset();
                 int p = t.getOperator().getPermissions();
-                if ((p&Permissions.OPERATORS)==0){
+                if ((p&Permissions.OPERATOR_MANAGEMENT)==0){
                   Arrays.fill(password,(byte)0);
                   ret = Protocol.INSUFFICIENT_PERMISSIONS;
                 }else{
@@ -161,7 +161,7 @@ public class ProtocolMap {
               }else{
                 t.reset();
                 final int authP = t.getOperator().getPermissions();
-                if (authID!=modID && (authP&Permissions.OPERATORS)==0){
+                if (authID!=modID && (authP&Permissions.OPERATOR_MANAGEMENT)==0){
                   ret = Protocol.INSUFFICIENT_PERMISSIONS;
                 }else{
                   final Operator op = Operators.get(modID);
@@ -280,7 +280,7 @@ public class ProtocolMap {
               }else{
                 t.reset();
                 final int authP = t.getOperator().getPermissions();
-                if ((authP&Permissions.OPERATORS)==0){
+                if ((authP&Permissions.OPERATOR_MANAGEMENT)==0){
                   ret = Protocol.INSUFFICIENT_PERMISSIONS;
                 }else{
                   Operator op = Operators.get(modID);
