@@ -20,10 +20,11 @@ public class CentralProvider extends StandardWebOperatorProvider {
   }
   @Override public WebOperator login(HttpServletRequest req, HttpServletResponse res) throws ValidationException, IOException, ServletException {
     WebOperator op = super.login(req,res);
-    if (op!=null && op instanceof CentralOperator){
+    if (op!=null && op instanceof CentralOperator && req.isSecure()){
       CentralOperator cop = (CentralOperator)op;
       if (cop.changePassword() && Initializer.isConnected()){
-        res.sendRedirect(Initializer.getPrefix()+"ChangePassword");
+        req.getRequestDispatcher(Initializer.getPrefix()+"ChangePassword").forward(req, res);
+        op = null;
       }
     }
     return op;

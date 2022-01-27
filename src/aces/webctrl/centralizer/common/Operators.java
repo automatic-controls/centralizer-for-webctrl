@@ -116,10 +116,11 @@ public class Operators {
    * @return the retrieved operator if it exists; otherwise {@code null}.
    */
   public static Operator get(String username){
+    username = username.toLowerCase();
     lock.readLock().lock();
     try{
       for (Operator op:operators){
-        if (op!=null && op.getUsername().equalsIgnoreCase(username)){
+        if (op!=null && op.getUsername().equals(username)){
           return op;
         }
       }
@@ -181,10 +182,11 @@ public class Operators {
    * @return {@code true} on success; {@code false} if another operator already has the target name.
    */
   public static boolean changeUsername(Operator op, String name){
+    name = name.toLowerCase();
     lock.writeLock().lock();
     try{
       for (Operator o:operators){
-        if (o!=null && o!=op && o.getUsername().equalsIgnoreCase(name)){
+        if (o!=null && o!=op && o.getUsername().equals(name)){
           return false;
         }
       }

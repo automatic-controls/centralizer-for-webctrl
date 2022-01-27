@@ -12,6 +12,9 @@ import javax.servlet.*;
 import javax.servlet.http.*;
 public class ChangePassword extends SecureServlet {
   private volatile static String html = null;
+  public ChangePassword(){
+    super(null);
+  }
   @Override public void init() throws ServletException {
     try{
       html = Utility.loadResourceAsString("aces/webctrl/centralizer/addon/web/ChangePassword.html").replaceAll(
@@ -35,7 +38,8 @@ public class ChangePassword extends SecureServlet {
       if (webop!=null){
         final aces.webctrl.centralizer.common.Operator op = webop.getOperator();
         final PrintWriter out = res.getWriter();
-        if (req.getParameter("submit")!=null){//AJAX request to submit new password
+        if (req.getParameter("submit")!=null){
+          //AJAX request to submit new password
           res.setContentType("text/plain");
           char[] oldPassword = req.getParameter("oldPassword").toCharArray();
           Utility.obfuscate(oldPassword);
@@ -61,12 +65,50 @@ public class ChangePassword extends SecureServlet {
           }else{
             out.write('0');
           }
-        }else{//Send HTML document that allows the operator to change his or her password
+        }else{
+          //Send HTML document that allows the operator to change his or her password
           res.setContentType("text/html");
-          out.print(html.replace("__USERNAME__", op.getUsername()));
+          out.print(html.replace(
+            "__USERNAME__",
+            op.getUsername()
+          ).replace(
+            "__PASSWORD__",
+            ""
+          ).replace(
+            "__REDIRECT_TO_LOGIN__",
+            "false"
+          ));
         }
       }else{
-        res.sendError(403, "Local operators cannot change their password using this webpage.");
+        final String name = req.getParameter("name");
+        final String pass = req.getParameter("pass");
+        final String touchscr = req.getParameter("touchscr");
+        final String loginTracker = req.getParameter("login-tracker");
+        final String loginAuthTok = req.getParameter("login-auth-tok");
+        if (name==null || pass==null || touchscr==null || loginTracker==null || loginAuthTok==null){
+          res.sendError(403, "Local operators cannot change their password using this webpage.");
+        }else{
+          res.setContentType("text/html");
+          res.getWriter().print(html.replace(
+            "__USERNAME__",
+            name
+          ).replace(
+            "__PASSWORD__",
+            Utility.escapeJS(new String(Utility.obfuscate(pass.toCharArray())))
+          ).replace(
+            "__REDIRECT_TO_LOGIN__",
+            "true"
+          ).replace(
+            "__TOUCHSCR__",
+            touchscr
+          ).replace(
+            "__LOGIN_TRACKER__",
+            loginTracker
+          ).replace(
+            "__LOGIN_AUTH_TOK__",
+            loginAuthTok
+          ));
+        }
       }
     }else{
       res.sendError(504, "WebCTRL is not currently connected to the credential database. Please try again later.");

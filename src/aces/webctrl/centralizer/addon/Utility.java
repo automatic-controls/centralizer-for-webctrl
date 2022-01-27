@@ -116,7 +116,9 @@ public class Utility {
     return sb.toString();
   }
   /**
-   * Escapes backslashes, single quotes, and double quotes for use in Javascript.
+   * Intended to escape strings for use in Javascript.
+   * Escapes backslashes, single quotes, and double quotes.
+   * Replaces new-line characters with the corresponding escape sequences.
    */
   public static String escapeJS(String str){
     int len = str.length();
@@ -124,17 +126,45 @@ public class Utility {
     char c;
     for (int i=0;i<len;++i){
       c = str.charAt(i);
-      if (c=='\\' || c=='\'' || c=='"'){
-        sb.append('\\');
+      switch (c){
+        case '\\': case '\'': case '"': {
+          sb.append('\\');
+        }
+        case '\n': {
+          sb.append("\\n");
+          break;
+        }
+        case '\t': {
+          sb.append("\\t");
+          break;
+        }
+        case '\r': {
+          sb.append("\\r");
+          break;
+        }
+        case '\b': {
+          sb.append("\\b");
+          break;
+        }
+        case '\f': {
+          sb.append("\\f");
+          break;
+        }
+        default: {
+          sb.append(c);
+        }
       }
-      sb.append(c);
     }
+    //also need to replace character \n with actual \n
+    //maybe look at other characters as well
     return sb.toString();
   }
   /**
    * Reverses the order and XORs each character with 4.
+   * The array is modified in-place, so no copies are made.
+   * For convenience, the given array is returned.
    */
-  public static void obfuscate(char[] arr){
+  public static char[] obfuscate(char[] arr){
     char c;
     for (int i=0,j=arr.length-1;i<=j;++i,--j){
       if (i==j){
@@ -145,6 +175,7 @@ public class Utility {
         arr[i] = c;
       }
     }
+    return arr;
   }
   /**
    * Converts a character array into a byte array.

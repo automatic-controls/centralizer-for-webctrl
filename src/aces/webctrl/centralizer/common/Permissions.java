@@ -36,7 +36,7 @@ public class Permissions {
    * @param b is the permissions integer.
    * @return the validated permissions integer.
    */
-  protected static int validate(int b){
+  public static int validate(int b){
     return (b&ADMINISTRATOR)==0?b:-1;
   }
 }

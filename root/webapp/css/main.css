@@ -13,6 +13,9 @@ button:hover {
 button:active {
   background-color:darkgreen;
 }
+button:disabled {
+  background-color:darkslategray;
+}
 .e {
   margin-left:0.5em;
   margin-right:0.5em;
@@ -35,7 +38,7 @@ a:link {
   text-decoration: none;
 }
 a:visited {
-  color: green;
+  color: lightgreen;
   background-color: transparent;
   text-decoration: none;
 }
@@ -49,7 +52,7 @@ a:active {
   background-color: transparent;
   text-decoration: underline;
 }
-td,th {
+td, th {
   padding:4px;
   border:solid 1px white;
 }
@@ -61,6 +64,9 @@ tr:nth-child(odd) {
 }
 tr:nth-child(even) {
   background-color:#090909;
+}
+th {
+  background-color:darkslategray;
 }
 table {
   border:solid 1px white;

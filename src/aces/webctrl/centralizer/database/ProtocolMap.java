@@ -111,7 +111,8 @@ public class ProtocolMap {
                 ret = Protocol.NOT_LOGGED_IN;
               }else{
                 t.reset();
-                int p = t.getOperator().getPermissions();
+                final Operator authOP = t.getOperator();
+                int p = authOP.getPermissions();
                 if ((p&Permissions.OPERATOR_MANAGEMENT)==0){
                   Arrays.fill(password,(byte)0);
                   ret = Protocol.INSUFFICIENT_PERMISSIONS;
@@ -123,6 +124,7 @@ public class ProtocolMap {
                   }else{
                     op.changePassword(forceChange);
                     ret = Protocol.SUCCESS;
+                    Logger.logAsync("Operator "+op.getUsername()+" created by "+authOP.getUsername());
                     Connections.forEach(new Predicate<Connection>(){
                       @Override public boolean test(Connection con){
                         con.updateOperators(op);
@@ -172,12 +174,14 @@ public class ProtocolMap {
                     if ((authP|modP)==authP){
                       ret = Protocol.SUCCESS;
                       boolean modified = false;
-                      Logger.logAsync("Operator "+op.getUsername()+" modified by "+t.getOperator().getUsername());
+                      final StringBuilder sb = new StringBuilder(128);
                       while (!s.end()){
                         switch (s.readByte()){
                           case 0:{//Username
-                            if (Operators.changeUsername(op, s.readString())){
+                            String newUsername = s.readString();
+                            if (Operators.changeUsername(op, newUsername)){
                               modified = true;
+                              sb.append(";Username="+newUsername);
                             }else{
                               ret = Protocol.PARTIAL_SUCCESS;
                             }
@@ -188,6 +192,7 @@ public class ProtocolMap {
                             if (Database.validatePassword(password)){
                               op.setPassword(password);
                               modified = true;
+                              sb.append(";Password");
                             }else{
                               Arrays.fill(password,(byte)0);
                               ret = Protocol.PARTIAL_SUCCESS;
@@ -197,11 +202,13 @@ public class ProtocolMap {
                           case 2:{//Display Name
                             op.setDisplayName(s.readString());
                             modified = true;
+                            sb.append(";DisplayName");
                             break;
                           }
                           case 3:{//Navigation Timeout
                             op.setNavigationTimeout(s.readInt());
                             modified = true;
+                            sb.append(";NavigationTimeout");
                             break;
                           }
                           case 4:{//Permissions
@@ -212,19 +219,23 @@ public class ProtocolMap {
                             }
                             op.setPermissions(newP);
                             modified = true;
+                            sb.append(";Permissions");
                             break;
                           }
                           case 5:{//Description
                             op.setDescription(s.readString());
                             modified = true;
+                            sb.append(";Description");
                             break;
                           }
                           case 6:{//Force Change
                             op.changePassword(true);
+                            sb.append(";ForcePasswordChange");
                             break;
                           }
                           case 7:{//Unlock
                             op.unlock();
+                            sb.append(";Unlock");
                             break;
                           }
                           default:{
@@ -233,6 +244,7 @@ public class ProtocolMap {
                           }
                         }
                       }
+                      Logger.logAsync("Operator "+op.getUsername()+sb.toString()+" modified by "+t.getOperator().getUsername());
                       if (modified){
                         Connections.forEach(new Predicate<Connection>(){
                           @Override public boolean test(Connection con){

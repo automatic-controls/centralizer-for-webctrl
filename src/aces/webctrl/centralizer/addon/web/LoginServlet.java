@@ -11,6 +11,9 @@ import javax.servlet.*;
 import javax.servlet.http.*;
 public class LoginServlet extends SecureServlet {
   private volatile static String html = null;
+  public LoginServlet(){
+    super(java.util.Collections.singleton("login"));
+  }
   @Override public void init() throws ServletException {
     try{
       html = Utility.loadResourceAsString("aces/webctrl/centralizer/addon/web/LoginPage.html").replaceAll(

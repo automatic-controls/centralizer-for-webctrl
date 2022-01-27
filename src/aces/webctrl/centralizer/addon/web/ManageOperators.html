@@ -110,8 +110,8 @@
         deleteButton.disabled = false;
       }
       function unlockOperator(name){
-        name = name.toUpperCase();
-        if (name==="NULL"){
+        name = name.toLowerCase();
+        if (name==="null"){
           statusText.innerHTML = "Please select an operator.";
         }else{
           disableButtons();
@@ -139,8 +139,8 @@
         }
       }
       function deleteOperator(name){
-        name = name.toUpperCase();
-        if (name==="NULL"){
+        name = name.toLowerCase();
+        if (name==="null"){
           statusText.innerHTML = "Please select an operator.";
         }else{
           disableButtons();
@@ -156,7 +156,7 @@
                 const rows = operatorList.getElementsByTagName("TR");
                 for (var i=0;i<rows.length;++i){
                   const child = rows[i].firstElementChild;
-                  if (child.tagName=="TD" && child.innerHTML.toUpperCase()==name){
+                  if (child.tagName=="TD" && child.innerHTML.toLowerCase()==name){
                     operatorList.removeChild(rows[i]);
                   }
                 }
@@ -176,8 +176,8 @@
         }
       }
       function refreshOperator(name){
-        name = name.toUpperCase();
-        if (name==="NULL"){
+        name = name.toLowerCase();
+        if (name==="null"){
           statusText.innerHTML = "Please select an operator.";
         }else{
           disableButtons();
@@ -248,10 +248,10 @@
                 row.appendChild(box1);
                 row.appendChild(box2);
                 row.appendChild(box3);
+                const user = list[i];
                 box1.innerHTML = list[i];
                 box2.innerHTML = list[++i];
                 box3.innerHTML = list[++i];
-                const user = list[i];
                 row.onmousedown = function(){
                   refreshOperator(user);
                 }
@@ -274,7 +274,7 @@
         const op = selectedOperator.innerHTML;
         const dis = displayName.value.replace(/[^\w ]/g,'');
         displayName.value = dis;
-        const user = username.value.replace(/\W/g,'').toUpperCase();
+        const user = username.value.replace(/\W/g,'').toLowerCase();
         username.value = user;
         const desc = description.value;
         validateNumber(navigationTimeout);
@@ -325,6 +325,9 @@
             }else{
               pass = obfuscate(pass);
             }
+          }else if (op.toLowerCase()==="null"){
+            statusText.innerHTML = 'Please specify the password.';
+            go = false;
           }
           if (go){
             statusText.innerHTML = "Submitting...";
@@ -334,11 +337,17 @@
             req.onreadystatechange = function(){
               if (this.readyState===4){
                 if (this.status===200){
-                  statusText.innerHTML = op.toUpperCase()==="NULL"?"Operator created.":"Operator modified.";
+                  statusText.innerHTML = op.toLowerCase()==="null"?"Operator created.":"Operator modified.";
                 }else if (this.status===403){
                   statusText.innerHTML = "Insufficient permissions.";
                 }else if (this.status===504){
                   statusText.innerHTML = "Request timed out.";
+                }else if (this.status===400){
+                  if (this.responseText.length===0){
+                    statusText.innerHTML = "An error occurred.";
+                  }else{
+                    statusText.innerHTML = this.responseText;
+                  }
                 }else{
                   statusText.innerHTML = "Error code: "+this.status;
                 }
