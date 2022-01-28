@@ -128,6 +128,10 @@
               if (this.readyState==4){
                 if (this.status==200){
                   adminStatus.innerHTML = "Saved successfully!";
+                }else if (this.status==504){
+                  adminStatus.innerHTML = "Request timed out.";
+                }else if (this.status==403){
+                  adminStatus.innerHTML = "Insufficient permissions.";
                 }else{
                   adminStatus.innerHTML = "Error code: "+this.status;
                 }
@@ -213,7 +217,13 @@
               }else{
                 configResetButton.disabled = false;
                 configSaveButton.disabled = false;
-                configStatus.innerHTML = "Error code: "+this.status;
+                if (this.status==403){
+                  configStatus.innerHTML = "Insufficient permissions.";
+                }else if (this.status==504){
+                  configStatus.innerHTML = "Request timed out.";
+                }else{
+                  configStatus.innerHTML = "Error code: "+this.status;
+                }
               }
             }
           }
@@ -244,7 +254,11 @@
               statusText.innerHTML = this.responseText.substring(i+1);
               keyHash.innerHTML = this.responseText.substring(0,i);
             }else{
-              statusText.innerHTML = "Error code: "+this.status;
+              if (this.status==403){
+                statusText.innerHTML = "You are not logged in.";
+              }else{
+                statusText.innerHTML = "Error code: "+this.status;
+              }
               keyHash.innerHTML = "NULL";
             }
             setTimeout(updateStatus,2000);
@@ -262,6 +276,10 @@
           if (this.readyState==4){
             if (this.status==200){
               status.innerHTML = msg;
+            }else if (this.status==403){
+              status.innerHTML = "Insufficient permissions.";
+            }else if (this.status==504){
+              status.innerHTML = "Request timed out.";
             }else{
               status.innerHTML = "Error code: "+this.status;
             }
@@ -311,6 +329,10 @@
               }else{
                 dataStatus.innerHTML = "Received response of incorrect length.";
               }
+            }else if (this.status==403){
+              dataStatus.innerHTML = "Insufficient permissions.";
+            }else if (this.status==504){
+              dataStatus.innerHTML = "Request timed out.";
             }else{
               dataStatus.innerHTML = "Error code: "+this.status;
             }
@@ -362,6 +384,10 @@
             if (this.readyState==4){
               if (this.status==200){
                 dataStatus.innerHTML = "Saved successfully!";
+              }else if (this.status==403){
+                dataStatus.innerHTML = "Insufficient permissions.";
+              }else if (this.status==504){
+                dataStatus.innerHTML = "Request timed out.";
               }else{
                 dataStatus.innerHTML = "Error code: "+this.status;
               }
@@ -440,7 +466,7 @@
           <label for="displayName">Display Name:</label>
           <input id="displayName" class="e" type="text" autocomplete="off" oninput="this.value = this.value.replace(/[^\w ]/g,'')">
           <br>
-          <label for="navTimeout"><span title="Positive numbers specify the seconds until automatic logoff.&#10;Negative numbers indicate that the system-wide timeout should be used (usually 30 minutes).&#10;Zero disabled automatic logoff.">Navigation Timeout</span>:</label>
+          <label for="navTimeout"><span title="Positive numbers specify the seconds until automatic logoff.&#10;Negative numbers indicate that the system-wide timeout should be used (usually 30 minutes).&#10;Zero disables automatic logoff.">Navigation Timeout</span>:</label>
           <input id="navTimeout" class="e" type="text" autocomplete="off" oninput="validateNumber(this)"><span>seconds</span>
           <br>
           <label for="description">Description:</label>

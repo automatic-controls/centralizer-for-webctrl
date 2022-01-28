@@ -142,7 +142,7 @@
         name = name.toLowerCase();
         if (name==="null"){
           statusText.innerHTML = "Please select an operator.";
-        }else{
+        }else if (confirm("Are you sure you want to delete "+name+"?")){
           disableButtons();
           statusText.innerHTML = "Submitting...";
           let req = new XMLHttpRequest();
@@ -379,11 +379,10 @@
   <body>
     <div style="text-align:center">
       <h1>Operator Management</h1>
+      <br>
       <div class="row">
         <div class="column">
-          <h2 class="e">List</h2>
-          <br>
-          <div style="overflow-y:auto;max-height:75vh;width:100%;border:solid 1px white;">
+          <div style="overflow-y:auto;max-height:80vh;width:100%;border:solid 1px white;">
             <table id="operatorList" style="width:100%">
               <tr>
                 <th>Operator</th>
@@ -396,8 +395,6 @@
           <button id="refreshAllButton" class="e" onclick="refreshAll()">Refresh List</button>
         </div>
         <div class="column">
-          <h2 class="e">Details</h2>
-          <br>
           <label for="selectedOperator">Selected Operator:</label>
           <span id="selectedOperator"></span>
           <br><br>
@@ -417,7 +414,7 @@
           <br>
           <textarea id="description" class="e" rows="4" cols="50"></textarea>
           <br>
-          <label for="navigationTimeout"><span title="Positive numbers specify the seconds until automatic logoff.&#10;Negative numbers indicate that the system-wide timeout should be used (usually 30 minutes).&#10;Zero disabled automatic logoff.">Navigation Timeout:</span></label>
+          <label for="navigationTimeout"><span title="Positive numbers specify the seconds until automatic logoff.&#10;Negative numbers indicate that the system-wide timeout should be used (usually 30 minutes).&#10;Zero disables automatic logoff.">Navigation Timeout:</span></label>
           <input id="navigationTimeout" class="e" type="text" autocomplete="off" oninput="validateNumber(this)"><span>seconds</span>
           <br><br>
           <label for="lastLogin">Last Login Time:</label>
@@ -445,15 +442,16 @@
           <input id="perm_scripts" class="e" type="checkbox">
           <label for="perm_scripts">Script Execution</label>
           <br><br><br>
-          <button id="clearButton" class="e" onclick="clearOperator()">New</button>
+          <button id="clearButton" class="e" onclick="clearOperator()">Clear</button>
           <button id="unlockButton" class="e" onclick="unlockOperator(selectedOperator.innerHTML)">Unlock</button>
           <button id="refreshButton" class="e" onclick="refreshOperator(selectedOperator.innerHTML)">Refresh</button>
           <button id="saveButton" class="e" onclick="saveOperator()">Save</button>
           <button id="deleteButton" class="e" onclick="deleteOperator(selectedOperator.innerHTML)">Delete</button>
           <br><br>
-          <a href="__PREFIX__index" class="e">Link To Primary Configuration Page</a>
-          <br><br>
           <h3 id="statusText" class="e" style="color:red"></h3>
+          <br>
+          <a href="__PREFIX__index" class="e">Primary Configuration Page</a><br>
+          <a href="__PREFIX__LocalOperatorList" class="e">Local Operator List</a><br>
         </div>
       </div>
     </div>

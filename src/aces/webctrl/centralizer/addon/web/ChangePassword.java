@@ -34,50 +34,53 @@ public class ChangePassword extends SecureServlet {
   }
   @Override public void process(final HttpServletRequest req, final HttpServletResponse res) throws Throwable {
     if (Initializer.isConnected()){
-      CentralOperator webop = getOperator(req);
-      if (webop!=null){
-        final aces.webctrl.centralizer.common.Operator op = webop.getOperator();
-        final PrintWriter out = res.getWriter();
-        if (req.getParameter("submit")!=null){
-          //AJAX request to submit new password
-          res.setContentType("text/plain");
-          char[] oldPassword = req.getParameter("oldPassword").toCharArray();
-          Utility.obfuscate(oldPassword);
-          byte[] oldPasswordBytes = Utility.toBytes(oldPassword);
-          java.util.Arrays.fill(oldPassword,(char)0);
-          oldPassword = null;
-          Result<OperatorStatus> ret = Initializer.login(op.getUsername(), oldPasswordBytes);
-          if (ret.waitForResult(System.currentTimeMillis()+10000)){
-            OperatorStatus opstat = ret.getResult();
-            byte stat = opstat==null?Protocol.FAILURE:opstat.status;
-            if (Initializer.isConnected() && (stat==Protocol.SUCCESS || stat==Protocol.CHANGE_PASSWORD)){
-              char[] password = req.getParameter("newPassword").toCharArray();
-              Utility.obfuscate(password);
-              byte[] passwordBytes = Utility.toBytes(password);
-              java.util.Arrays.fill(password,(char)0);
-              password = null;
-              int id = op.getID();
-              Result<Byte> ret2 = Initializer.modifyOperator(id, id, java.util.Arrays.asList(OperatorModification.changePassword(passwordBytes)));
-              out.write(ret2.waitForResult(System.currentTimeMillis()+10000) && ret2.getResult()==Protocol.SUCCESS?'1':'0');
+      final PrintWriter out = res.getWriter();
+      if (req.getParameter("submit")!=null){
+        res.setContentType("text/plain");
+        final String username = req.getParameter("username");
+        final String oldPass = req.getParameter("oldPassword");
+        final String newPass = req.getParameter("newPassword");
+        if (username==null || oldPass==null || newPass==null){
+          res.setStatus(400);
+        }else{
+          Operator op = Operators.get(username);
+          if (op==null){
+            res.setStatus(400);
+          }else{
+            char[] oldPassword = oldPass.toCharArray();
+            Utility.obfuscate(oldPassword);
+            byte[] oldPasswordBytes = Utility.toBytes(oldPassword);
+            java.util.Arrays.fill(oldPassword,(char)0);
+            oldPassword = null;
+            Result<OperatorStatus> ret = Initializer.login(op.getUsername(), oldPasswordBytes);
+            if (ret.waitForResult(System.currentTimeMillis()+10000)){
+              OperatorStatus opstat = ret.getResult();
+              byte stat = opstat==null?Protocol.FAILURE:opstat.status;
+              if (Initializer.isConnected() && (stat==Protocol.SUCCESS || stat==Protocol.CHANGE_PASSWORD)){
+                char[] password = newPass.toCharArray();
+                Utility.obfuscate(password);
+                byte[] passwordBytes = Utility.toBytes(password);
+                java.util.Arrays.fill(password,(char)0);
+                password = null;
+                int id = op.getID();
+                Result<Byte> ret2 = Initializer.modifyOperator(id, id, java.util.Arrays.asList(OperatorModification.changePassword(passwordBytes)));
+                if (ret2.waitForResult(System.currentTimeMillis()+12000)){
+                  Byte b = ret2.getResult();
+                  if (b!=null && b==Protocol.SUCCESS){
+                    out.write('1');
+                  }else{
+                    out.write('0');
+                  }
+                }else{
+                  out.write('0');
+                }
+              }else{
+                out.write('0');
+              }
             }else{
               out.write('0');
             }
-          }else{
-            out.write('0');
           }
-        }else{
-          //Send HTML document that allows the operator to change his or her password
-          res.setContentType("text/html");
-          out.print(html.replace(
-            "__USERNAME__",
-            op.getUsername()
-          ).replace(
-            "__PASSWORD__",
-            ""
-          ).replace(
-            "__REDIRECT_TO_LOGIN__",
-            "false"
-          ));
         }
       }else{
         final String name = req.getParameter("name");
@@ -86,7 +89,23 @@ public class ChangePassword extends SecureServlet {
         final String loginTracker = req.getParameter("login-tracker");
         final String loginAuthTok = req.getParameter("login-auth-tok");
         if (name==null || pass==null || touchscr==null || loginTracker==null || loginAuthTok==null){
-          res.sendError(403, "Local operators cannot change their password using this webpage.");
+          CentralOperator webop = getOperator(req);
+          if (webop==null){
+            res.sendError(403, "Local operators cannot change their password using this webpage.");
+          }else{
+            final Operator op = webop.getOperator();
+            res.setContentType("text/html");
+            out.print(html.replace(
+              "__USERNAME__",
+              op.getUsername()
+            ).replace(
+              "__PASSWORD__",
+              ""
+            ).replace(
+              "__REDIRECT_TO_LOGIN__",
+              "false"
+            ));
+          }
         }else{
           res.setContentType("text/html");
           res.getWriter().print(html.replace(
@@ -107,6 +126,9 @@ public class ChangePassword extends SecureServlet {
           ).replace(
             "__LOGIN_AUTH_TOK__",
             loginAuthTok
+          ).replace(
+            "css/main.css",
+            Initializer.getName()+"/css/main.css"
           ));
         }
       }

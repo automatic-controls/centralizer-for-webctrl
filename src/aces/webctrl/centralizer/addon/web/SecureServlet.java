@@ -26,10 +26,12 @@ public abstract class SecureServlet extends HttpServlet {
       req.setCharacterEncoding("UTF-8");
       res.setCharacterEncoding("UTF-8");
       if (req.isSecure()){
-        for (String role:roles){
-          if (!req.isUserInRole(role)){
-            res.sendError(403, "You do not have the required permissions to view this page.");
-            return;
+        if (roles!=null){
+          for (String role:roles){
+            if (!req.isUserInRole(role)){
+              res.sendError(403, "You do not have the required permissions to view this page.");
+              return;
+            }
           }
         }
         process(req,res);

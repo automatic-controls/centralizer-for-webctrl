@@ -20,6 +20,15 @@
   </servlet-mapping>
 
   <servlet>
+    <servlet-name>LocalOperatorList</servlet-name>
+    <servlet-class>aces.webctrl.centralizer.addon.web.LocalOperatorList</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>LocalOperatorList</servlet-name>
+    <url-pattern>/LocalOperatorList</url-pattern>
+  </servlet-mapping>
+
+  <servlet>
     <servlet-name>ManageOperators</servlet-name>
     <servlet-class>aces.webctrl.centralizer.addon.web.ManageOperators</servlet-class>
   </servlet>

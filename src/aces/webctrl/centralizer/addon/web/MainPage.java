@@ -127,7 +127,10 @@ public class MainPage extends SecureServlet {
               Config.packetCapture = packetCapture_;
               Result<Byte> ret = Initializer.configure(op.getID());
               if (ret.waitForResult(System.currentTimeMillis()+12000)){
-                if (ret.getResult()!=Protocol.SUCCESS){
+                Byte b = ret.getResult();
+                if (b==null){
+                  res.setStatus(504);
+                }else if (b!=Protocol.SUCCESS){
                   res.setStatus(403);
                 }
               }else{
@@ -151,28 +154,33 @@ public class MainPage extends SecureServlet {
         }else{
           if (Initializer.isConnected()){
             Result<Byte> ret = Initializer.getConfig(op.getID());
-            if (ret.waitForResult(System.currentTimeMillis()+10000) && ret.getResult()==Protocol.SUCCESS){
-              out.print(Config.port);
-              out.print(';');
-              out.print(Config.backupHr+":"+Config.backupMin+":"+Config.backupSec);
-              out.print(';');
-              out.print(Config.backlog);
-              out.print(';');
-              out.print(Config.timeout);
-              out.print(';');
-              out.print(Config.operatorTimeout);
-              out.print(';');
-              out.print(Config.deleteLogAfter);
-              out.print(';');
-              out.print(Config.pingInterval);
-              out.print(';');
-              out.print(Config.loginAttempts);
-              out.print(';');
-              out.print(Config.loginTimePeriod);
-              out.print(';');
-              out.print(Config.loginLockoutTime);
-              out.print(';');
-              out.print(Config.packetCapture);
+            if (ret.waitForResult(System.currentTimeMillis()+10000)){
+              Byte b = ret.getResult();
+              if (b!=null && b==Protocol.SUCCESS){
+                out.print(Config.port);
+                out.print(';');
+                out.print(Config.backupHr+":"+Config.backupMin+":"+Config.backupSec);
+                out.print(';');
+                out.print(Config.backlog);
+                out.print(';');
+                out.print(Config.timeout);
+                out.print(';');
+                out.print(Config.operatorTimeout);
+                out.print(';');
+                out.print(Config.deleteLogAfter);
+                out.print(';');
+                out.print(Config.pingInterval);
+                out.print(';');
+                out.print(Config.loginAttempts);
+                out.print(';');
+                out.print(Config.loginTimePeriod);
+                out.print(';');
+                out.print(Config.loginLockoutTime);
+                out.print(';');
+                out.print(Config.packetCapture);
+              }else{
+                nullAll = true;
+              }
             }else{
               nullAll = true;
             }
@@ -224,7 +232,10 @@ public class MainPage extends SecureServlet {
           }else{
             Result<Byte> ret = Initializer.restartDatabase(op.getID());
             if (ret.waitForResult(System.currentTimeMillis()+10000)){
-              if (ret.getResult()!=Protocol.SUCCESS){
+              Byte b = ret.getResult();
+              if (b==null){
+                res.setStatus(504);
+              }else if (b!=Protocol.SUCCESS){
                 res.setStatus(403);
               }
             }else{
@@ -247,7 +258,10 @@ public class MainPage extends SecureServlet {
           }else{
             Result<Byte> ret = Initializer.generatePresharedKey(op.getID());
             if (ret.waitForResult(System.currentTimeMillis()+10000)){
-              if (ret.getResult()!=Protocol.SUCCESS){
+              Byte b = ret.getResult();
+              if (b==null){
+                res.setStatus(504);
+              }else if (b!=Protocol.SUCCESS){
                 res.setStatus(403);
               }
             }else{
@@ -380,7 +394,10 @@ public class MainPage extends SecureServlet {
                 }
                 Result<Byte> ret = Initializer.modifyServer(op.getID(),ClientConfig.ID,list);
                 if (ret.waitForResult(System.currentTimeMillis()+12000)){
-                  if (ret.getResult()!=Protocol.SUCCESS){
+                  Byte b = ret.getResult();
+                  if (b==null){
+                    res.setStatus(504);
+                  }else if (b!=Protocol.SUCCESS){
                     res.setStatus(403);
                   }
                 }else{

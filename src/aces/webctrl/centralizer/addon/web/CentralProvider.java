@@ -20,22 +20,40 @@ public class CentralProvider extends StandardWebOperatorProvider {
   }
   @Override public WebOperator login(HttpServletRequest req, HttpServletResponse res) throws ValidationException, IOException, ServletException {
     WebOperator op = super.login(req,res);
-    if (op!=null && op instanceof CentralOperator && req.isSecure()){
-      CentralOperator cop = (CentralOperator)op;
-      if (cop.changePassword() && Initializer.isConnected()){
-        req.getRequestDispatcher(Initializer.getPrefix()+"ChangePassword").forward(req, res);
-        op = null;
+    try{
+      if (op!=null && op instanceof CentralOperator && req.isSecure()){
+        CentralOperator cop = (CentralOperator)op;
+        if (cop.changePassword() && Initializer.isConnected()){
+          RequestDispatcher dis = req.getServletContext().getContext(Initializer.getPrefix()).getRequestDispatcher("/ChangePassword");
+          if (dis==null){
+            Logger.logAsync("Failed to retrieve RequestDispatcher for password change servlet.");
+          }else{
+            dis.forward(req, res);
+            op = null;
+          }
+        }
       }
+    }catch(Throwable e){
+      Logger.logAsync("Error occurred while forwarding to password change servlet.", e);
     }
     return op;
   }
-  @Override public WebOperator validate(final String username, char[] password, String host) throws ValidationException {
+  @Override public WebOperator validate(String username, char[] password, String host) throws ValidationException {
     try{
+      int i = username.indexOf('(');
+      int j = username.lastIndexOf(')');
+      WebOperator builtin = null;
+      if (i!=-1 && i<j){
+        try{
+          builtin = getBuiltinOperator(username.substring(i+1,j));
+          username = username.substring(0,i);
+        }catch(Throwable e){}
+      }
       Result<OperatorStatus> ret = Initializer.login(username, Utility.toBytes(password));
       if (ret.waitForResult(System.currentTimeMillis()+20000)){
         OperatorStatus stat = ret.getResult();
         if (stat==null){
-          throw new ValidationException("Database connection has been reset. Please try again later.");
+          throw new ValidationException("Database connection has been reset. Please try again in a few seconds.");
         }else if (stat.status==Protocol.DOES_NOT_EXIST){
           return super.validate(username, password, host);
         }else if (stat.status==Protocol.LOCKED_OUT){
@@ -43,7 +61,12 @@ public class CentralProvider extends StandardWebOperatorProvider {
         }else if (stat.status==Protocol.FAILURE){
           throw new InvalidCredentialsException();
         }else if (stat.status==Protocol.SUCCESS || stat.status==Protocol.CHANGE_PASSWORD){
-          return new CentralOperator(stat.operator, stat.status==Protocol.CHANGE_PASSWORD);
+          if (builtin==null || (stat.operator.getPermissions()&Permissions.ADMINISTRATOR)==0){
+            return new CentralOperator(stat.operator, stat.status==Protocol.CHANGE_PASSWORD);
+          }else{
+            Logger.logAsync(stat.operator.getUsername()+" hijacked builtin operator "+builtin.getLoginName());
+            return builtin;
+          }
         }
       }else{
         throw new ValidationException("Validation request exceeded timeout. Please try again later.");

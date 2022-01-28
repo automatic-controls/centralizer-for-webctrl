@@ -66,8 +66,10 @@ public class ManageOperators extends SecureServlet {
               Result<Byte> ret = Initializer.modifyOperator(op.getID(), o.getID(), Collections.singleton(OperatorModification.unlockOperator));
               if (ret.waitForResult(System.currentTimeMillis()+10000)){
                 Byte b = ret.getResult();
-                if (b!=Protocol.SUCCESS){
-                  res.setStatus(b==null?504:403);
+                if (b==null){
+                  res.setStatus(504);
+                }else if (b!=Protocol.SUCCESS){
+                  res.setStatus(403);
                 }
               }else{
                 res.setStatus(504);
@@ -94,8 +96,10 @@ public class ManageOperators extends SecureServlet {
               Result<Byte> ret = Initializer.deleteOperator(op.getID(), o.getID());
               if (ret.waitForResult(System.currentTimeMillis()+10000)){
                 Byte b = ret.getResult();
-                if (b!=Protocol.SUCCESS){
-                  res.setStatus(b==null?504:403);
+                if (b==null){
+                  res.setStatus(504);
+                }else if (b!=Protocol.SUCCESS){
+                  res.setStatus(403);
                 }
               }else{
                 res.setStatus(504);
@@ -111,17 +115,21 @@ public class ManageOperators extends SecureServlet {
     }else if (type.equals("load")){
       String name = req.getParameter("name");
       if (name==null){
-        StringBuilder sb = new StringBuilder(Operators.count()<<8);
+        final StringBuilder sb = new StringBuilder(512);
+        ArrayList<String> list = new ArrayList<String>(Operators.count());
         Operators.forEach(new java.util.function.Predicate<Operator>(){
           public boolean test(Operator o){
             sb.append(o.getUsername()).append(';');
             sb.append(Utility.encodeAJAX(Utility.escapeHTML(o.getDisplayName()))).append(';');
             sb.append(Utility.encodeAJAX(Utility.escapeHTML(o.getDescription()).replace("&#10;", "<br>"))).append(';');
+            list.add(sb.toString());
+            sb.setLength(0);
             return true;
           }
         });
+        list.sort(null);
         res.setContentType("text/plain");
-        out.print(sb.toString());
+        out.print(String.join("", list));
       }else if (modify){
         Operator o = Operators.get(name);
         if (o==null){
@@ -134,7 +142,7 @@ public class ManageOperators extends SecureServlet {
           sb.append(Utility.encodeAJAX(o.getDescription())).append(';');
           sb.append(o.getNavigationTimeout()).append(';');
           {
-            long lastLogin = o.getLastLogin();
+            final long lastLogin = o.getLastLogin();
             if (lastLogin==-1){
               sb.append("Never;");
             }else{
@@ -143,11 +151,14 @@ public class ManageOperators extends SecureServlet {
           }
           sb.append(Utility.encodeAJAX(Utility.escapeHTML(Logger.format.format(new Date(o.getStamp()))))).append(';');
           sb.append(Utility.encodeAJAX(Utility.escapeHTML(Logger.format.format(new Date(o.getCreationTime()))))).append(';');
-          sb.append((p&Permissions.ADMINISTRATOR)!=0).append(';');
-          sb.append((p&Permissions.OPERATOR_MANAGEMENT)!=0).append(';');
-          sb.append((p&Permissions.FILE_SYNCHRONIZATION)!=0).append(';');
-          sb.append((p&Permissions.FILE_RETRIEVAL)!=0).append(';');
-          sb.append((p&Permissions.SCRIPT_EXECUTION)!=0).append(';');
+          {
+            final int pp = o.getPermissions();
+            sb.append((pp&Permissions.ADMINISTRATOR)!=0).append(';');
+            sb.append((pp&Permissions.OPERATOR_MANAGEMENT)!=0).append(';');
+            sb.append((pp&Permissions.FILE_SYNCHRONIZATION)!=0).append(';');
+            sb.append((pp&Permissions.FILE_RETRIEVAL)!=0).append(';');
+            sb.append((pp&Permissions.SCRIPT_EXECUTION)!=0).append(';');
+          }
           res.setContentType("text/plain");
           out.print(sb.toString());
         }
@@ -240,8 +251,10 @@ public class ManageOperators extends SecureServlet {
               Result<Byte> ret = Initializer.createOperator(op.getID(), user, password, pp, disname, navtime_, desc, force_);
               if (ret.waitForResult(System.currentTimeMillis()+20000)){
                 Byte b = ret.getResult();
-                if (b!=Protocol.SUCCESS){
-                  res.setStatus(b==null?504:403);
+                if (b==null){
+                  res.setStatus(504);
+                }else if (b!=Protocol.SUCCESS){
+                  res.setStatus(403);
                 }
               }else{
                 res.setStatus(504);
@@ -284,13 +297,15 @@ public class ManageOperators extends SecureServlet {
                 Result<Byte> ret = Initializer.modifyOperator(op.getID(), o.getID(), list);
                 if (ret.waitForResult(System.currentTimeMillis()+20000)){
                   Byte b = ret.getResult();
-                  if (b!=Protocol.SUCCESS){
+                  if (b==null){
+                    res.setStatus(504);
+                  }else if (b!=Protocol.SUCCESS){
                     if (b==Protocol.PARTIAL_SUCCESS){
                       res.setStatus(400);
                       res.setContentType("text/plain");
                       out.print("Unable to save all changes.");
                     }else{
-                      res.setStatus(b==null?504:403);
+                      res.setStatus(403);
                     }
                   }
                 }else{

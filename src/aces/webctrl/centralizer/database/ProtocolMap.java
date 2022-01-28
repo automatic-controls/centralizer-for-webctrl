@@ -178,10 +178,9 @@ public class ProtocolMap {
                       while (!s.end()){
                         switch (s.readByte()){
                           case 0:{//Username
-                            String newUsername = s.readString();
-                            if (Operators.changeUsername(op, newUsername)){
+                            if (Operators.changeUsername(op, s.readString())){
                               modified = true;
-                              sb.append(";Username="+newUsername);
+                              sb.append(";Username");
                             }else{
                               ret = Protocol.PARTIAL_SUCCESS;
                             }
@@ -331,7 +330,7 @@ public class ProtocolMap {
     });
     map.put(Protocol.MODIFY_SERVER, new Consumer<Connection>(){
       public void accept(final Connection c){
-        c.wrap.readBytes(32, null, c.new Handler<byte[]>(){
+        c.wrap.readBytes(16384, null, c.new Handler<byte[]>(){
           public void func(byte[] data){
             try{
               SerializationStream s = new SerializationStream(data);
