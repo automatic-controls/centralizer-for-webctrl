@@ -37,20 +37,19 @@ public class ManageOperators extends SecureServlet {
     boolean modify = false;
     Operator op = null;
     int p = 0;
-    if (Initializer.isConnected()){
-      if (webop!=null){
-        op = webop.getOperator();
-        p = op.getPermissions();
-        if ((p&Permissions.OPERATOR_MANAGEMENT)!=0){
-          modify = true;
-        }
+    if (webop!=null && Initializer.isConnected()){
+      op = webop.getOperator();
+      p = op.getPermissions();
+      if ((p&Permissions.OPERATOR_MANAGEMENT)!=0){
+        modify = true;
       }
     }
     final PrintWriter out = res.getWriter();
     String type = req.getParameter("type");
     if (type==null){
+      String username = req.getParameter("username");
       res.setContentType("text/html");
-      out.print(html.replace("__USERNAME__", "NULL"));
+      out.print(html.replace("__USERNAME__", username==null?"NULL":username));
     }else if (type.equals("unlock")){
       if (modify){
         String name = req.getParameter("name");
@@ -129,11 +128,11 @@ public class ManageOperators extends SecureServlet {
         list.sort(null);
         res.setContentType("text/plain");
         out.print(String.join("", list));
-      }else if (modify){
+      }else{
         Operator o = Operators.get(name);
         if (o==null){
           res.setStatus(400);
-        }else{
+        }else if (modify || o==op){
           StringBuilder sb = new StringBuilder(1024);
           sb.append(Utility.encodeAJAX(o.getDisplayName())).append(';');
           sb.append(o.getUsername()).append(';');
@@ -160,121 +159,131 @@ public class ManageOperators extends SecureServlet {
           }
           res.setContentType("text/plain");
           out.print(sb.toString());
+        }else{
+          res.setStatus(403);
         }
-      }else{
-        res.setStatus(403);
       }
     }else if (type.equals("save")){
-      if (modify){
-        final String selected = req.getParameter("selected");
-        final String user = req.getParameter("user");
-        final String pass = req.getParameter("pass");
-        final String disname = req.getParameter("disname");
-        final String desc = req.getParameter("desc");
-        final String navtime = req.getParameter("navtime");
-        final String force = req.getParameter("force");
-        final String padmin = req.getParameter("padmin");
-        final String pops = req.getParameter("pops");
-        final String psync = req.getParameter("psync");
-        final String pret = req.getParameter("pret");
-        final String pscript = req.getParameter("pscript");
-        boolean isNull = false;
-        isNull|=selected==null;
-        isNull|=user==null;
-        isNull|=pass==null;
-        isNull|=disname==null;
-        isNull|=desc==null;
-        isNull|=navtime==null;
-        isNull|=force==null;
-        isNull|=padmin==null;
-        isNull|=pops==null;
-        isNull|=psync==null;
-        isNull|=pret==null;
-        isNull|=pscript==null;
-        if (isNull){
+      final String selected = req.getParameter("selected");
+      final String user = req.getParameter("user");
+      final String pass = req.getParameter("pass");
+      final String disname = req.getParameter("disname");
+      final String desc = req.getParameter("desc");
+      final String navtime = req.getParameter("navtime");
+      final String force = req.getParameter("force");
+      final String padmin = req.getParameter("padmin");
+      final String pops = req.getParameter("pops");
+      final String psync = req.getParameter("psync");
+      final String pret = req.getParameter("pret");
+      final String pscript = req.getParameter("pscript");
+      boolean isNull = false;
+      isNull|=selected==null;
+      isNull|=user==null;
+      isNull|=pass==null;
+      isNull|=disname==null;
+      isNull|=desc==null;
+      isNull|=navtime==null;
+      isNull|=force==null;
+      isNull|=padmin==null;
+      isNull|=pops==null;
+      isNull|=psync==null;
+      isNull|=pret==null;
+      isNull|=pscript==null;
+      if (isNull){
+        res.setStatus(400);
+      }else{
+        boolean force_, padmin_, pops_, psync_, pret_, pscript_;
+        int navtime_;
+        try{
+          navtime_ = Integer.parseInt(navtime);
+          force_ = Boolean.parseBoolean(force);
+          padmin_ = Boolean.parseBoolean(padmin);
+          pops_ = Boolean.parseBoolean(pops);
+          psync_ = Boolean.parseBoolean(psync);
+          pret_ = Boolean.parseBoolean(pret);
+          pscript_ = Boolean.parseBoolean(pscript);
+        }catch(Exception e){
           res.setStatus(400);
-        }else{
-          boolean force_, padmin_, pops_, psync_, pret_, pscript_;
-          int navtime_;
-          try{
-            navtime_ = Integer.parseInt(navtime);
-            force_ = Boolean.parseBoolean(force);
-            padmin_ = Boolean.parseBoolean(padmin);
-            pops_ = Boolean.parseBoolean(pops);
-            psync_ = Boolean.parseBoolean(psync);
-            pret_ = Boolean.parseBoolean(pret);
-            pscript_ = Boolean.parseBoolean(pscript);
-          }catch(Exception e){
-            res.setStatus(400);
-            return;
-          }
-          byte[] password = null;
-          if (pass.length()>0){
-            char[] arr = pass.toCharArray();
-            Utility.obfuscate(arr);
-            if (!Database.validatePassword(arr)){
-              java.util.Arrays.fill(arr,(char)0);
-              res.setStatus(400);
-              res.setContentType("text/plain");
-              out.print("Password does not meet complexity requirements.");
-              return;
-            }
-            password = Utility.toBytes(arr);
+          return;
+        }
+        byte[] password = null;
+        if (pass.length()>0){
+          char[] arr = pass.toCharArray();
+          Utility.obfuscate(arr);
+          if (!Database.validatePassword(arr)){
             java.util.Arrays.fill(arr,(char)0);
-          }
-          if (!Database.validateName(user, false)){
             res.setStatus(400);
             res.setContentType("text/plain");
-            out.print("Invalid username.");
+            out.print("Password does not meet complexity requirements.");
             return;
           }
-          int pp = 0;
-          if (padmin_){ pp|=Permissions.ADMINISTRATOR; }
-          if (pops_){ pp|=Permissions.OPERATOR_MANAGEMENT; }
-          if (psync_){ pp|=Permissions.FILE_SYNCHRONIZATION; }
-          if (pret_){ pp|=Permissions.FILE_RETRIEVAL; }
-          if (pscript_){ pp|=Permissions.SCRIPT_EXECUTION; }
-          pp = Permissions.validate(pp);
-          if ((p|pp)!=p){
+          password = Utility.toBytes(arr);
+          java.util.Arrays.fill(arr,(char)0);
+        }
+        if (!Database.validateName(user, false)){
+          res.setStatus(400);
+          res.setContentType("text/plain");
+          out.print("Invalid username.");
+          return;
+        }
+        int pp = 0;
+        if (padmin_){ pp|=Permissions.ADMINISTRATOR; }
+        if (pops_){ pp|=Permissions.OPERATOR_MANAGEMENT; }
+        if (psync_){ pp|=Permissions.FILE_SYNCHRONIZATION; }
+        if (pret_){ pp|=Permissions.FILE_RETRIEVAL; }
+        if (pscript_){ pp|=Permissions.SCRIPT_EXECUTION; }
+        pp = Permissions.validate(pp);
+        if ((p|pp)!=p){
+          res.setStatus(403);
+          return;
+        }
+        if (selected.equalsIgnoreCase("NULL")){
+          if (!modify){
             res.setStatus(403);
-            return;
-          }
-          if (selected.equalsIgnoreCase("NULL")){
-            if (password==null){
-              res.setStatus(400);
-            }else if (Operators.get(user)!=null){
-              res.setStatus(400);
-              res.setContentType("text/plain");
-              out.print("An operator with the same username already exists.");
-            }else{
-              Result<Byte> ret = Initializer.createOperator(op.getID(), user, password, pp, disname, navtime_, desc, force_);
-              if (ret.waitForResult(System.currentTimeMillis()+20000)){
-                Byte b = ret.getResult();
-                if (b==null){
-                  res.setStatus(504);
-                }else if (b!=Protocol.SUCCESS){
-                  res.setStatus(403);
-                }
-              }else{
+          }else if (password==null){
+            res.setStatus(400);
+          }else if (Operators.get(user)!=null){
+            res.setStatus(400);
+            res.setContentType("text/plain");
+            out.print("An operator with the same username already exists.");
+          }else{
+            Result<Byte> ret = Initializer.createOperator(op.getID(), user, password, pp, disname, navtime_, desc, force_);
+            if (ret.waitForResult(System.currentTimeMillis()+20000)){
+              Byte b = ret.getResult();
+              if (b==null){
                 res.setStatus(504);
+              }else if (b!=Protocol.SUCCESS){
+                res.setStatus(403);
+              }
+            }else{
+              res.setStatus(504);
+            }
+          }
+        }else{
+          Operator o = Operators.get(selected);
+          if (o==null){
+            res.setStatus(400);
+            res.setContentType("text/plain");
+            out.print("Operator does not exist.");
+          }else if (modify || o==op){
+            boolean limited = o==op && !modify;
+            boolean failed = false;
+            LinkedList<OperatorModification> list = new LinkedList<OperatorModification>();
+            if (!user.equalsIgnoreCase(selected)){
+              if (limited){
+                failed = true;
+              }else{
+                list.add(OperatorModification.changeUsername(user));
               }
             }
-          }else{
-            Operator o = Operators.get(selected);
-            if (o==null){
-              res.setStatus(400);
-              res.setContentType("text/plain");
-              out.print("Operator does not exist.");
+            if (failed){
+              res.setStatus(403);
             }else{
-              LinkedList<OperatorModification> list = new LinkedList<OperatorModification>();
               if (force_){
                 list.add(OperatorModification.forcePasswordChange);
               }
               if (password!=null){
                 list.add(OperatorModification.changePassword(password));
-              }
-              if (!user.equalsIgnoreCase(selected)){
-                list.add(OperatorModification.changeUsername(user));
               }
               if (pp!=o.getPermissions()){
                 list.add(OperatorModification.changePermissions(pp));
@@ -312,21 +321,13 @@ public class ManageOperators extends SecureServlet {
                 }
               }
             }
+          }else{
+            res.setStatus(403);
           }
         }
-      }else{
-        res.setStatus(403);
       }
     }else{
-      String username = req.getParameter("username");
-      if (username==null){
-        res.sendError(400);
-      }else if (modify){
-        res.setContentType("text/html");
-        out.print(html.replace("__USERNAME__", username));
-      }else{
-        res.sendError(403);
-      }
+      res.sendError(400);
     }
   }
 }
