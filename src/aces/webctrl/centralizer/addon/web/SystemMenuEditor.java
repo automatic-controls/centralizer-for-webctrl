@@ -10,7 +10,7 @@ public class SystemMenuEditor implements SystemMenuProvider{
   @Override public void updateMenu(Operator op, Menu menu){
     menu.addMenuEntry(MenuEntryFactory
       .newEntry("aces.webctrl.centralizer.ManageOperators")
-      .display("View Central Operators")
+      .display("Central Operators")
       .action(Actions.openWindow("ManageOperators"))
       .create()
     );

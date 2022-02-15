@@ -14,15 +14,11 @@ public class CentralOperator implements com.controlj.green.addonsupport.web.auth
   public CentralOperator(Operator op, boolean changePassword){
     this.op = op;
     change = changePassword;
-    /*try{
-      com.controlj.green.addonsupport.access.DirectAccess.getDirectAccess().getRootSystemConnection().runReadAction(com.controlj.green.addonsupport.access.FieldAccessFactory.newDisabledFieldAccess(), new com.controlj.green.addonsupport.access.ReadAction(){
-        public void execute(com.controlj.green.addonsupport.access.SystemAccess sys){
-           startLink = Link.createLink(UITree.GEO, sys.getGeoRoot());
-        }
-      });
-    }catch(Throwable e){
-      Logger.logAsync("Failed to create start link for CentralOperator.", e);
-    }*/
+    if (op.startTree!=null){
+      try{
+        startLink = Link.createLink(UITree.valueOf(op.startTree), op.startLocation, op.startAction, op.startCategory, op.startInstance, op.startTab);
+      }catch(Throwable e){}
+    }
   }
   public boolean changePassword(){
     return change;

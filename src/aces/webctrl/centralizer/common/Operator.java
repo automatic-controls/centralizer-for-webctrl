@@ -92,7 +92,31 @@ public class Operator {
    */
   private volatile LinkedList<Long> failedAttempts = new LinkedList<Long>();
   /**
-   * Used for {@link #deserialize(byte[])}.
+   * Stores the UITree enum option string to use for an operator's start location.
+   */
+  public volatile String startTree = null;
+  /**
+   * Stores the "Full Path" string to use for an operator's start location as retrieved from the "whereami" manual command in WebCTRL.
+   */
+  public volatile String startLocation = null;
+  /**
+   * Stores the "Action Button" string to use for an operator's start location as retrieved from the "whereami" manual command in WebCTRL.
+   */
+  public volatile String startAction = null;
+  /**
+   * Stores the "Category" string to use for an operator's start location as retrieved from the "whereami" manual command in WebCTRL.
+   */
+  public volatile String startCategory = null;
+  /**
+   * Stores the "Instance" string to use for an operator's start location as retrieved from the "whereami" manual command in WebCTRL.
+   */
+  public volatile String startInstance = null;
+  /**
+   * Stores the "Tab" string to use for an operator's start location as retrieved from the "whereami" manual command in WebCTRL.
+   */
+  public volatile String startTab = null;
+  /**
+   * Used for deserialization.
    */
   private Operator(){}
   /**
@@ -173,11 +197,52 @@ public class Operator {
    * Serializes an operator into a byte array.
    */
   public byte[] serialize(){
-    byte[] usernameData = username.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-    byte[] displayNameData = displayName.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-    byte[] descData = description.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    if (startTree!=null){
+      final String tree = startTree;
+      final String location = startLocation;
+      final String action = startAction;
+      final String category = startCategory;
+      final String instance = startInstance;
+      final String tab = startTab;
+      if (tree!=null && location!=null && action!=null && category!=null && instance!=null && tab!=null){
+        final byte[] treeData = tree.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        final byte[] locationData = location.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        final byte[] actionData = action.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        final byte[] categoryData = category.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        final byte[] instanceData = instance.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        final byte[] tabData = tab.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        final byte[] usernameData = username.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        final byte[] displayNameData = displayName.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        final byte[] descData = description.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        passwordLock.readLock().lock();
+        final SerializationStream s = new SerializationStream(usernameData.length+displayNameData.length+descData.length+salt.length+hash.length+treeData.length+locationData.length+actionData.length+categoryData.length+instanceData.length+tabData.length+81);
+        s.write(salt);
+        s.write(hash);
+        passwordLock.readLock().unlock();
+        s.write(ID);
+        s.write(forceChange);
+        s.write(creationTime);
+        s.write(timestamp);
+        s.write(lastLogin);
+        s.write(permissions);
+        s.write(navigationTimeout);
+        s.write(usernameData);
+        s.write(displayNameData);
+        s.write(descData);
+        s.write(treeData);
+        s.write(locationData);
+        s.write(actionData);
+        s.write(categoryData);
+        s.write(instanceData);
+        s.write(tabData);
+        return s.data;
+      }
+    }
+    final byte[] usernameData = username.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    final byte[] displayNameData = displayName.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    final byte[] descData = description.getBytes(java.nio.charset.StandardCharsets.UTF_8);
     passwordLock.readLock().lock();
-    SerializationStream s = new SerializationStream(usernameData.length+displayNameData.length+descData.length+salt.length+hash.length+57);
+    final SerializationStream s = new SerializationStream(usernameData.length+displayNameData.length+descData.length+salt.length+hash.length+57);
     s.write(salt);
     s.write(hash);
     passwordLock.readLock().unlock();
@@ -234,7 +299,15 @@ public class Operator {
     op.displayName = s.readString();
     op.description = s.readString();
     if (!s.end()){
-      throw new IndexOutOfBoundsException("Byte array is too large and cannot be deserialized into an Operator.");
+      op.startTree = s.readString();
+      op.startLocation = s.readString();
+      op.startAction = s.readString();
+      op.startCategory = s.readString();
+      op.startInstance = s.readString();
+      op.startTab = s.readString();
+      if (!s.end()){
+        throw new IndexOutOfBoundsException("Byte array is too large and cannot be deserialized into an Operator.");
+      }
     }
     return op;
   }

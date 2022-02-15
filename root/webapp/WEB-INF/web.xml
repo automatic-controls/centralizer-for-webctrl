@@ -38,6 +38,15 @@
   </servlet-mapping>
 
   <servlet>
+    <servlet-name>StartLocation</servlet-name>
+    <servlet-class>aces.webctrl.centralizer.addon.web.StartLocation</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>StartLocation</servlet-name>
+    <url-pattern>/StartLocation</url-pattern>
+  </servlet-mapping>
+
+  <servlet>
     <servlet-name>ChangePassword</servlet-name>
     <servlet-class>aces.webctrl.centralizer.addon.web.ChangePassword</servlet-class>
   </servlet>
