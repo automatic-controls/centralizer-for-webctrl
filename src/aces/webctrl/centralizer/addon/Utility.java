@@ -128,7 +128,8 @@ public class Utility {
       c = str.charAt(i);
       switch (c){
         case '\\': case '\'': case '"': {
-          sb.append('\\');
+          sb.append('\\').append(c);
+          break;
         }
         case '\n': {
           sb.append("\\n");
@@ -155,8 +156,6 @@ public class Utility {
         }
       }
     }
-    //also need to replace character \n with actual \n
-    //maybe look at other characters as well
     return sb.toString();
   }
   /**
