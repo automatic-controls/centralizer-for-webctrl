@@ -45,7 +45,7 @@ public class MainPage extends SecureServlet {
       }
     }
   }
-  @Override public void process(final HttpServletRequest req, final HttpServletResponse res) throws Throwable {
+  @Override public void process(final CentralOperator webop, final HttpServletRequest req, final HttpServletResponse res) throws Throwable {
     final PrintWriter out = res.getWriter();
     if (req.getParameter("status")!=null){
       res.setContentType("text/plain");
@@ -54,7 +54,6 @@ public class MainPage extends SecureServlet {
       out.print(';');
       out.print(Initializer.getStatus());
     }else if (req.getParameter("configData")!=null){
-      CentralOperator webop = getOperator(req);
       if (webop==null){
         res.setStatus(403);
       }else{
@@ -143,7 +142,6 @@ public class MainPage extends SecureServlet {
         }
       }
     }else if (req.getParameter("refreshData")!=null){
-      CentralOperator webop = getOperator(req);
       boolean nullAll = false;
       if (webop==null){
         nullAll = true;
@@ -197,7 +195,6 @@ public class MainPage extends SecureServlet {
       res.setHeader("Content-Disposition","attachment;filename=\"log.txt\"");
       Logger.transferTo(out);
     }else if (req.getParameter("enableRemoval")!=null){
-      CentralOperator webop = getOperator(req);
       if (webop==null){
         res.setStatus(403);
       }else{
@@ -209,7 +206,6 @@ public class MainPage extends SecureServlet {
         }
       }
     }else if (req.getParameter("disableRemoval")!=null){
-      CentralOperator webop = getOperator(req);
       if (webop==null){
         res.setStatus(403);
       }else{
@@ -222,7 +218,6 @@ public class MainPage extends SecureServlet {
       }
     }else if (req.getParameter("restart")!=null){
       if (Initializer.isConnected()){
-        CentralOperator webop = getOperator(req);
         if (webop==null){
           res.setStatus(403);
         }else{
@@ -248,7 +243,6 @@ public class MainPage extends SecureServlet {
       }
     }else if (req.getParameter("genkey")!=null){
       if (Initializer.isConnected()){
-        CentralOperator webop = getOperator(req);
         if (webop==null){
           res.setStatus(403);
         }else{
@@ -327,7 +321,6 @@ public class MainPage extends SecureServlet {
           Operator op = null;
           boolean connected = Initializer.isConnected();
           if (connected){
-            CentralOperator webop = getOperator(req);
             if (webop==null){
               go = false;
             }else{

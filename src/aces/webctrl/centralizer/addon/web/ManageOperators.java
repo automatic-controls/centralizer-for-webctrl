@@ -33,12 +33,11 @@ public class ManageOperators extends SecureServlet {
       }
     }
   }
-  @Override public void process(final HttpServletRequest req, final HttpServletResponse res) throws Throwable {
+  @Override public void process(final CentralOperator webop, final HttpServletRequest req, final HttpServletResponse res) throws Throwable {
     boolean modify = false;
     Operator op = null;
     int p = 0;
     if (Initializer.isConnected()){
-      CentralOperator webop = getOperator(req);
       if (webop!=null){
         op = webop.getOperator();
         p = op.getPermissions();

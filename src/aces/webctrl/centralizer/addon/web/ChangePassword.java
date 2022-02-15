@@ -32,7 +32,7 @@ public class ChangePassword extends SecureServlet {
       }
     }
   }
-  @Override public void process(final HttpServletRequest req, final HttpServletResponse res) throws Throwable {
+  @Override public void process(final CentralOperator webop, final HttpServletRequest req, final HttpServletResponse res) throws Throwable {
     if (Initializer.isConnected()){
       final PrintWriter out = res.getWriter();
       if (req.getParameter("submit")!=null){
@@ -89,7 +89,6 @@ public class ChangePassword extends SecureServlet {
         final String loginTracker = req.getParameter("login-tracker");
         final String loginAuthTok = req.getParameter("login-auth-tok");
         if (name==null || pass==null || touchscr==null || loginTracker==null || loginAuthTok==null){
-          CentralOperator webop = getOperator(req);
           if (webop==null){
             res.sendError(403, "Local operators cannot change their password using this webpage.");
           }else{

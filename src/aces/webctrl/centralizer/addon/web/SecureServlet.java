@@ -34,7 +34,12 @@ public abstract class SecureServlet extends HttpServlet {
             }
           }
         }
-        process(req,res);
+        CentralOperator webop = getOperator(req);
+        if (webop!=null && webop.getOperator().isDisposed()){
+          res.sendError(403, "You have been deleted. Please login using another account.");
+        }else{
+          process(webop,req,res);
+        }
       }else{
         res.sendError(403, "You are using an insecure connection protocol.");
       }
@@ -43,7 +48,7 @@ public abstract class SecureServlet extends HttpServlet {
       res.sendError(500);
     }
   }
-  public abstract void process(HttpServletRequest req, HttpServletResponse res) throws Throwable;
+  public abstract void process(CentralOperator webop, HttpServletRequest req, HttpServletResponse res) throws Throwable;
   /**
    * @return the {@code CentralOperator} attached to the given request, or {@code null} if none is attached.
    */
@@ -51,7 +56,7 @@ public abstract class SecureServlet extends HttpServlet {
     try{
       com.controlj.green.addonsupport.access.Operator webop = com.controlj.green.addonsupport.access.DirectAccess.getDirectAccess().getUserSystemConnection(req).getOperator();
       return webop instanceof CentralOperator ? (CentralOperator)webop : null;
-    }catch(Exception e){
+    }catch(Throwable t){
       return null;
     }
   }

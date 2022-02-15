@@ -31,9 +31,8 @@ public class LoginServlet extends SecureServlet {
       }
     }
   }
-  @Override public void process(final HttpServletRequest req, final HttpServletResponse res) throws Throwable {
+  @Override public void process(final CentralOperator webop, final HttpServletRequest req, final HttpServletResponse res) throws Throwable {
     if (Initializer.isConnected()){
-      CentralOperator webop = getOperator(req);
       if (webop!=null){
         final Operator op = webop.getOperator();
         if (req.getParameter("submit")!=null){

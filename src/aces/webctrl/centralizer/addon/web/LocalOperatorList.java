@@ -27,7 +27,7 @@ public class LocalOperatorList extends SecureServlet {
       }
     }
   }
-  @Override public void process(final HttpServletRequest req, final HttpServletResponse res) throws Throwable {
+  @Override public void process(final CentralOperator webop, final HttpServletRequest req, final HttpServletResponse res) throws Throwable {
     Map<String,String> map = new com.controlj.green.datatable.util.CoreHelper().getOperatorList();
     StringBuilder sb = new StringBuilder(map.size()<<5);
     for (Map.Entry<String,String> entry:map.entrySet()){
