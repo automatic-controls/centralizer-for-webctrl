@@ -34,10 +34,11 @@ public class ManageOperators extends SecureServlet {
     }
   }
   @Override public void process(final CentralOperator webop, final HttpServletRequest req, final HttpServletResponse res) throws Throwable {
+    final boolean connected = Initializer.isConnected();
     boolean modify = false;
     Operator op = null;
     int p = 0;
-    if (webop!=null && Initializer.isConnected()){
+    if (webop!=null){
       op = webop.getOperator();
       p = op.getPermissions();
       if ((p&Permissions.OPERATOR_MANAGEMENT)!=0){
@@ -55,7 +56,7 @@ public class ManageOperators extends SecureServlet {
         String name = req.getParameter("name");
         if (name==null){
           res.setStatus(400);
-        }else{
+        }else if (connected){
           Operator o = Operators.get(name);
           if (o==null){
             res.setStatus(400);
@@ -76,6 +77,8 @@ public class ManageOperators extends SecureServlet {
               res.setStatus(403);
             }
           }
+        }else{
+          res.setStatus(504);
         }
       }else{
         res.setStatus(403);
@@ -85,7 +88,7 @@ public class ManageOperators extends SecureServlet {
         String name = req.getParameter("name");
         if (name==null){
           res.setStatus(400);
-        }else{
+        }else if (connected){
           Operator o = Operators.get(name);
           if (o==null){
             res.setStatus(400);
@@ -106,6 +109,8 @@ public class ManageOperators extends SecureServlet {
               res.setStatus(403);
             }
           }
+        }else{
+          res.setStatus(504);
         }
       }else{
         res.setStatus(403);
@@ -246,7 +251,7 @@ public class ManageOperators extends SecureServlet {
             res.setStatus(400);
             res.setContentType("text/plain");
             out.print("An operator with the same username already exists.");
-          }else{
+          }else if (connected){
             Result<Byte> ret = Initializer.createOperator(op.getID(), user, password, pp, disname, navtime_, desc, force_);
             if (ret.waitForResult(System.currentTimeMillis()+20000)){
               Byte b = ret.getResult();
@@ -258,6 +263,8 @@ public class ManageOperators extends SecureServlet {
             }else{
               res.setStatus(504);
             }
+          }else{
+            res.setStatus(504);
           }
         }else{
           Operator o = Operators.get(selected);
@@ -301,7 +308,7 @@ public class ManageOperators extends SecureServlet {
                 res.setStatus(400);
                 res.setContentType("text/plain");
                 out.print("No changes were made.");
-              }else{
+              }else if (connected){
                 Result<Byte> ret = Initializer.modifyOperator(op.getID(), o.getID(), list);
                 if (ret.waitForResult(System.currentTimeMillis()+20000)){
                   Byte b = ret.getResult();
@@ -319,6 +326,8 @@ public class ManageOperators extends SecureServlet {
                 }else{
                   res.setStatus(504);
                 }
+              }else{
+                res.setStatus(504);
               }
             }
           }else{
