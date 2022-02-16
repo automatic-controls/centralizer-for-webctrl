@@ -104,6 +104,10 @@ public class Config {
    */
   public volatile static boolean packetCapture = false;
   /**
+   * Clients must possess this secret key to register as a new server in this database.
+   */
+  public volatile static long connectionKey = 0;
+  /**
    * Compares the given version string to the hardcoded version string of this application.
    * Assuming each version string is of the form "MAJOR.MINOR.PATCH",
    * two version strings are compatible whenever the MAJOR and MINOR versions agree.
@@ -201,48 +205,78 @@ public class Config {
   private static boolean setConfigParameter(String key, String value){
     try{
       value = value.trim();
-      if (key.equalsIgnoreCase("Version")){
-        if (!isCompatibleVersion(value)){
-          Logger.log("Configuration file version ("+value+") is not compatible with the application's internal version ("+VERSION+").");
+      switch (key.toUpperCase()){
+        case "VERSION":{
+          if (!isCompatibleVersion(value)){
+            Logger.log("Configuration file version ("+value+") is not compatible with the application's internal version ("+VERSION+").");
+            return false;
+          }
+          break;
+        }
+        case "PORT":{
+          port = Integer.parseInt(value);
+          break;
+        }
+        case "CONNECTIONKEY":{
+          connectionKey = Long.parseUnsignedLong(value, 16);
+          break;
+        }
+        case "PACKETCAPTURE":{
+          if (Boolean.parseBoolean(value)){
+            PacketLogger.start();
+          }else{
+            PacketLogger.stop();
+          }
+          break;
+        }
+        case "DELETELOGAFTER":{
+          deleteLogAfter = Long.parseLong(value);
+          break;
+        }
+        case "BACKLOG":{
+          backlog = Integer.parseInt(value);
+          break;
+        }
+        case "TIMEOUT":{
+          timeout = Long.parseLong(value);
+          break;
+        }
+        case "PINGINTERVAL":{
+          pingInterval = Long.parseLong(value);
+          break;
+        }
+        case "OPERATORTIMEOUT":{
+          operatorTimeout = Long.parseLong(value);
+          break;
+        }
+        case "LOGINATTEMPTS":{
+          loginAttempts = Integer.parseInt(value);
+          break;
+        }
+        case "LOGINTIMEPERIOD":{
+          loginTimePeriod = Long.parseLong(value);
+          break;
+        }
+        case "LOGINLOCKOUTTIME":{
+          loginLockoutTime = Long.parseLong(value);
+          break;
+        }
+        case "BACKUPTIME":{
+          String[] arr = value.split(":");
+          if (arr.length==3){
+            backupHr = Integer.parseInt(arr[0]);
+            backupMin = Integer.parseInt(arr[1]);
+            backupSec = Integer.parseInt(arr[2]);
+          }else{
+            Logger.log("BackupTime configuration value has invalid format.");
+            return false;
+          }
+          break;
+        }
+        default:{
+          Logger.log("Unrecognized key-value pair in the primary configuration file ("+key+':'+value+')');
           return false;
         }
-      }else if (key.equalsIgnoreCase("Port")){
-        port = Integer.parseInt(value);
-      }else if (key.equalsIgnoreCase("PacketCapture")){
-        if (Boolean.parseBoolean(value)){
-          PacketLogger.start();
-        }else{
-          PacketLogger.stop();
-        }
-      }else if (key.equalsIgnoreCase("DeleteLogAfter")){
-        deleteLogAfter = Long.parseLong(value);
-      }else if (key.equalsIgnoreCase("BackLog")){
-        backlog = Integer.parseInt(value);
-      }else if (key.equalsIgnoreCase("Timeout")){
-        timeout = Long.parseLong(value);
-      }else if (key.equalsIgnoreCase("PingInterval")){
-        pingInterval = Long.parseLong(value);
-      }else if (key.equalsIgnoreCase("OperatorTimeout")){
-        operatorTimeout = Long.parseLong(value);
-      }else if (key.equalsIgnoreCase("LoginAttempts")){
-        loginAttempts = Integer.parseInt(value);
-      }else if (key.equalsIgnoreCase("LoginTimePeriod")){
-        loginTimePeriod = Long.parseLong(value);
-      }else if (key.equalsIgnoreCase("LoginLockoutTime")){
-        loginLockoutTime = Long.parseLong(value);
-      }else if (key.equalsIgnoreCase("BackupTime")){
-        String[] arr = value.split(":");
-        if (arr.length==3){
-          backupHr = Integer.parseInt(arr[0]);
-          backupMin = Integer.parseInt(arr[1]);
-          backupSec = Integer.parseInt(arr[2]);
-        }else{
-          Logger.log("BackupTime configuration value has invalid format.");
-          return false;
-        }
-      }else{
-        Logger.log("Unrecognized key-value pair in the primary configuration file ("+key+':'+value+')');
-        return false;
       }
       return true;
     }catch(Throwable e){
@@ -261,6 +295,7 @@ public class Config {
       byte[] arr;
       synchronized (Config.class){
         if (!Files.exists(configFile)){
+          connectionKey = Database.entropy.nextLong();
           return save();
         }
         arr = Files.readAllBytes(configFile);
@@ -318,7 +353,9 @@ public class Config {
       sb.append("Version=").append(VERSION);
       sb.append("\n\n;Specifies where the database binds to listen for connections\n");
       sb.append("Port=").append(port);
-      sb.append("\n\n;Specifies whether data packets should be captured and logged.\n");
+      sb.append("\n\n;This secret key is required for registration of new servers\n");
+      sb.append("ConnectionKey=").append(Long.toHexString(connectionKey));
+      sb.append("\n\n;Specifies whether data packets should be captured and logged\n");
       sb.append("PacketCapture=").append(PacketLogger.isWorking());
       sb.append("\n\n;Specifies the time of day (HR[0-23]:MIN[0-59]:SEC[0-59]) to backup data in RAM to the hard-drive\n");
       sb.append("BackupTime=").append(backupHr).append(':').append(backupMin).append(':').append(backupSec);

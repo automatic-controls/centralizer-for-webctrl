@@ -16,7 +16,7 @@ public class LoginServlet extends SecureServlet {
   }
   @Override public void init() throws ServletException {
     try{
-      html = Utility.loadResourceAsString("aces/webctrl/centralizer/addon/web/LoginPage.html").replaceAll(
+      html = Utility.loadResourceAsString("aces/webctrl/centralizer/addon/html/LoginPage.html").replaceAll(
         "(?m)^[ \\t]++",
         ""
       ).replace(

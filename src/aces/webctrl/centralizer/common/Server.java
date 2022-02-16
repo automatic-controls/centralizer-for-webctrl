@@ -27,6 +27,8 @@ public class Server {
   private volatile String description;
   /** Indicates the time this server object was first created. */
   private volatile long creationTime;
+  /** Indicates the time of the most recent connection to this server. */
+  private volatile long lastConnectionTime = -1;
   /** Indicates whether there is an active connection to this server. */
   private final AtomicBoolean connected = new AtomicBoolean();
   /**
@@ -58,7 +60,7 @@ public class Server {
     byte[] ipData = ipAddress.getBytes(java.nio.charset.StandardCharsets.UTF_8);
     byte[] nameData = name.getBytes(java.nio.charset.StandardCharsets.UTF_8);
     byte[] descData = description.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-    SerializationStream s = new SerializationStream(nameData.length+ipData.length+descData.length+24+(includeIdentifier?identifier.length+4:1));
+    SerializationStream s = new SerializationStream(nameData.length+ipData.length+descData.length+32+(includeIdentifier?identifier.length+4:1));
     s.write(nameData);
     s.write(ipData);
     s.write(descData);
@@ -69,6 +71,7 @@ public class Server {
     }
     s.write(ID);
     s.write(creationTime);
+    s.write(lastConnectionTime);
     return s.data;
   }
   /**
@@ -89,6 +92,7 @@ public class Server {
     }
     server.ID = s.readInt();
     server.creationTime = s.readLong();
+    server.lastConnectionTime = s.readLong();
     if (!s.end()){
       throw new IndexOutOfBoundsException("Byte array is too large and cannot be deserialized into a Server.");
     }
@@ -204,6 +208,12 @@ public class Server {
     return creationTime;
   }
   /**
+   * @return the value of {@code System.currentTimeMillis()} as recorded at the time of the most recent connection to this server. Returns {@code -1} to indicate this server has never been connected.
+   */
+  public long getLastConnectionTime(){
+    return lastConnectionTime;
+  }
+  /**
    * @return whether or not this server is currently connected.
    */
   public boolean isConnected(){
@@ -213,12 +223,22 @@ public class Server {
    * @return {@code true} if the server was successfully connected; {@code false} if the server is already connected.
    */
   public boolean connect(){
-    return connected.compareAndSet(false,true);
+    if (connected.compareAndSet(false,true)){
+      lastConnectionTime = System.currentTimeMillis();
+      return true;
+    }else{
+      return false;
+    }
   }
   /**
    * @return {@code true} if the server was successfully disconnected; {@code false} if the server wasn't connected in the first place.
    */
   public boolean disconnect(){
-    return connected.compareAndSet(true,false);
+    if (connected.compareAndSet(true,false)){
+      lastConnectionTime = System.currentTimeMillis();
+      return true;
+    }else{
+      return false;
+    }
   }
 }

@@ -1,0 +1,211 @@
+<!--
+  BSD 3-Clause License
+  Copyright (c) 2022, Automatic Controls Equipment Systems, Inc.
+  Contributors: Cameron Vogt (@cvogt729)
+-->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Servers
+    </title>
+    <link rel="stylesheet" type="text/css" href="css/main.css"/>
+    <script>
+      function parse(str){
+        const list = [];
+        let token = "";
+        let b = false;
+        for (var i=0;i<str.length;++i){
+          const c = str.charAt(i);
+          if (b || c!=='\\'){
+            if (!b && c===';'){
+              list.push(token);
+              token = "";
+            }else{
+              token+=c;
+            }
+            b = false;
+          }else{
+            b = true;
+          }
+        }
+        if (token.length!==0){
+          list.push(token);
+        }
+        return list;
+      }
+      function saveAll(){
+        statusText.innerHTML = "";
+        for (const row of serverList.getElementsByTagName("TR")){
+          row.save();
+        }
+      }
+      function refresh(refreshButton){
+        if (!refreshButton.disabled){
+          refreshButton.disabled = true;
+          const n = headerRow.parentNode;
+          while (n.lastElementChild!==n.firstElementChild){
+            n.removeChild(n.lastElementChild);
+          }
+          const req = new XMLHttpRequest();
+          req.open("POST","__PREFIX__ManageServers",true);
+          req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
+          req.onreadystatechange = function(){
+            if (this.readyState===4){
+              refreshButton.disabled = false;
+              if (this.status===200){
+                const list = parse(this.responseText);
+                for (var i=0;i<list.length;++i){
+                  addServer(list[i], list[++i], list[++i], list[++i], list[++i], list[++i], list[++i]);
+                }
+              }else if (this.status===504){
+                statusText.innerHTML = "Request timed out.";
+              }else if (this.status===403){
+                statusText.innerHTML = "Insufficient permissions.";
+              }else{
+                statusText.innerHTML = "Error Code: "+this.status;
+              }
+            }
+          }
+          req.send("type=refresh");
+        }
+      }
+      function addServer(id, name, desc, ip, con, conTime, creTime){
+        const tr = document.createElement("TR");
+        const td_name = document.createElement("TD");
+        const td_desc = document.createElement("TD");
+        const td_ip = document.createElement("TD");
+        const td_con = document.createElement("TD");
+        const td_conTime = document.createElement("TD");
+        const td_creTime = document.createElement("TD");
+        const td_actions = document.createElement("TD");
+        td_ip.innerText = ip;
+        td_conTime.innerText = conTime;
+        td_creTime.innerText = creTime;
+        tr.appendChild(td_name);
+        tr.appendChild(td_desc);
+        tr.appendChild(td_ip);
+        tr.appendChild(td_con);
+        tr.appendChild(td_conTime);
+        tr.appendChild(td_creTime);
+        tr.appendChild(td_actions);
+        const _img = document.createElement("IMG");
+        _img.src = con.toLowerCase()==="true"?"images/checkmark.png":"images/red_x.png";
+        _img.style.height = "2em";
+        td_con.appendChild(_img);
+        const _name = document.createElement("INPUT");
+        _name.style.textAlign = "center";
+        _name.class = "e";
+        _name.value = name;
+        _name.oninput = ()=>{
+          _name.value = _name.value.replace(/[^\w ]/g,'');
+        };
+        td_name.appendChild(_name);
+        const _desc = document.createElement("TEXTAREA");
+        _desc.class = "e";
+        _desc.value = desc;
+        _desc.style.overflow = "hidden";
+        _desc.setAttribute("rows", "1");
+        _desc.setAttribute("cols", "20");
+        _desc.style.resize = "none";
+        _desc.oninput = ()=>{
+          _desc.style.height = "auto";
+          _desc.style.height = _desc.scrollHeight+"px";
+          _desc.style.width = "auto";
+          _desc.style.width = _desc.scrollWidth+"px";
+        };
+        _desc.setAttribute("wrap", "off");
+        td_desc.appendChild(_desc);
+        const saveButton = document.createElement("BUTTON");
+        const deleteButton = document.createElement("BUTTON");
+        saveButton.innerHTML = "Save";
+        deleteButton.innerHTML = "Delete";
+        saveButton.className = "e";
+        deleteButton.className = "e";
+        td_actions.appendChild(saveButton);
+        td_actions.appendChild(deleteButton);
+        deleteButton.onclick = ()=>{
+          if (!deleteButton.disabled && confirm("Are you sure you want to delete "+name+"?") && !deleteButton.disabled){
+            deleteButton.disabled = true;
+            statusText.innerHTML = "Deleting...";
+            const req = new XMLHttpRequest();
+            req.open("POST","__PREFIX__ManageServers",true);
+            req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
+            req.onreadystatechange = function(){
+              if (this.readyState===4){
+                if (this.status===200){
+                  td.parentNode.removeChild(td);
+                  statusText.innerHTML = "Deleted: "+name;
+                }else if (this.status===504){
+                  statusText.innerHTML = "Request timed out.";
+                }else if (this.status===403){
+                  statusText.innerHTML = "Insufficient permissions.";
+                }else{
+                  statusText.innerHTML = "Error Code: "+this.status;
+                }
+                deleteButton.disabled = false;
+              }
+            }
+            req.send("type=delete&ID="+encodeURIComponent(id));
+          }
+        };
+        saveButton.onclick = ()=>{
+          const tmpName = _name.value;
+          const tmpDesc = _desc.value;
+          if (!saveButton.disabled && (name!==tmpName || desc!==tmpDesc)){
+            saveButton.disabled = true;
+            const req = new XMLHttpRequest();
+            req.open("POST","__PREFIX__ManageServers",true);
+            req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
+            req.onreadystatechange = function(){
+              if (this.readyState===4){
+                if (this.status===200){
+                  name = tmpName;
+                  desc = tmpDesc;
+                }else if (this.status===504){
+                  statusText.innerHTML = "Request timed out.";
+                }else if (this.status===403){
+                  statusText.innerHTML = "Insufficient permissions.";
+                }else{
+                  statusText.innerHTML = "Error Code: "+this.status;
+                }
+                saveButton.disabled = false;
+              }
+            }
+            req.send("type=save&ID="+encodeURIComponent(id)&"&name="+encodeURIComponent(tmpName)+"&desc="+encodeURIComponent(tmpDesc));
+          }
+        };
+        tr.save = saveButton.onclick;
+        headerRow.parentNode.appendChild(tr);
+        _desc.oninput();
+      }
+    </script>
+  </head>
+  <body>
+    <div style="text-align:center">
+      <h1>Server Management</h1>
+      <table id="serverList" style="margin:0 auto" class="nohighlight">
+        <tr id="headerRow">
+          <th>Server Name</th>
+          <th>Description</th>
+          <th>IP Address</th>
+          <th>Connected</th>
+          <th>Last Connection Time</th>
+          <th>Creation Time</th>
+          <th>Actions</th>
+        </tr>
+      </table>
+      <br>
+      <button id="refreshButton" class="e" onclick="refresh()">Refresh</button>
+      <button class="e" onclick="saveAll()">Save All</button>
+      <br>
+      <a href="__PREFIX__index" class="e">Primary Configuration Page</a>
+      <br>
+      <h3 id="statusText" class="e" style="color:red"></h3>
+    </div>
+    <script>
+      headerRow.save = ()=>{};
+      refresh();
+    </script>
+  </body>
+</html>

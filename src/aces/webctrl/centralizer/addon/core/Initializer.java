@@ -67,6 +67,7 @@ public class Initializer implements ServletContextListener {
   private volatile static byte[] displayName = null;
   private volatile static int navigationTimeout = -1;
   private volatile static byte[] description = null;
+  public volatile static long connectionKey = 0;
 
   /**
    * @return whether or not there is an active connection to the database.
@@ -475,7 +476,8 @@ public class Initializer implements ServletContextListener {
                                                       public boolean onSuccess(Void v){
                                                         byte[] nameBytes = name.getBytes(java.nio.charset.StandardCharsets.UTF_8);
                                                         byte[] descBytes = desc.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-                                                        SerializationStream s = new SerializationStream(nameBytes.length+descBytes.length+8);
+                                                        SerializationStream s = new SerializationStream(nameBytes.length+descBytes.length+16);
+                                                        s.write(connectionKey);
                                                         s.write(nameBytes);
                                                         s.write(descBytes);
                                                         //Write the name and description to configure this as a new server

@@ -311,9 +311,11 @@ public class Connection implements Comparable<Connection> {
                                           public void func(byte[] data){
                                             try{
                                               SerializationStream s = new SerializationStream(data);
-                                              server = Servers.add(wrap.getIP(), s.readString(), s.readString());
-                                              if (!s.end()){
-                                                Logger.logAsync("Lost data detected.");
+                                              if (s.readLong()==Config.connectionKey){
+                                                server = Servers.add(wrap.getIP(), s.readString(), s.readString());
+                                                if (!s.end()){
+                                                  Logger.logAsync("Lost data detected.");
+                                                }
                                               }
                                               if (server==null){
                                                 Logger.logAsync("Server failed to initialize.");
@@ -324,6 +326,7 @@ public class Connection implements Comparable<Connection> {
                                                   }
                                                 });
                                               }else{
+                                                server.connect();
                                                 //Write a success message
                                                 wrap.write(Protocol.SUCCESS, null, new Handler<Void>(){
                                                   public void func(Void v){

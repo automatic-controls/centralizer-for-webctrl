@@ -17,7 +17,7 @@ public class ChangePassword extends SecureServlet {
   }
   @Override public void init() throws ServletException {
     try{
-      html = Utility.loadResourceAsString("aces/webctrl/centralizer/addon/web/ChangePassword.html").replaceAll(
+      html = Utility.loadResourceAsString("aces/webctrl/centralizer/addon/html/ChangePassword.html").replaceAll(
         "(?m)^[ \\t]++",
         ""
       ).replace(

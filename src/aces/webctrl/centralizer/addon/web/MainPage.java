@@ -22,7 +22,7 @@ public class MainPage extends SecureServlet {
   }
   @Override public void init() throws ServletException {
     try{
-      html = Utility.loadResourceAsString("aces/webctrl/centralizer/addon/web/MainPage.html").replaceAll(
+      html = Utility.loadResourceAsString("aces/webctrl/centralizer/addon/html/MainPage.html").replaceAll(
         "(?m)^[ \\t]++",
         ""
       ).replace(
@@ -315,6 +315,16 @@ public class MainPage extends SecureServlet {
       if (host==null || port==null || backupTime==null || timeout==null || deleteLog==null || serverName==null || serverDesc==null || packetCapture==null){
         res.setStatus(400);
       }else{
+        {
+          final String connectionKey = req.getParameter("connectionKey");
+          if (connectionKey!=null){
+            try{
+              Initializer.connectionKey = Long.parseUnsignedLong(connectionKey, 16);
+            }catch(Throwable t){
+              Initializer.connectionKey = 0;
+            }
+          }
+        }
         try{
           final int portNum = Integer.parseInt(port);
           boolean go = true;

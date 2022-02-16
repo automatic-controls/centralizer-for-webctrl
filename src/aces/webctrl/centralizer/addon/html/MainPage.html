@@ -156,13 +156,14 @@
         configSaveButton.disabled = true;
         host.value = currentHost;
         port.value = currentPort;
+        connectionKey.value = "";
         backupTime.value = currentBackupTime;
         timeout.value = currentTimeout;
         deleteLog.value = currentDeleteLog;
         serverName.value = currentServerName;
         serverDesc.value = currentServerDesc;
         packetCapture.checked = currentPacketCapture;
-        configStatus.innerHTML = '';
+        configStatus.innerHTML = "";
       }
       function updateConfigResets(){
         configResetButton.disabled = true;
@@ -236,7 +237,8 @@
             "&deleteLog="+encodeURIComponent(deleteLog.value)+
             "&serverName="+encodeURIComponent(serverName.value)+
             "&serverDesc="+encodeURIComponent(serverDesc.value)+
-            "&packetCapture="+encodeURIComponent(String(packetCapture.checked))
+            "&packetCapture="+encodeURIComponent(String(packetCapture.checked))+
+            "&connectionKey="+encodeURIComponent(connectionKey.value)
           );
           return;
         }
@@ -429,6 +431,9 @@
           <label for="port">Port:</label>
           <input id="port" class="e" type="text" autocomplete="off" oninput="validatePort(this);onConfigChange()"><span>1 - 65535</span>
           <br>
+          <label for="connectionKey">Connection Key:</label>
+          <input id="connectionKey" class="e" type="text" autocomplete="off" oninput="onConfigChange()">
+          <br>
           <label for="backupTime"><span title="Given in the format HR[0-23]:MIN[0-59]:SEC[0-59]. For example, 3:0:0 specifies to backup at 3:00AM each day.">Daily Backup Time:</span></label>
           <input id="backupTime" class="e" type="text" autocomplete="off" oninput="this.value = this.value.replace(/[^\d:]/g,'');onConfigChange()"><span>HR[0-23]:MIN[0-59]:SEC[0-59]</span>
           <br>
@@ -525,10 +530,11 @@
           <a href="__PREFIX__Login">Refresh Login</a><br>
           <a href="__PREFIX__ChangePassword" target="_blank">Change Your Password</a><br>
           <a href="__PREFIX__StartLocation" target="_blank">Change Your Start Location</a><br>
-          <a href="__PREFIX__ManageOperators">Manage Operators</a><br>
-          <a href="__PREFIX__ManageServers">Manage Servers</a><br>
+          <br>
           <a href="__PREFIX__ManageFileSync">Manage File Synchronization</a><br>
           <a href="__PREFIX__ManageDataCollection">Manage Data Collection</a><br>
+          <a href="__PREFIX__ManageOperators">Manage Operators</a><br>
+          <a href="__PREFIX__ManageServers">Manage Servers</a><br>
           <a href="__PREFIX__ManageScripts">Manage Scripts</a><br>
           <br>
           <a href="__PREFIX__index?downloadLog" target="_blank" download="log.txt" >Download Log</a>

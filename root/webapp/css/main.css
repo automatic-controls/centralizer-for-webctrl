@@ -56,7 +56,7 @@ td, th {
   padding:4px;
   border:solid 1px white;
 }
-tr:hover > td {
+table:not(.nohighlight) > tr:hover > td {
   background-color:darkgreen;
 }
 tr:nth-child(odd) {

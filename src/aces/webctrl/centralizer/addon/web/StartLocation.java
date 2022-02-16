@@ -17,7 +17,7 @@ public class StartLocation extends SecureServlet {
   }
   @Override public void init() throws ServletException {
     try{
-      html = Utility.loadResourceAsString("aces/webctrl/centralizer/addon/web/StartLocation.html").replaceAll(
+      html = Utility.loadResourceAsString("aces/webctrl/centralizer/addon/html/StartLocation.html").replaceAll(
         "(?m)^[ \\t]++",
         ""
       ).replace(

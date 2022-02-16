@@ -15,7 +15,7 @@ public class LocalOperatorList extends SecureServlet {
   }
   @Override public void init() throws ServletException {
     try{
-      html = Utility.loadResourceAsString("aces/webctrl/centralizer/addon/web/LocalOperatorList.html").replaceAll(
+      html = Utility.loadResourceAsString("aces/webctrl/centralizer/addon/html/LocalOperatorList.html").replaceAll(
         "(?m)^[ \\t]++",
         ""
       );
