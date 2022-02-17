@@ -482,12 +482,47 @@ public class Connection implements Comparable<Connection> {
           return true;
         }
       });
+      add(new Task(Protocol.SYNC_OPERATORS){
+        public void run(){
+          wrap.readBytes(32768, null, new Handler<byte[]>(){
+            public void func(byte[] data){
+              ArrayList<Integer> list = new ArrayList<Integer>(Math.min(data.length/12, 8));
+              try{
+                SerializationStream s = new SerializationStream(data);
+                Operator x;
+                int ID;
+                long creation;
+                while (!s.end()){
+                  ID = s.readInt();
+                  creation = s.readLong();
+                  x = Operators.get(ID);
+                  if (x==null || creation!=x.getCreationTime()){
+                    list.add(ID);
+                  }
+                }
+              }catch(Throwable t){
+                Logger.logAsync("Error occurred in SYNC_OPERATORS protocol.", t);
+              }
+              SerializationStream s = new SerializationStream(list.size()*4);
+              for (Integer i:list){
+                s.write(i);
+              }
+              wrap.writeBytes(s.data, null, new Handler<Void>(){
+                public void func(Void v){
+                  listen2();
+                }
+              });
+            }
+          });
+        }
+      });
     }else{
       add(new Task(Protocol.UPDATE_OPERATORS){
         public void run(){
-          SerializationStream s = new SerializationStream(12);
+          SerializationStream s = new SerializationStream(20);
           s.write(op.getID());
           if (op.isDisposed()){
+            s.write(-1L);
             s.write(-1L);
             wrap.writeBytes(s.data, null, new Handler<Void>(){
               public void func(Void v){
@@ -496,6 +531,7 @@ public class Connection implements Comparable<Connection> {
             });
           }else{
             s.write(op.getStamp());
+            s.write(op.getCreationTime());
             wrap.writeBytes(s.data, null, new Handler<Void>(){
               public void func(Void v){
                 wrap.read(null, new Handler<Byte>(){

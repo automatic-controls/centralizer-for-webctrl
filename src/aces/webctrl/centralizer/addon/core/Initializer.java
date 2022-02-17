@@ -121,6 +121,13 @@ public class Initializer implements ServletContextListener {
   public static String getPrefix(){
     return prefix;
   }
+  static {
+    // Temporary workaround until ALC releases a patch for WebCTRL
+    try{
+      Class.forName("com.controlj.green.directaccess.DirectAccessInternal").getMethod("getDirectAccessInternal").invoke(null);
+      com.controlj.green.addonsupport.access.DirectAccess.getDirectAccess();
+    }catch (Throwable t){}
+  }
   /** Loads the local database and attempts to establish a connection to the central database. */
   @Override public void contextInitialized(ServletContextEvent sce){
     info = AddOnInfo.getAddOnInfo();
@@ -665,11 +672,12 @@ public class Initializer implements ServletContextListener {
             ping2(wrapper);
             //Each of the following protocols should invoke ping1(SocketWrapper) when asynchronous execution is finished
           }else if (b==Protocol.UPDATE_OPERATORS){
-            wrapper.readBytes(32, null, new Handler<byte[]>(){
+            wrapper.readBytes(64, null, new Handler<byte[]>(){
               public boolean onSuccess(byte[] data){
                 SerializationStream s = new SerializationStream(data);
                 int ID = s.readInt();
                 long stamp = s.readLong();
+                long cre = s.readLong();
                 Operator op = Operators.get(ID);
                 boolean gatherData = false;
                 if (op==null){
@@ -682,7 +690,7 @@ public class Initializer implements ServletContextListener {
                   Operators.remove(op);
                   Logger.logAsync("Operator "+op.getUsername()+" deleted.");
                   ping1(wrapper);
-                }else if (op.getStamp()>=stamp){
+                }else if (op.getStamp()==stamp && op.getCreationTime()==cre){
                   wrapper.write((byte)0, null, new Handler<Void>(){
                     public boolean onSuccess(Void v){
                       ping1(wrapper);
@@ -722,7 +730,7 @@ public class Initializer implements ServletContextListener {
                   ClientConfig.databaseKey = Key.deserialize(new SerializationStream(data), false);
                   Logger.logAsync("Preshared key updated.");
                 }catch(Throwable e){
-                  Logger.logAsync("Error occurred while updating preshared key.", e);
+                  Logger.logAsync("Error occurred in UPDATE_PRESHARED_KEY protocol.", e);
                 }
                 ping1(wrapper);
                 return true;
@@ -753,6 +761,43 @@ public class Initializer implements ServletContextListener {
                   Logger.logAsync("Server description changed to \""+ClientConfig.description+'"');
                 }
                 ping1(wrapper);
+                return true;
+              }
+            });
+          }else if (b==Protocol.SYNC_OPERATORS){
+            final ArrayList<Operator> list = new ArrayList<Operator>(Operators.count());
+            Operators.forEach(new Predicate<Operator>(){
+              public boolean test(Operator op){
+                list.add(op);
+                return true;
+              }
+            });
+            SerializationStream s = new SerializationStream(list.size()*12);
+            for (Operator op:list){
+              s.write(op.getID());
+              s.write(op.getCreationTime());
+            }
+            wrapper.writeBytes(s.data, null, new Handler<Void>(){
+              public boolean onSuccess(Void v){
+                wrapper.readBytes(16384, null, new Handler<byte[]>(){
+                  public boolean onSuccess(byte[] data){
+                    try{
+                      SerializationStream s = new SerializationStream(data);
+                      Operator op;
+                      while (!s.end()){
+                        op = Operators.get(s.readInt());
+                        if (op!=null){
+                          Operators.remove(op);
+                          Logger.logAsync("Operator "+op.getUsername()+" deleted.");
+                        }
+                      }
+                    }catch(Throwable t){
+                      Logger.logAsync("Error occurred in SYNC_OPERATORS protocol.", t);
+                    }
+                    ping1(wrapper);
+                    return true;
+                  }
+                });
                 return true;
               }
             });

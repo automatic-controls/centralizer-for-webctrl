@@ -40,7 +40,7 @@
           row.save();
         }
       }
-      function refresh(refreshButton){
+      function refresh(){
         if (!refreshButton.disabled){
           refreshButton.disabled = true;
           const n = headerRow.parentNode;
@@ -71,6 +71,7 @@
         }
       }
       function addServer(id, name, desc, ip, con, conTime, creTime){
+        const connected = con.toLowerCase()==="true";
         const tr = document.createElement("TR");
         const td_name = document.createElement("TD");
         const td_desc = document.createElement("TD");
@@ -90,7 +91,7 @@
         tr.appendChild(td_creTime);
         tr.appendChild(td_actions);
         const _img = document.createElement("IMG");
-        _img.src = con.toLowerCase()==="true"?"images/checkmark.png":"images/red_x.png";
+        _img.src = connected?"images/checkmark.png":"images/red_x.png";
         _img.style.height = "2em";
         td_con.appendChild(_img);
         const _name = document.createElement("INPUT");
@@ -117,13 +118,43 @@
         _desc.setAttribute("wrap", "off");
         td_desc.appendChild(_desc);
         const saveButton = document.createElement("BUTTON");
+        const disconnectButton = document.createElement("BUTTON");
         const deleteButton = document.createElement("BUTTON");
         saveButton.innerHTML = "Save";
+        disconnectButton.innerHTML = "Disconnect";
         deleteButton.innerHTML = "Delete";
         saveButton.className = "e";
+        disconnectButton.class = "e";
         deleteButton.className = "e";
         td_actions.appendChild(saveButton);
+        if (connected){
+          td_actions.appendChild(disconnectButton);
+        }
         td_actions.appendChild(deleteButton);
+        disconnectButton.onclick = ()=>{
+          if (!disconnectButton.disabled){
+            disconnectButton.disabled = true;
+            const req = new XMLHttpRequest();
+            req.open("POST","__PREFIX__ManageServers",true);
+            req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
+            req.onreadystatechange = function(){
+              if (this.readyState===4){
+                if (this.status===200){
+                  td_actions.removeChild(disconnectButton);
+                  _img.src = "images/red_x.png";
+                }else if (this.status===504){
+                  statusText.innerHTML = "Request timed out.";
+                }else if (this.status===403){
+                  statusText.innerHTML = "Insufficient permissions.";
+                }else{
+                  statusText.innerHTML = "Error Code: "+this.status;
+                }
+                disconnectButton.disabled = false;
+              }
+            }
+            req.send("type=disconnect&ID="+encodeURIComponent(id));
+          }
+        };
         deleteButton.onclick = ()=>{
           if (!deleteButton.disabled && confirm("Are you sure you want to delete "+name+"?") && !deleteButton.disabled){
             deleteButton.disabled = true;
@@ -172,7 +203,7 @@
                 saveButton.disabled = false;
               }
             }
-            req.send("type=save&ID="+encodeURIComponent(id)&"&name="+encodeURIComponent(tmpName)+"&desc="+encodeURIComponent(tmpDesc));
+            req.send("type=save&ID="+encodeURIComponent(id)+"&name="+encodeURIComponent(tmpName)+"&desc="+encodeURIComponent(tmpDesc));
           }
         };
         tr.save = saveButton.onclick;

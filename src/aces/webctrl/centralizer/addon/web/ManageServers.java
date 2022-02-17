@@ -122,6 +122,26 @@ public class ManageServers extends SecureServlet {
               }
               break;
             }
+            case "disconnect":{
+              final String ID = req.getParameter("ID");
+              if (ID==null){
+                res.setStatus(400);
+              }else{
+                try{
+                  Result<Byte> ret = Initializer.disconnectServer(authID, Integer.parseInt(ID));
+                  ret.waitForResult(System.currentTimeMillis()+10000);
+                  Byte b = ret.getResult();
+                  if (b==null){
+                    res.setStatus(504);
+                  }else if (b!=Protocol.SUCCESS){
+                    res.setStatus(403);
+                  }
+                }catch(NumberFormatException e){
+                  res.setStatus(400);
+                }
+              }
+              break;
+            }
             default:{
               res.sendError(400);
             }

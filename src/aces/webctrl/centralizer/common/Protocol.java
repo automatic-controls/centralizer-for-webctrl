@@ -189,6 +189,10 @@ public class Protocol {
    */
   public final static byte UPDATE_OPERATORS = ++ID2;
   /**
+   * Used for initial operator synchronization after establishing a connection.
+   */
+  public final static byte SYNC_OPERATORS = ++ID2;
+  /**
    * Indicates that the server name and/or description should be updated.
    */
   public final static byte UPDATE_SERVER_PARAMS = ++ID2;
