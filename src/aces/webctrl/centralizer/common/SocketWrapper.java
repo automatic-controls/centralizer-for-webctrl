@@ -9,6 +9,7 @@ import java.nio.*;
 import java.nio.file.*;
 import java.nio.channels.*;
 import java.util.concurrent.TimeUnit;
+import java.util.*;
 /**
  * Wraps an {@code AsynchronousSocketChannel} to provide automatic encrytion and decryption.
  */
@@ -96,6 +97,258 @@ public class SocketWrapper {
     }catch(IOException e){
       Logger.logAsync("Error occurred while closing socket.", e);
       return false;
+    }
+  }
+  /**
+   * Reads a folder from the underlying socket.
+   * Note that socket errors and file errors are handled differently.
+   * If any socket error is encountered, the {@code failed} method of the {@code CompletionHandler} will be invoked, and then the underlying socket will be closed.
+   * The {@code Boolean} passed to the {@code CompletionHandler} indicates whether or not the file was successfully transferred.
+   * In particular, the result will be {@code false} if any file error occurs.
+   * Data will be maintained in blocks of at most {@code fileBlockSize}, so the program won't run out of memory.
+   * Data will be read from the socket in blocks of at most {@code blockSize} bytes, so that {@code TimeoutException} does not occur.
+   * @param folder is a path to the destination folder which will store the retrieved data.
+   * @param attach is any object which the {@code CompletionHandler} should have access to.
+   * @param func is the {@code CompletionHandler} invoked upon success or failure of this method.
+   * @oaram <T> is the type of attached object
+   */
+  public <T> void readFolder(final Path folder, final T attach, final CompletionHandler<Boolean,T> func){
+    final Container<Boolean> ret = new Container<Boolean>(true);
+    final Path root = folder.normalize();
+    final HashSet<Path> files = new HashSet<Path>(32);
+    final ReadFolder<T> a = new ReadFolder<T>();
+    a.readStatus = new CompletionHandler<Byte,T>(){
+      public void completed(Byte b, T attach){
+        if (b==Protocol.CONTINUE){
+          readBytes(16384, attach, a.readData);
+        }else{
+          try{
+            if (Files.exists(root)){
+              final Container<Boolean> empty = new Container<Boolean>(true);
+              Files.walkFileTree(root, new FileVisitor<Path>(){
+                public FileVisitResult preVisitDirectory(Path f, java.nio.file.attribute.BasicFileAttributes attr){
+                  empty.x = true;
+                  return FileVisitResult.CONTINUE;
+                }
+                public FileVisitResult visitFile(Path f, java.nio.file.attribute.BasicFileAttributes attr){
+                  if (files.contains(f)){
+                    empty.x = false;
+                  }else{
+                    try{
+                      Files.delete(f);
+                    }catch (Throwable t){
+                      ret.x = false;
+                    }
+                  }
+                  return FileVisitResult.CONTINUE;
+                }
+                public FileVisitResult visitFileFailed(Path f, IOException e){
+                  empty.x = false;
+                  return FileVisitResult.CONTINUE;
+                }
+                public FileVisitResult postVisitDirectory(Path f, IOException e){
+                  try{
+                    if (empty.x && e==null && !Files.isSameFile(f,root)){
+                      Files.delete(f);
+                    }
+                  }catch (Throwable t){
+                    ret.x = false;
+                  }
+                  empty.x = false;
+                  return FileVisitResult.CONTINUE;
+                }
+              });
+            }else{
+              ret.x = false;
+            }
+          }catch (Throwable t){
+            ret.x = false;
+          }
+          func.completed(ret.x,attach);
+        }
+      }
+      public void failed(Throwable e, T attach){
+        func.failed(e,attach);
+        close();
+      }
+    };
+    a.readData = new CompletionHandler<byte[],T>(){
+      public void completed(byte[] data, T attach){
+        String relPath;
+        long lastModified;
+        try{
+          SerializationStream s = new SerializationStream(data);
+          lastModified = s.readLong();
+          relPath = s.readString();
+          if (!s.end()){
+            throw new Exception("Serialization error occurred in SocketWrapper.readFolder method.");
+          }
+        }catch(Throwable t){
+          func.failed(t,attach);
+          close();
+          return;
+        }
+        try{
+          a.p = root;
+          int i = 1;
+          int j;
+          while (true) {
+            j = relPath.indexOf('/',i);
+            if (j==-1){
+              break;
+            }
+            a.p = a.p.resolve(relPath.substring(i,j));
+            i = j+1;
+          }
+          a.p = a.p.normalize();
+          files.add(a.p);
+          //TODO - finish this method and make another set of methods readPath, writePath that don't care whether the path is a file or folder
+          //then maybe make the file and folder private
+        }catch(Throwable t){
+          write(Protocol.FAILURE, attach, a.writeStatus);
+        }
+      }
+      public void failed(Throwable e, T attach){
+        func.failed(e,attach);
+        close();
+      }
+    };
+    a.writeStatus = new CompletionHandler<Void,T>(){
+      public void completed(Void v, T attach){
+        read(attach, a.readStatus);
+      }
+      public void failed(Throwable e, T attach){
+        func.failed(e,attach);
+        close();
+      }
+    };
+    read(attach, a.readStatus);
+  }
+  private static class ReadFolder<T> {
+    volatile Path p;
+    volatile CompletionHandler<Byte,T> readStatus;
+    volatile CompletionHandler<byte[],T> readData;
+    volatile CompletionHandler<Void,T> writeStatus;
+  }
+  /**
+   * Writes a folder to the underlying socket.
+   * Note that socket errors and file errors are handled differently.
+   * If any socket error is encountered, the {@code failed} method of the {@code CompletionHandler} will be invoked, and then the underlying socket will be closed.
+   * The {@code Boolean} passed to the {@code CompletionHandler} indicates whether or not the file was successfully transferred.
+   * In particular, the result will be {@code false} if any file error occurs.
+   * Data will be read from the file in blocks of at most {@code fileBlockSize}, so the program won't run out of memory.
+   * Data will be written to the socket in blocks of at most {@code blockSize} bytes, so that {@code TimeoutException} does not occur.
+   * @param folder is a path to the data source which will copied to the socket.
+   * @param attach is any object which the {@code CompletionHandler} should have access to.
+   * @param func is the {@code CompletionHandler} invoked upon success or failure of this method.
+   * @param <T> is the type of attached object.
+   */
+  public <T> void writeFolder(final Path folder, final T attach, final CompletionHandler<Boolean,T> func){
+    final Container<Boolean> ret = new Container<Boolean>(true);
+    final Path root = folder.normalize();
+    final ArrayList<FileEntry> files = new ArrayList<FileEntry>(32);
+    final StringBuilder sb = new StringBuilder(64);
+    try{
+      if (Files.exists(root)){
+        Files.walkFileTree(root, new SimpleFileVisitor<Path>(){
+          @Override public FileVisitResult visitFile(Path f, java.nio.file.attribute.BasicFileAttributes attr){
+            if (Files.isReadable(f)){
+              files.add(new FileEntry(root,sb,f,attr));
+            }
+            return FileVisitResult.CONTINUE;
+          }
+        });
+      }else{
+        ret.x = false;
+      }
+    }catch(Throwable t){
+      ret.x = false;
+    }
+    final Iterator<FileEntry> iter = files.iterator();
+    final WriteFolder<T> a = new WriteFolder<T>();
+    a.loop = new CompletionHandler<Boolean,T>(){
+      public void completed(Boolean b, T attach){
+        ret.x&=b;
+        if (iter.hasNext()){
+          a.e = iter.next();
+          write(Protocol.CONTINUE, attach, a.send);
+        }else{
+          write(Protocol.NO_FURTHER_INSTRUCTIONS, attach, new CompletionHandler<Void,T>(){
+            public void completed(Void v, T attach){
+              func.completed(ret.x,attach);
+            }
+            public void failed(Throwable e, T attach){
+              func.failed(e,attach);
+              close();
+            }
+          });
+        }
+      }
+      public void failed(Throwable e, T attach){
+        func.failed(e,attach);
+        close();
+      }
+    };
+    a.send = new CompletionHandler<Void,T>(){
+      public void completed(Void v, T attach){
+        SerializationStream s = new SerializationStream(a.e.relPath.length+12);
+        s.write(a.e.lastModified);
+        s.write(a.e.relPath);
+        writeBytes(s.data, attach, a.readStatus);
+      }
+      public void failed(Throwable e, T attach){
+        func.failed(e,attach);
+        close();
+      }
+    };
+    a.readStatus = new CompletionHandler<Void,T>(){
+      public void completed(Void v, T attach){
+        read(attach, a.sendData);
+      }
+      public void failed(Throwable e, T attach){
+        func.failed(e,attach);
+        close();
+      }
+    };
+    a.sendData = new CompletionHandler<Byte,T>(){
+      public void completed(Byte b, T attach){
+        if (b==Protocol.SUCCESS){
+          // Indicates the lastModified timestamps do not match / the file does not exists. So we send the file over the socket
+          writeFile(a.e.p, attach, a.loop);
+        }else if (b==Protocol.FAILURE){
+          // Indicates a file error occurred
+          a.loop.completed(false,attach);
+        }else{
+          // Indicates the remote file exists and the lastModified timestamp matches, so no changes are required
+          a.loop.completed(true,attach);
+        }
+      }
+      public void failed(Throwable e, T attach){
+        func.failed(e,attach);
+        close();
+      }
+    };
+    a.loop.completed(true,attach);
+  }
+  private static class WriteFolder<T> {
+    volatile FileEntry e;
+    volatile CompletionHandler<Boolean,T> loop;
+    volatile CompletionHandler<Void,T> send;
+    volatile CompletionHandler<Void,T> readStatus;
+    volatile CompletionHandler<Byte,T> sendData;
+  }
+  private static class FileEntry {
+    volatile Path p;
+    volatile long lastModified;
+    volatile byte[] relPath;
+    public FileEntry(Path root, StringBuilder sb, Path p, java.nio.file.attribute.BasicFileAttributes attr){
+      this.p = p;
+      lastModified = attr.lastModifiedTime().toMillis();
+      for (Path x:root.relativize(p)){
+        sb.append('/').append(x.toString());
+      }
+      relPath = sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+      sb.setLength(0);
     }
   }
   /**
@@ -288,7 +541,7 @@ public class SocketWrapper {
     void success(boolean transfer){
       buf = null;
       try{
-        lock.release();
+        if (lock!=null){ lock.release(); }
         ch.close();
       }catch(Throwable err){
         Logger.logAsync("Error occurred while closing AsynchronousFileChannel to \""+file.toString()+"\".", err);
@@ -298,7 +551,7 @@ public class SocketWrapper {
     void fail(Throwable e){
       buf = null;
       try{
-        lock.release();
+        if (lock!=null){ lock.release(); }
         ch.close();
       }catch(Throwable err){
         Logger.logAsync("Error occurred while closing AsynchronousFileChannel to \""+file.toString()+"\".", err);

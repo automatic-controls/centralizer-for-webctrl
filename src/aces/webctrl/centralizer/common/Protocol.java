@@ -17,8 +17,6 @@ public class Protocol {
   public final static byte NEW_SERVER = 1;
   /** Indicates an existing server is attempting to connect. */
   public final static byte EXISTING_SERVER = 2;
-  /** Indicates any other entity that would like to connect to the database. */
-  public final static byte UNSPECIFIED_SERVER = 3;
 
   /** Used for automatically controlling the value of byte constants. */
   private static byte ID1 = 0;

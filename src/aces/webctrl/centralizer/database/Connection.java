@@ -390,9 +390,8 @@ public class Connection implements Comparable<Connection> {
                                           }
                                         });
                                       }else{
-                                        //The client type is unspecified, so we go straight to the listen/ping protocol
-                                        initialized = true;
-                                        listen1();
+                                        Logger.logAsync("Unknown server type.");
+                                        close(true);
                                       }
                                     }
                                   });
