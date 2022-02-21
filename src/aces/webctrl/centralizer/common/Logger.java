@@ -4,10 +4,10 @@
   Contributors: Cameron Vogt (@cvogt729)
 */
 package aces.webctrl.centralizer.common;
-import java.text.*;
+import java.time.format.*;
+import java.time.*;
 import java.io.*;
 import java.nio.file.*;
-import java.util.*;
 import java.util.function.*;
 //TODO (Performance Improvement) - Use java.nio.channels.FileChannel.transferTo() for the part of Logger.delete() which copies the remaining valid log entries to a temporary file
 /**
@@ -15,7 +15,7 @@ import java.util.function.*;
  * <p>Appends a timestamp to most log entries.
  */
 public class Logger {
-  public final static SimpleDateFormat format = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+  public final static DateTimeFormatter format = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss").withZone(ZoneId.systemDefault());
   public final static String separator = " - ";
   public volatile static Consumer<DelayedRunnable> asyncLogConsumer = null;
   private volatile static PrintWriter out = null;
@@ -61,7 +61,7 @@ public class Logger {
    * @param str is the message to log
    */
   public static void log(String str){
-    log(str, new Date());
+    log(str, Instant.now());
   }
   /**
    * Logs and timestamps a message asynchronously (if supported).
@@ -71,8 +71,8 @@ public class Logger {
     if (asyncLogConsumer==null){
       log(str);
     }else{
-      final Date d = new Date();
-      asyncLogConsumer.accept(new DelayedRunnable(d.getTime()){
+      final Instant d = Instant.now();
+      asyncLogConsumer.accept(new DelayedRunnable(d.toEpochMilli()){
         public void run(){
           log(str, d);
         }
@@ -84,8 +84,8 @@ public class Logger {
    * @param str is the message to log
    * @param d is the timestamp for the message
    */
-  public synchronized static void log(String str, Date d){
-    out.print(format.format(d));
+  public synchronized static void log(String str, Instant d){
+    format.formatTo(d,out);
     out.print(separator);
     out.print(str);
     out.println();
@@ -97,7 +97,7 @@ public class Logger {
    * @param e is the error to log.
    */
   public static void log(String desc, Throwable e){
-    log(desc,e,new Date());
+    log(desc,e,Instant.now());
   }
   /**
    * Logs and timestamps an error with the given description asynchronously (if supported).
@@ -108,8 +108,8 @@ public class Logger {
     if (asyncLogConsumer==null){
       log(desc,e);
     }else{
-      final Date d = new Date();
-      asyncLogConsumer.accept(new DelayedRunnable(d.getTime()){
+      final Instant d = Instant.now();
+      asyncLogConsumer.accept(new DelayedRunnable(d.toEpochMilli()){
         public void run(){
           log(desc, e, d);
         }
@@ -122,8 +122,8 @@ public class Logger {
    * @param e is the error to log.
    * @param d is the timestamp for the message
    */
-  public synchronized static void log(String desc, Throwable e, Date d){
-    out.print(format.format(d));
+  public synchronized static void log(String desc, Throwable e, Instant d){
+    format.formatTo(d,out);
     out.print(separator);
     out.print(desc);
     out.println();
@@ -194,12 +194,14 @@ public class Logger {
             }
             c = (char)i;
             if (c=='-'){
-              b = false;
-              str = line.toString();
+              b = true;
+              str = line.toString().trim();
               line.setLength(0);
               try{
-                b = time<format.parse(str).getTime();
-              }catch(ParseException e){}
+                b = time<Instant.from(format.parse(str)).toEpochMilli();
+              }catch(DateTimeException e){
+                e.printStackTrace();
+              }
               if (b){
                 outTMP.write(str.getBytes(java.nio.charset.StandardCharsets.UTF_8));
                 outTMP.write(i);

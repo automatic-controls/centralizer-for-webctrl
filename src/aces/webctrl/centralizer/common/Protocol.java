@@ -265,4 +265,12 @@ public class Protocol {
    * Indicates the client does not have sufficient permissions to initiate the previously requested operation.
    */
   public final static byte INSUFFICIENT_PERMISSIONS = ++ID3;
+  /**
+   * Indicates a given {@code Path} object is a file.
+   */
+  public final static byte FILE_TYPE = ++ID3;
+  /**
+   * Indicates a given {@code Path} object is a folder.
+   */
+  public final static byte FOLDER_TYPE = ++ID3;
 }

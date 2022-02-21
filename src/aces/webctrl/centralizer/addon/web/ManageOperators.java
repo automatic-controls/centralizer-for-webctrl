@@ -149,11 +149,11 @@ public class ManageOperators extends SecureServlet {
             if (lastLogin==-1){
               sb.append("Never;");
             }else{
-              sb.append(Utility.encodeAJAX(Utility.escapeHTML(Logger.format.format(new Date(lastLogin))))).append(';');
+              sb.append(Utility.encodeAJAX(Utility.escapeHTML(Logger.format.format(java.time.Instant.ofEpochMilli(lastLogin))))).append(';');
             }
           }
-          sb.append(Utility.encodeAJAX(Utility.escapeHTML(Logger.format.format(new Date(o.getStamp()))))).append(';');
-          sb.append(Utility.encodeAJAX(Utility.escapeHTML(Logger.format.format(new Date(o.getCreationTime()))))).append(';');
+          sb.append(Utility.encodeAJAX(Utility.escapeHTML(Logger.format.format(java.time.Instant.ofEpochMilli(o.getStamp()))))).append(';');
+          sb.append(Utility.encodeAJAX(Utility.escapeHTML(Logger.format.format(java.time.Instant.ofEpochMilli(o.getCreationTime()))))).append(';');
           {
             final int pp = o.getPermissions();
             sb.append((pp&Permissions.ADMINISTRATOR)!=0).append(';');

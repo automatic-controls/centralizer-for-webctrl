@@ -6,7 +6,7 @@
 package aces.webctrl.centralizer.common;
 import java.io.*;
 import java.nio.file.*;
-import java.util.*;
+import java.time.*;
 /**
  * Thread-safe namespace which controls packet capture logging.
  * <p>Appends a timestamp to log entries.
@@ -36,7 +36,7 @@ public class PacketLogger {
    * Starts packet capture.
    */
   public static void start(){
-    start(new Date());
+    start(Instant.now());
   }
   /**
    * Starts packet capture asynchronously (if supported).
@@ -45,8 +45,8 @@ public class PacketLogger {
     if (Logger.asyncLogConsumer==null){
       start();
     }else{
-      final Date d = new Date();
-      Logger.asyncLogConsumer.accept(new DelayedRunnable(0){
+      final Instant d = Instant.now();
+      Logger.asyncLogConsumer.accept(new DelayedRunnable(d.toEpochMilli()){
         public void run(){
           start(d);
         }
@@ -57,7 +57,7 @@ public class PacketLogger {
    * Starts packet capture.
    * @param d is the timestamp.
    */
-  public synchronized static void start(Date d){
+  public synchronized static void start(Instant d){
     if (!working){
       working = true;
       try{
@@ -76,7 +76,7 @@ public class PacketLogger {
    * Stops packet capture.
    */
   public static void stop(){
-    stop(new Date());
+    stop(Instant.now());
   }
   /**
    * Stops packet capture asynchronously (if supported).
@@ -85,8 +85,8 @@ public class PacketLogger {
     if (Logger.asyncLogConsumer==null){
       stop();
     }else{
-      final Date d = new Date();
-      Logger.asyncLogConsumer.accept(new DelayedRunnable(0){
+      final Instant d = Instant.now();
+      Logger.asyncLogConsumer.accept(new DelayedRunnable(d.toEpochMilli()){
         public void run(){
           stop(d);
         }
@@ -97,7 +97,7 @@ public class PacketLogger {
    * Stops packet capture.
    * @param d is the timestamp.
    */
-  public synchronized static void stop(Date d){
+  public synchronized static void stop(Instant d){
     if (working){
       try{
         log("Packet capture stopped.", d);
@@ -114,7 +114,7 @@ public class PacketLogger {
    * @param str is the message to log
    */
   public static void log(String str){
-    log(str, new Date());
+    log(str, Instant.now());
   }
   /**
    * Logs and timestamps a message asynchronously (if supported).
@@ -124,8 +124,8 @@ public class PacketLogger {
     if (Logger.asyncLogConsumer==null){
       log(str);
     }else{
-      final Date d = new Date();
-      Logger.asyncLogConsumer.accept(new DelayedRunnable(0){
+      final Instant d = Instant.now();
+      Logger.asyncLogConsumer.accept(new DelayedRunnable(d.toEpochMilli()){
         public void run(){
           log(str, d);
         }
@@ -137,9 +137,9 @@ public class PacketLogger {
    * @param str is the message to log
    * @param d is the timestamp for the message
    */
-  public synchronized static void log(String str, Date d){
+  public synchronized static void log(String str, Instant d){
     if (working){
-      out.print(Logger.format.format(d));
+      Logger.format.formatTo(d,out);
       out.print(Logger.separator);
       out.print(str);
       out.println();
@@ -152,7 +152,7 @@ public class PacketLogger {
    * @param e is the error to log.
    */
   public static void log(String desc, Throwable e){
-    log(desc,e,new Date());
+    log(desc,e,Instant.now());
   }
   /**
    * Logs and timestamps an error with the given description asynchronously (if supported).
@@ -163,8 +163,8 @@ public class PacketLogger {
     if (Logger.asyncLogConsumer==null){
       log(desc,e);
     }else{
-      final Date d = new Date();
-      Logger.asyncLogConsumer.accept(new DelayedRunnable(0){
+      final Instant d = Instant.now();
+      Logger.asyncLogConsumer.accept(new DelayedRunnable(d.toEpochMilli()){
         public void run(){
           log(desc, e, d);
         }
@@ -177,9 +177,9 @@ public class PacketLogger {
    * @param e is the error to log.
    * @param d is the timestamp for the message
    */
-  public synchronized static void log(String desc, Throwable e, Date d){
+  public synchronized static void log(String desc, Throwable e, Instant d){
     if (working){
-      out.print(Logger.format.format(d));
+      Logger.format.formatTo(d,out);
       out.print(Logger.separator);
       out.print(desc);
       out.println();
@@ -207,7 +207,7 @@ public class PacketLogger {
     if (Logger.asyncLogConsumer==null){
       log(e);
     }else{
-      Logger.asyncLogConsumer.accept(new DelayedRunnable(0){
+      Logger.asyncLogConsumer.accept(new DelayedRunnable(System.currentTimeMillis()){
         public void run(){
           log(e);
         }
@@ -221,7 +221,7 @@ public class PacketLogger {
    * @param write indicates whether this packet was transmitted ({@code true}) or received ({@code false}).
    */
   public static void log(String IP, byte[] data, boolean write){
-    log(IP, data, write, new Date());
+    log(IP, data, write, Instant.now());
   }
   /**
    * Logs a data packet asynchronously (if supported).
@@ -233,8 +233,8 @@ public class PacketLogger {
     if (Logger.asyncLogConsumer==null){
       log(IP, data, write);
     }else{
-      final Date d = new Date();
-      Logger.asyncLogConsumer.accept(new DelayedRunnable(0){
+      final Instant d = Instant.now();
+      Logger.asyncLogConsumer.accept(new DelayedRunnable(d.toEpochMilli()){
         public void run(){
           log(IP, data, write, d);
         }
@@ -248,9 +248,9 @@ public class PacketLogger {
    * @param write indicates whether this packet was transmitted ({@code true}) or received ({@code false}).
    * @param d is the timestamp.
    */
-  public synchronized static void log(String IP, byte[] data, boolean write, Date d){
+  public synchronized static void log(String IP, byte[] data, boolean write, Instant d){
     if (working){
-      out.print(Logger.format.format(d));
+      Logger.format.formatTo(d,out);
       out.print(Logger.separator);
       out.print(IP);
       out.print(Logger.separator);

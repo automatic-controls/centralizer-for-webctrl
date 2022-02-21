@@ -67,8 +67,8 @@ public class ManageServers extends SecureServlet {
                   sb.append(Utility.encodeAJAX(s.getDescription())).append(';');
                   sb.append(Utility.encodeAJAX(s.getIPAddress())).append(';');
                   sb.append(s.isConnected()).append(';');
-                  sb.append(Utility.encodeAJAX(Logger.format.format(new Date(s.getLastConnectionTime())))).append(';');
-                  sb.append(Utility.encodeAJAX(Logger.format.format(new Date(s.getCreationTime())))).append(';');
+                  sb.append(Utility.encodeAJAX(Logger.format.format(java.time.Instant.ofEpochMilli(s.getLastConnectionTime())))).append(';');
+                  sb.append(Utility.encodeAJAX(Logger.format.format(java.time.Instant.ofEpochMilli(s.getCreationTime())))).append(';');
                 }
                 res.setContentType("text/plain");
                 res.getWriter().print(sb.toString());
