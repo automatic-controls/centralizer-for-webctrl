@@ -110,11 +110,7 @@ public class Server {
     }
     String name = getName();
     try{
-      Path serverFolder = folder.resolve(name);
-      if (!Files.exists(serverFolder)){
-        Files.createDirectory(serverFolder);
-      }
-      Path dataFile = serverFolder.resolve("data");
+      Path dataFile = folder.resolve(name);
       ByteBuffer buf = ByteBuffer.wrap(serialize(true));
       try(
         FileChannel out = FileChannel.open(dataFile, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);

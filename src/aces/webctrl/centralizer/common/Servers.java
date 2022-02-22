@@ -4,7 +4,6 @@
   Contributors: Cameron Vogt (@cvogt729)
 */
 package aces.webctrl.centralizer.common;
-import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 import java.util.function.*;
@@ -196,7 +195,7 @@ public class Servers {
       int size = -1;
       for (Path entry:stream){
         try{
-          Server s = Server.deserialize(Files.readAllBytes(entry.resolve("data")), true);
+          Server s = Server.deserialize(Files.readAllBytes(entry), true);
           arr.add(s);
           size = Math.max(size, s.getID());
         }catch(Throwable e){
@@ -240,28 +239,18 @@ public class Servers {
       ArrayList<Server> arr = (ArrayList<Server>)servers.clone();
       lock.readLock().unlock();
       if (Files.exists(p)){
-        try{
-          Files.walkFileTree(p, new SimpleFileVisitor<Path>(){
-            @Override
-            public FileVisitResult visitFile(Path file, java.nio.file.attribute.BasicFileAttributes attrs) throws IOException {
-              Files.delete(file);
-              return FileVisitResult.CONTINUE;
-            }
-            @Override
-            public FileVisitResult postVisitDirectory(Path dir, IOException e) throws IOException {
-              if (e==null){
-                Files.delete(dir);
-                return FileVisitResult.CONTINUE;
-              }else{
-                throw e;
-              }
-            }
-          });
+        try(
+          DirectoryStream<Path> stream = Files.newDirectoryStream(p);
+        ){
+          for (Path entry:stream){
+            Files.delete(entry);
+          }
         }catch(Throwable e){
           Logger.log("Error occurred while clearing server data.", e);
         }
+      }else{
+        Files.createDirectory(p);
       }
-      Files.createDirectory(p);
       boolean ret = true;
       for (Server s:arr){
         if (s!=null){

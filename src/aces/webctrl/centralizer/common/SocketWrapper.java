@@ -322,7 +322,7 @@ public class SocketWrapper {
         }
         try{
           a.p = root;
-          int i = 1;
+          int i = 0;
           int j;
           while (true) {
             j = relPath.indexOf('/',i);
@@ -511,7 +511,7 @@ public class SocketWrapper {
       this.p = p;
       lastModified = attr.lastModifiedTime().toMillis();
       for (Path x:root.relativize(p)){
-        sb.append('/').append(x.toString());
+        sb.append(x.toString()).append('/');
       }
       relPath = sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
       sb.setLength(0);

@@ -58,13 +58,7 @@ public class Protocol {
    * <p>Additional Parameters:
    * <ul>
    * <li>ID of the authenticating operator (requires {@code Permissions.OPERATORS})</li>
-   * <li>Username</li>
-   * <li>Password</li>
-   * <li>Permissions</li>
-   * <li>Display Name</li>
-   * <li>Navigation Timeout</li>
-   * <li>Description</li>
-   * <li>Whether to force password change on next login</li>
+   * <li>List of properties to set for the new operator</li>
    * </ul>
    */
   public final static byte CREATE_OPERATOR = ++ID1;
@@ -165,6 +159,59 @@ public class Protocol {
    * </ul>
    */
   public final static byte RESTART_DATABASE = ++ID1;
+  /**
+   * Indicates the client wants to create a new synchronization task.
+   * <p>Additional Parameters:
+   * <ul>
+   * <li>ID of the authenticating operator (requires {@code Permissions.FILE_SYNCHRONIZATION})</li>
+   * <li>List of properties for the new synchronization task</li>
+   * </ul>
+   */
+  public final static byte CREATE_SYNC = ++ID1;
+  /**
+   * Indicates the client wants to delete a synchronization task.
+   * <p>Additional Parameters:
+   * <ul>
+   * <li>ID of the authenticating operator (requires {@code Permissions.FILE_SYNCHRONIZATION})</li>
+   * <li>ID of the synchronization task to delete</li>
+   * </ul>
+   */
+  public final static byte DELETE_SYNC = ++ID1;
+  /**
+   * Indicates the client wants to modify a synchronization task.
+   * <p>Additional Parameters:
+   * <ul>
+   * <li>ID of the authenticating operator (requires {@code Permissions.FILE_SYNCHRONIZATION})</li>
+   * <li>ID of the synchronization task to modify</li>
+   * <li>List of properties to modify and their new values</li>
+   * </ul>
+   */
+  public final static byte MODIFY_SYNC = ++ID1;
+  /**
+   * Indicates the client wants to get a list of all synchronization tasks.
+   * <p>Additional Parameters:
+   * <ul>
+   * <li>ID of the authenticating operator (requires {@code Permissions.FILE_SYNCHRONIZATION})</li>
+   * </ul>
+   */
+  public final static byte GET_SYNC_LIST = ++ID1;
+  /**
+   * Indicates the client wants to trigger a specific synchronization task.
+   * <p>Additional Parameters:
+   * <ul>
+   * <li>ID of the authenticating operator (requires {@code Permissions.FILE_SYNCHRONIZATION})</li>
+   * <li>ID of the synchronization task to trigger</li>
+   * </ul>
+   */
+  public final static byte TRIGGER_SYNC = ++ID1;
+  /**
+   * Indicates the client wants to trigger all synchronization tasks.
+   * <p>Additional Parameters:
+   * <ul>
+   * <li>ID of the authenticating operator (requires {@code Permissions.FILE_SYNCHRONIZATION})</li>
+   * </ul>
+   */
+  public final static byte TRIGGER_SYNC_ALL = ++ID1;
 
 
 
@@ -194,6 +241,10 @@ public class Protocol {
    * Indicates that the server name and/or description should be updated.
    */
   public final static byte UPDATE_SERVER_PARAMS = ++ID2;
+  /**
+   * Indicates a file resource should be synchronized.
+   */
+  public final static byte SYNC_FILE = ++ID2;
 
 
 
