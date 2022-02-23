@@ -7,8 +7,6 @@ package aces.webctrl.centralizer.addon.web;
 import aces.webctrl.centralizer.addon.core.*;
 import aces.webctrl.centralizer.addon.Utility;
 import aces.webctrl.centralizer.common.*;
-import com.controlj.green.addonsupport.web.auth.AuthenticationManager;
-import com.controlj.green.extensionsupport.Extension;
 import java.io.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
@@ -267,19 +265,9 @@ public class MainPage extends SecureServlet {
         res.setStatus(504);
       }
     }else if (req.getParameter("setprovider")!=null){
-      AuthenticationManager auth = new AuthenticationManager();
-      List<Extension> list = auth.findWebOperatorProviders();
-      Extension thisExtension = null;
-      for (Extension e:list){
-        if (Files.isSameFile(e.getSourceFile().toPath(), addonFile)){
-          thisExtension = e;
-        }
-      }
-      if (thisExtension==null){
+      if (HelperAPI.activateWebOperatorProvider(addonFile)==null){
         res.setStatus(500);
-        Logger.logAsync("Failed to set authentication provider because this Extension could not be found.");
-      }else{
-        auth.activateProvider(thisExtension);
+        Logger.logAsync("Failed to set authentication provider.");
       }
     }else if (req.getParameter("blankConfig")!=null){
       final String user = req.getParameter("user");

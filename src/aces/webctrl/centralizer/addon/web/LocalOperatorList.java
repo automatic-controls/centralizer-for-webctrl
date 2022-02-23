@@ -28,7 +28,11 @@ public class LocalOperatorList extends SecureServlet {
     }
   }
   @Override public void process(final CentralOperator webop, final HttpServletRequest req, final HttpServletResponse res) throws Throwable {
-    Map<String,String> map = new com.controlj.green.datatable.util.CoreHelper().getOperatorList();
+    Map<String,String> map = aces.webctrl.centralizer.addon.core.HelperAPI.getLocalOperators();
+    if (map==null){
+      map = new HashMap<String,String>();
+      map.put("ERROR", "ERROR");
+    }
     StringBuilder sb = new StringBuilder(map.size()<<5);
     for (Map.Entry<String,String> entry:map.entrySet()){
       sb.append("<tr><td>").append(Utility.escapeHTML(entry.getKey())).append("</td><td>").append(Utility.escapeHTML(entry.getValue())).append("</td></tr>\n");

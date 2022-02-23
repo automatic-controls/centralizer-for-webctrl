@@ -855,6 +855,205 @@ public class ProtocolMap {
         });
       }
     });
+    map.put(Protocol.CREATE_SYNC, new Consumer<Connection>(){
+      public void accept(final Connection c){
+        c.wrap.readBytes(16384, null, c.new Handler<byte[]>(){
+          public void func(byte[] data){
+            try{
+              SerializationStream s = new SerializationStream(data);
+              final int authID = s.readInt();
+              final String description = s.readString();
+              final long syncInterval = s.readLong();
+              final String src = s.readString();
+              final String dst = s.readString();
+              final boolean allServers = s.readBoolean();
+              if (!s.end()){
+                Logger.logAsync("Lost data detected.");
+              }
+              s = null;
+              byte ret;
+              final OperatorTracker t = c.getTracker(authID);
+              if (t==null){
+                ret = Protocol.NOT_LOGGED_IN;
+              }else{
+                t.reset();
+                final int authP = t.getOperator().getPermissions();
+                if ((authP&Permissions.FILE_SYNCHRONIZATION)==0){
+                  ret = Protocol.INSUFFICIENT_PERMISSIONS;
+                }else{
+                  final SyncTask task = SyncTasks.add(description, syncInterval, src, dst, allServers);
+                  if (task==null){
+                    ret = Protocol.FAILURE;
+                  }else{
+                    ret = Protocol.SUCCESS;
+                    c.wrap.write(ret, null, c.new Handler<Void>(){
+                      public void func(Void v){
+                        SerializationStream s = new SerializationStream(4);
+                        s.write(task.getID());
+                        c.wrap.writeBytes(s.data, null, c.new Handler<Void>(){
+                          public void func(Void v){
+                            c.listen3();
+                          }
+                        });
+                      }
+                    });
+                  }
+                }
+              }
+              if (ret!=Protocol.SUCCESS){
+                c.wrap.write(ret, null, c.new Handler<Void>(){
+                  public void func(Void v){
+                    c.listen3();
+                  }
+                });
+              }
+            }catch(Throwable e){
+              Logger.logAsync("Error occurred in CREATE_SYNC protocol.",e);
+              c.close(true);
+              return;
+            }
+          }
+        });
+      }
+    });
+    map.put(Protocol.DELETE_SYNC, new Consumer<Connection>(){
+      public void accept(final Connection c){
+        c.wrap.readBytes(32, null, c.new Handler<byte[]>(){
+          public void func(byte[] data){
+            try{
+              SerializationStream s = new SerializationStream(data);
+              final int authID = s.readInt();
+              final int ID = s.readInt();
+              if (!s.end()){
+                Logger.logAsync("Lost data detected.");
+              }
+              s = null;
+              byte ret;
+              final OperatorTracker t = c.getTracker(authID);
+              if (t==null){
+                ret = Protocol.NOT_LOGGED_IN;
+              }else{
+                t.reset();
+                final int authP = t.getOperator().getPermissions();
+                if ((authP&Permissions.FILE_SYNCHRONIZATION)==0){
+                  ret = Protocol.INSUFFICIENT_PERMISSIONS;
+                }else{
+                  final SyncTask task = SyncTasks.get(ID);
+                  if (task==null){
+                    ret = Protocol.DOES_NOT_EXIST;
+                  }else if (SyncTasks.remove(task)){
+                    ret = Protocol.SUCCESS;
+                  }else{
+                    ret = Protocol.FAILURE;
+                  }
+                }
+              }
+              c.wrap.write(ret, null, c.new Handler<Void>(){
+                public void func(Void v){
+                  c.listen3();
+                }
+              });
+            }catch(Throwable e){
+              Logger.logAsync("Error occurred in DELETE_SYNC protocol.",e);
+              c.close(true);
+              return;
+            }
+          }
+        });
+      }
+    });
+    map.put(Protocol.MODIFY_SYNC, new Consumer<Connection>(){
+      public void accept(final Connection c){
+        c.wrap.readBytes(32, null, c.new Handler<byte[]>(){
+          public void func(byte[] data){
+            try{
+              SerializationStream s = new SerializationStream(data);
+              final int authID = s.readInt();
+              final SyncTask task = SyncTask.deserialize(s);
+              if (!s.end()){
+                Logger.logAsync("Lost data detected.");
+              }
+              s = null;
+              byte ret;
+              final OperatorTracker t = c.getTracker(authID);
+              if (t==null){
+                ret = Protocol.NOT_LOGGED_IN;
+              }else{
+                t.reset();
+                final int authP = t.getOperator().getPermissions();
+                if ((authP&Permissions.FILE_SYNCHRONIZATION)==0){
+                  ret = Protocol.INSUFFICIENT_PERMISSIONS;
+                }else{
+                  final SyncTask task2 = SyncTasks.get(task.getID());
+                  if (task2==null){
+                    ret = Protocol.DOES_NOT_EXIST;
+                  }else{
+                    task2.copy(task);
+                    ret = Protocol.SUCCESS;
+                  }
+                }
+              }
+              c.wrap.write(ret, null, c.new Handler<Void>(){
+                public void func(Void v){
+                  c.listen3();
+                }
+              });
+            }catch(Throwable e){
+              Logger.logAsync("Error occurred in MODIFY_SYNC protocol.",e);
+              c.close(true);
+              return;
+            }
+          }
+        });
+      }
+    });
+    map.put(Protocol.GET_SYNC_LIST, new Consumer<Connection>(){
+      public void accept(final Connection c){
+        c.wrap.readBytes(32, null, c.new Handler<byte[]>(){
+          public void func(byte[] data){
+            try{
+              SerializationStream s = new SerializationStream(data);
+              final int authID = s.readInt();
+              if (!s.end()){
+                Logger.logAsync("Lost data detected.");
+              }
+              s = null;
+              byte ret;
+              final OperatorTracker t = c.getTracker(authID);
+              if (t==null){
+                ret = Protocol.NOT_LOGGED_IN;
+              }else{
+                t.reset();
+                final int authP = t.getOperator().getPermissions();
+                if ((authP&Permissions.FILE_SYNCHRONIZATION)==0){
+                  ret = Protocol.INSUFFICIENT_PERMISSIONS;
+                }else{
+                  ret = Protocol.SUCCESS;
+                }
+              }
+              final boolean send = ret==Protocol.SUCCESS;
+              c.wrap.write(ret, null, c.new Handler<Void>(){
+                public void func(Void v){
+                  if (send){
+                    c.wrap.writeBytes(SyncTasks.serialize(), null, c.new Handler<Void>(){
+                      public void func(Void v){
+                        c.listen3();
+                      }
+                    });
+                  }else{
+                    c.listen3();
+                  }
+                }
+              });
+            }catch(Throwable e){
+              Logger.logAsync("Error occurred in GET_SYNC_LIST protocol.",e);
+              c.close(true);
+              return;
+            }
+          }
+        });
+      }
+    });
     return map;
   }
 }

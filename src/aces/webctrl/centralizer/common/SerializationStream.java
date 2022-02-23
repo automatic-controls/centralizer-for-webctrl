@@ -117,6 +117,21 @@ public class SerializationStream {
     pos+=length;
   }
   /**
+   * Encodes and writes the given byte array to the stream.
+   * <ul><li>Required capacity: {@code arr.length}</li></ul>
+   */
+  public void writeRaw(byte[] arr){
+    writeRaw(arr,0,arr.length);
+  }
+  /**
+   * Writes {@code length} bytes from the given array to the stream starting with the byte in position {@code offset}.
+   * <ul><li>Required capacity: {@code length}</li></ul>
+   */
+  public void writeRaw(byte[] arr, int offset, int length){
+    System.arraycopy(arr,offset,data,pos,length);
+    pos+=length;
+  }
+  /**
    * Encodes the given string into UTF_8 bytes and writes to the stream.
    * <ul><li>Required capacity: {@code str.getBytes(StandardCharsets.UTF_8).length+4}</li></ul>
    */

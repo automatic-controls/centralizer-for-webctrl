@@ -163,7 +163,7 @@ public class Servers {
       return true;
     }
     s.dispose();
-    int ID = s.getID();
+    final int ID = s.getID();
     if (ID<0){
       return true;
     }
@@ -173,6 +173,12 @@ public class Servers {
         return true;
       }
       servers.set(ID,null);
+      SyncTasks.forEach(new Predicate<SyncTask>(){
+        public boolean test(SyncTask x){
+          x.remove(ID);
+          return false;
+        }
+      });
       return true;
     }catch(Throwable e){
       Logger.logAsync("Error occurred while removing an server with ID="+ID+'.', e);

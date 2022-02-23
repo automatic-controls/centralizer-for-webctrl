@@ -7,7 +7,6 @@ package aces.webctrl.centralizer.common;
 import java.security.*;
 import java.nio.file.*;
 import java.util.concurrent.atomic.*;
-//TODO (New Feature) - Synchronization - Synchronizes files/directories across clients
 //TODO (New Feature) - Data Retrieval - Retrieves data from clients
 //TODO (New Feature) - Script Executor - Executes scripts on client machines
 //TODO (Performance Improvement) - Make every IO operation non-blocking
@@ -40,6 +39,7 @@ public class Database {
       ret&=Keys.init(rootFolder.resolve("keys"));
       ret&=Config.init(rootFolder.resolve("config.txt"));
       ret&=Servers.init(rootFolder.resolve("Servers"));
+      ret&=SyncTasks.init(rootFolder.resolve("file_synchronization"));
       SocketWrapper.config = new SocketWrapperConfig(){
         public long getTimeout(){
           return Config.timeout;
@@ -70,6 +70,7 @@ public class Database {
         ret&=Config.save();
         ret&=Servers.save();
         ret&=Keys.save();
+        ret&=SyncTasks.save();
       }
       ret&=Operators.save();
       saving.set(false);

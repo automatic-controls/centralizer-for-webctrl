@@ -9,6 +9,7 @@ import java.util.*;
 import java.util.Map.*;
 import java.util.concurrent.atomic.*;
 import java.nio.channels.*;
+import java.nio.file.*;
 import java.security.spec.*;
 import javax.crypto.*;
 public class Connection implements Comparable<Connection> {
@@ -549,6 +550,35 @@ public class Connection implements Comparable<Connection> {
               }
             });
           }
+        }
+      });
+    }
+  }
+  /**
+   * Synchronizes a file from the database host machine to the connected client machine.
+   * If you are have a source {@code String} variable instead of a {@code Path}, it is recommended to use {@code SyncTask.resolve(null,srcString)} for the conversion.
+   */
+  public void syncFile(final Path src, final String dst){
+    if (src!=null){
+      add(new Task(Protocol.SYNC_FILE){
+        public void run(){
+          wrap.writeBytes(dst.getBytes(java.nio.charset.StandardCharsets.UTF_8), null, new Handler<Void>(){
+            public void func(Void v){
+              wrap.read(null, new Handler<Byte>(){
+                public void func(Byte b){
+                  if (b==Protocol.SUCCESS){
+                    wrap.writePath(src, null, new Handler<Boolean>(){
+                      public void func(Boolean b){
+                        listen2();
+                      }
+                    });
+                  }else{
+                    listen2();
+                  }
+                }
+              });
+            }
+          });
         }
       });
     }

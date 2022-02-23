@@ -8,6 +8,7 @@ import aces.webctrl.centralizer.common.*;
 import java.net.*;
 import java.nio.file.*;
 import java.nio.channels.*;
+import java.util.function.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 //TODO (NEW FEATURE) - Send email alerts whenever Main.gracefulExit(boolean) is invoked
@@ -244,6 +245,20 @@ public class Main {
     }catch(Throwable e){
       Logger.logAsync("Error occurred during attempted system restart.", e);
       return false;
+    }
+  }
+  public static void triggerSyncTask(final SyncTask t){
+    final Path src = SyncTask.resolve(null,t.getSource());
+    if (src!=null){
+      Connections.forEach(new Predicate<Connection>(){
+        public boolean test(Connection c){
+          Server s = c.server;
+          if (s!=null && t.appliesTo(s.getID())){
+            //TODO
+          }
+          return true;
+        }
+      });
     }
   }
 }
