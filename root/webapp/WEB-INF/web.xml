@@ -47,6 +47,15 @@
   </servlet-mapping>
 
   <servlet>
+    <servlet-name>ManageFileSync</servlet-name>
+    <servlet-class>aces.webctrl.centralizer.addon.web.ManageFileSync</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>ManageFileSync</servlet-name>
+    <url-pattern>/ManageFileSync</url-pattern>
+  </servlet-mapping>
+
+  <servlet>
     <servlet-name>StartLocation</servlet-name>
     <servlet-class>aces.webctrl.centralizer.addon.web.StartLocation</servlet-class>
   </servlet>

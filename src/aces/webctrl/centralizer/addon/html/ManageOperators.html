@@ -62,16 +62,13 @@
           perm_operators.disabled = true;
           perm_sync.disabled = true;
           perm_ret.disabled = true;
-          perm_scripts.disabled = true;
           perm_operators.checked = true;
           perm_sync.checked = true;
           perm_ret.checked = true;
-          perm_scripts.checked = true;
         }else{
           perm_operators.disabled = false;
           perm_sync.disabled = false;
           perm_ret.disabled = false;
-          perm_scripts.disabled = false;
         }
       }
       function clearOperator(){
@@ -89,7 +86,6 @@
         perm_operators.checked = false;
         perm_sync.checked = false;
         perm_ret.checked = false;
-        perm_scripts.checked = false;
         validatePermissions();
         statusText.innerHTML = "";
       }
@@ -190,7 +186,7 @@
             if (this.readyState===4){
               if (this.status===200){
                 const list = parse(this.responseText);
-                if (list.length===13){
+                if (list.length===12){
                   statusText.innerHTML = "Operator loaded.";
                   displayName.value = list[0];
                   username.value = list[1];
@@ -205,7 +201,6 @@
                   perm_operators.checked = list[9]==="true";
                   perm_sync.checked = list[10]==="true";
                   perm_ret.checked = list[11]==="true";
-                  perm_scripts.checked = list[12]==="true";
                   validatePermissions();
                 }else{
                   statusText.innerHTML = "Reply has incorrect length.";
@@ -285,7 +280,6 @@
         const pops = String(perm_operators.checked);
         const psync = String(perm_sync.checked);
         const pret = String(perm_ret.checked);
-        const pscript = String(perm_scripts.checked);
         let pass = password.value;
         if (dis.length<1){
           statusText.innerHTML = 'Please specify the display name.';
@@ -366,8 +360,7 @@
               "&padmin="+encodeURIComponent(padmin)+
               "&pops="+encodeURIComponent(pops)+
               "&psync="+encodeURIComponent(psync)+
-              "&pret="+encodeURIComponent(pret)+
-              "&pscript="+encodeURIComponent(pscript)
+              "&pret="+encodeURIComponent(pret)
             );
             return;
           }
@@ -437,10 +430,7 @@
           <label for="perm_sync">File Synchronization</label>
           <br>
           <input id="perm_ret" class="e" type="checkbox">
-          <label for="perm_ret">File Retrieval</label>
-          <br>
-          <input id="perm_scripts" class="e" type="checkbox">
-          <label for="perm_scripts">Script Execution</label>
+          <label for="perm_ret">Data Collection</label>
           <br><br><br>
           <button id="clearButton" class="e" onclick="clearOperator()">Clear</button>
           <button id="unlockButton" class="e" onclick="unlockOperator(selectedOperator.innerHTML)">Unlock</button>

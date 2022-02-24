@@ -159,8 +159,7 @@ public class ManageOperators extends SecureServlet {
             sb.append((pp&Permissions.ADMINISTRATOR)!=0).append(';');
             sb.append((pp&Permissions.OPERATOR_MANAGEMENT)!=0).append(';');
             sb.append((pp&Permissions.FILE_SYNCHRONIZATION)!=0).append(';');
-            sb.append((pp&Permissions.FILE_RETRIEVAL)!=0).append(';');
-            sb.append((pp&Permissions.SCRIPT_EXECUTION)!=0).append(';');
+            sb.append((pp&Permissions.DATA_COLLECTION)!=0).append(';');
           }
           res.setContentType("text/plain");
           out.print(sb.toString());
@@ -180,7 +179,6 @@ public class ManageOperators extends SecureServlet {
       final String pops = req.getParameter("pops");
       final String psync = req.getParameter("psync");
       final String pret = req.getParameter("pret");
-      final String pscript = req.getParameter("pscript");
       boolean isNull = false;
       isNull|=selected==null;
       isNull|=user==null;
@@ -193,11 +191,10 @@ public class ManageOperators extends SecureServlet {
       isNull|=pops==null;
       isNull|=psync==null;
       isNull|=pret==null;
-      isNull|=pscript==null;
       if (isNull){
         res.setStatus(400);
       }else{
-        boolean force_, padmin_, pops_, psync_, pret_, pscript_;
+        boolean force_, padmin_, pops_, psync_, pret_;
         int navtime_;
         try{
           navtime_ = Integer.parseInt(navtime);
@@ -206,7 +203,6 @@ public class ManageOperators extends SecureServlet {
           pops_ = Boolean.parseBoolean(pops);
           psync_ = Boolean.parseBoolean(psync);
           pret_ = Boolean.parseBoolean(pret);
-          pscript_ = Boolean.parseBoolean(pscript);
         }catch(Exception e){
           res.setStatus(400);
           return;
@@ -235,8 +231,7 @@ public class ManageOperators extends SecureServlet {
         if (padmin_){ pp|=Permissions.ADMINISTRATOR; }
         if (pops_){ pp|=Permissions.OPERATOR_MANAGEMENT; }
         if (psync_){ pp|=Permissions.FILE_SYNCHRONIZATION; }
-        if (pret_){ pp|=Permissions.FILE_RETRIEVAL; }
-        if (pscript_){ pp|=Permissions.SCRIPT_EXECUTION; }
+        if (pret_){ pp|=Permissions.DATA_COLLECTION; }
         pp = Permissions.validate(pp);
         if ((p|pp)!=p){
           res.setStatus(403);

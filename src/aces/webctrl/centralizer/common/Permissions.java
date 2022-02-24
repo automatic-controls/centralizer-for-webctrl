@@ -25,11 +25,7 @@ public class Permissions {
   /**
    * Grants an operator the ability to manage data retrieval.
    */
-  public final static int FILE_RETRIEVAL = 0b1000;
-  /**
-   * Grants an operator the ability to manage script execution.
-   */
-  public final static int SCRIPT_EXECUTION = 0b10000;
+  public final static int DATA_COLLECTION = 0b1000;
   /**
    * Checks the permissions bit-mask is of the correct form.
    * If an operator is specified as an administator, then it automatically gets all other privileges.
@@ -53,11 +49,8 @@ public class Permissions {
     if ((b&FILE_SYNCHRONIZATION)!=0){
       sb.append("FILE_SYNCHRONIZATION;");
     }
-    if ((b&FILE_RETRIEVAL)!=0){
-      sb.append("FILE_RETRIEVAL;");
-    }
-    if ((b&SCRIPT_EXECUTION)!=0){
-      sb.append("SCRIPT_EXECUTION;");
+    if ((b&DATA_COLLECTION)!=0){
+      sb.append("DATA_COLLECTION;");
     }
     return sb.toString();
   }
