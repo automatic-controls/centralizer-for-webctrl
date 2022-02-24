@@ -1054,6 +1054,90 @@ public class ProtocolMap {
         });
       }
     });
+    map.put(Protocol.TRIGGER_SYNC, new Consumer<Connection>(){
+      public void accept(final Connection c){
+        c.wrap.readBytes(32, null, c.new Handler<byte[]>(){
+          public void func(byte[] data){
+            try{
+              SerializationStream s = new SerializationStream(data);
+              final int authID = s.readInt();
+              final int ID = s.readInt();
+              if (!s.end()){
+                Logger.logAsync("Lost data detected.");
+              }
+              s = null;
+              byte ret;
+              final OperatorTracker t = c.getTracker(authID);
+              if (t==null){
+                ret = Protocol.NOT_LOGGED_IN;
+              }else{
+                t.reset();
+                final int authP = t.getOperator().getPermissions();
+                if ((authP&Permissions.FILE_SYNCHRONIZATION)==0){
+                  ret = Protocol.INSUFFICIENT_PERMISSIONS;
+                }else{
+                  final SyncTask task = SyncTasks.get(ID);
+                  if (task==null){
+                    ret = Protocol.DOES_NOT_EXIST;
+                  }else{
+                    ret = Protocol.SUCCESS;
+                    Main.triggerSyncTask(task);
+                  }
+                }
+              }
+              c.wrap.write(ret, null, c.new Handler<Void>(){
+                public void func(Void v){
+                  c.listen3();
+                }
+              });
+            }catch(Throwable e){
+              Logger.logAsync("Error occurred in TRIGGER_SYNC protocol.",e);
+              c.close(true);
+              return;
+            }
+          }
+        });
+      }
+    });
+    map.put(Protocol.TRIGGER_SYNC_ALL, new Consumer<Connection>(){
+      public void accept(final Connection c){
+        c.wrap.readBytes(32, null, c.new Handler<byte[]>(){
+          public void func(byte[] data){
+            try{
+              SerializationStream s = new SerializationStream(data);
+              final int authID = s.readInt();
+              if (!s.end()){
+                Logger.logAsync("Lost data detected.");
+              }
+              s = null;
+              byte ret;
+              final OperatorTracker t = c.getTracker(authID);
+              if (t==null){
+                ret = Protocol.NOT_LOGGED_IN;
+              }else{
+                t.reset();
+                final int authP = t.getOperator().getPermissions();
+                if ((authP&Permissions.FILE_SYNCHRONIZATION)==0){
+                  ret = Protocol.INSUFFICIENT_PERMISSIONS;
+                }else{
+                  ret = Protocol.SUCCESS;
+                  Main.triggerSyncTasks();
+                }
+              }
+              c.wrap.write(ret, null, c.new Handler<Void>(){
+                public void func(Void v){
+                  c.listen3();
+                }
+              });
+            }catch(Throwable e){
+              Logger.logAsync("Error occurred in TRIGGER_SYNC_ALL protocol.",e);
+              c.close(true);
+              return;
+            }
+          }
+        });
+      }
+    });
     return map;
   }
 }

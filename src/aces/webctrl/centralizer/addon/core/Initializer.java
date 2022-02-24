@@ -55,6 +55,10 @@ public class Initializer implements ServletContextListener {
   private volatile static Path webapps_lite = null;
   /** Path to the WebCTRL installation directory. */
   public volatile static Path rootWebCTRL = null;
+  /** Path to the active WebCTRL system folder (e.g, {@code C:\WebCTRL8.0\webroot\test_system}). */
+  public volatile static Path systemFolder = null;
+  /** Path to the addons folder of WebCTRL. */
+  public volatile static Path addonsFolder = null;
   /** Contains basic informatin about this addon. */
   public volatile static AddOnInfo info = null;
 
@@ -140,8 +144,10 @@ public class Initializer implements ServletContextListener {
           enqueue(r);
         }
       });
-      rootWebCTRL = root.getParent().getParent().getParent().getParent().getParent();
-      webapps_lite = rootWebCTRL.resolve("webroot").resolve("_common").resolve("lvl5").resolve("config").resolve("webapps_lite.jsp");
+      systemFolder = root.getParent().getParent().getParent().normalize();
+      rootWebCTRL = systemFolder.getParent().getParent().normalize();
+      addonsFolder = rootWebCTRL.resolve("addons").normalize();
+      webapps_lite = rootWebCTRL.resolve("webroot").resolve("_common").resolve("lvl5").resolve("config").resolve("webapps_lite.jsp").normalize();
     }catch(Throwable e){
       e.printStackTrace();
     }
@@ -764,6 +770,67 @@ public class Initializer implements ServletContextListener {
                 return true;
               }
             });
+          }else if (b==Protocol.SYNC_FILE){
+            wrapper.readBytes(16384, null, new Handler<byte[]>(){
+              public boolean onSuccess(byte[] data){
+                boolean err = false;
+                try{
+                  Path dest = SyncTask.resolve(systemFolder, new String(data, java.nio.charset.StandardCharsets.UTF_8));
+                  if (dest==null){
+                    err = true;
+                  }else{
+                    final Path dst = dest.normalize();
+                    final Container<String> addon = new Container<String>();
+                    try{
+                      if (dst.startsWith(addonsFolder)){
+                        final String name = dst.getFileName().toString();
+                        final int len = name.length();
+                        if (len>=6 && name.endsWith(".addon")){
+                          addon.x = name.substring(0,len-6);
+                          if (Files.isRegularFile(dst)){
+                            HelperAPI.disableAddon(addon.x);
+                          }
+                        }
+                      }
+                    }catch(Throwable t){
+                      Logger.logAsync("Error occurred while checking SyncTask for addons.", t);
+                    }
+                    wrapper.write(Protocol.SUCCESS, null, new Handler<Void>(){
+                      public boolean onSuccess(Void v){
+                        wrapper.readPath(dst, null, new Handler<Boolean>(){
+                          public boolean onSuccess(Boolean b){
+                            if (addon.x!=null){
+                              try{
+                                if (Files.isRegularFile(dst)){
+                                  HelperAPI.enableAddon(addon.x);
+                                }
+                              }catch(Throwable t){
+                                Logger.logAsync("Error occurred while enabling "+addon.x+" addon.", t);
+                              }
+                            }
+                            ping1(wrapper);
+                            return true;
+                          }
+                        });
+                        return true;
+                      }
+                    });
+                  }
+                }catch(Throwable t){
+                  Logger.logAsync("Error occurred in SYNC_FILE protocol.", t);
+                  err = true;
+                }
+                if (err){
+                  wrapper.write(Protocol.FAILURE, null, new Handler<Void>(){
+                    public boolean onSuccess(Void v){
+                      ping1(wrapper);
+                      return true;
+                    }
+                  });
+                }
+                return true;
+              }
+            });
           }else if (b==Protocol.SYNC_OPERATORS){
             final ArrayList<Operator> list = new ArrayList<Operator>(Operators.count());
             Operators.forEach(new Predicate<Operator>(){
@@ -852,6 +919,7 @@ public class Initializer implements ServletContextListener {
    */
   private volatile static long lockoutExpiry = 0;
   /**
+   * Logs in the specified operator.
    * @param username is the operator to be logged in.
    * @param password is cleared after use for security reasons.
    * @return {@code Result<OperatorStatus>} that encapsulates the result of this asynchronous operation.
@@ -925,6 +993,7 @@ public class Initializer implements ServletContextListener {
     return ret;
   }
   /**
+   * Logs out the specified operator.
    * @param ID identifies the operator to be logged out.
    * @return {@code Result<Byte>} that encapsulates the result of this asynchronous operation.
    * <ul>
@@ -962,6 +1031,7 @@ public class Initializer implements ServletContextListener {
     return ret;
   }
   /**
+   * Creates a new operator with the given parameters.
    * @param authID identifies the operator which authenticates this operation.
    * @param username specifies the username for the new operator.
    * @param password specifies the password for the new operator (will be cleared for security reasons).
@@ -1020,6 +1090,7 @@ public class Initializer implements ServletContextListener {
     return ret;
   }
   /**
+   * Modifies the specified operator.
    * @param authID identifies the operator which authenticates this operation.
    * @param modID identifies the operator to be modified.
    * @param modifications is a collection of {@code OperatorModification}s.
@@ -1071,6 +1142,7 @@ public class Initializer implements ServletContextListener {
     return ret;
   }
   /**
+   * Deletes the specified operator.
    * @param authID identifies the operator which authenticates this operation.
    * @param modID identifies the operator to be deleted.
    * @return {@code Result<Byte>} that encapsulates the result of this asynchronous operation.
@@ -1113,6 +1185,7 @@ public class Initializer implements ServletContextListener {
     return ret;
   }
   /**
+   * Modifies the specified server.
    * @param authID identifies the operator which authenticates this operation.
    * @param sID identifies the server to be modified.
    * @param modifications is a collection of {@code ServerModification}s.
@@ -1164,6 +1237,7 @@ public class Initializer implements ServletContextListener {
     return ret;
   }
   /**
+   * Disconnects the specified server from the database.
    * @param authID identifies the operator which authenticates this operation.
    * @param sID identifies the server to be disconnected.
    * @return {@code Result<Byte>} that encapsulates the result of this asynchronous operation.
@@ -1209,6 +1283,7 @@ public class Initializer implements ServletContextListener {
     return ret;
   }
   /**
+   * Deletes the specified server.
    * @param authID identifies the operator which authenticates this operation.
    * @param sID identifies the server to be deleted.
    * @return {@code Result<Byte>} that encapsulates the result of this asynchronous operation.
@@ -1249,6 +1324,7 @@ public class Initializer implements ServletContextListener {
     return ret;
   }
   /**
+   * Retrieves a list of all servers registered to the database.
    * @param authID identifies the operator which authenticates this operation.
    * @return {@code Result<ServerList>} that encapsulates the result of this asynchronous operation.
    */
@@ -1299,6 +1375,7 @@ public class Initializer implements ServletContextListener {
     return ret;
   }
   /**
+   * Gets a list of active operators for the given server.
    * @param authID identifies the operator which authenticates this operation.
    * @param sID identifies the server to retrieve active operators for.
    * @return {@code Result<OperatorList>} that encapsulates the result of this asynchronous operation.
@@ -1350,6 +1427,7 @@ public class Initializer implements ServletContextListener {
     return ret;
   }
   /**
+   * Retrieves database configuration parameters populated in {@code Config.java}.
    * @param authID identifies the operator which authenticates this operation.
    * @return {@code Result<Byte>} that encapsulates the result of this asynchronous operation.
    * <ul>
@@ -1446,6 +1524,7 @@ public class Initializer implements ServletContextListener {
     return ret;
   }
   /**
+   * Request that the database generate a new preshared key.
    * @param authID identifies the operator which authenticates this operation.
    * @return {@code Result<Byte>} that encapsulates the result of this asynchronous operation.
    * <ul>
@@ -1486,6 +1565,7 @@ public class Initializer implements ServletContextListener {
     return ret;
   }
   /**
+   * Initiates a database restart.
    * @param authID identifies the operator which authenticates this operation.
    * @return {@code Result<Byte>} that encapsulates the result of this asynchronous operation.
    * <ul>
@@ -1498,6 +1578,269 @@ public class Initializer implements ServletContextListener {
     final Result<Byte> ret = new Result<Byte>();
     results.add(ret);
     enqueue(new RunnableProtocol(Protocol.RESTART_DATABASE){
+      public void run(final SocketWrapper wrapper){
+        SerializationStream s = new SerializationStream(4);
+        s.write(authID);
+        wrapper.writeBytes(s.data, null, new Handler<Void>(){
+          public boolean onSuccess(Void v){
+            wrapper.read(null, new Handler<Byte>(){
+              public boolean onSuccess(Byte b){
+                results.remove(ret);
+                ret.setResult(b);
+                ping2(wrapper);
+                return true;
+              }
+            });
+            return true;
+          }
+        });
+      }
+    });
+    if (connected){
+      pingNow();
+    }
+    return ret;
+  }
+  /**
+   * Creates a new synchronization task.
+   * @param authID identifies the operator which authenticates this operation.
+   * @param description describes the task to be created.
+   * @param syncInterval specifies in milliseconds how to to wait between scheduled triggers, or {@code -1} for manual trigger only.
+   * @param src specifies the source path.
+   * @param dst specifies the destination path.
+   * @param allServers specifies whether this task should apply to all servers.
+   * @return {@code Result<SyncStatus>} that encapsulates the result of this asynchronous operation.
+   */
+  public static Result<SyncStatus> createSyncTask(final int authID, final String description, final long syncInterval, final String src, final String dst, final boolean allServers){
+    final Result<SyncStatus> ret = new Result<SyncStatus>();
+    final SyncStatus stat = new SyncStatus();
+    results.add(ret);
+    enqueue(new RunnableProtocol(Protocol.CREATE_SYNC){
+      public void run(final SocketWrapper wrapper){
+        byte[] a = description.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] b = src.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] c = dst.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        SerializationStream s = new SerializationStream(a.length+b.length+c.length+25);
+        s.write(authID);
+        s.write(a);
+        s.write(syncInterval);
+        s.write(b);
+        s.write(c);
+        s.write(allServers);
+        wrapper.writeBytes(s.data, null, new Handler<Void>(){
+          public boolean onSuccess(Void v){
+            wrapper.read(null, new Handler<Byte>(){
+              public boolean onSuccess(Byte b){
+                stat.status = b;
+                if (b==Protocol.SUCCESS){
+                  wrapper.readBytes(32, null, new Handler<byte[]>(){
+                    public boolean onSuccess(byte[] data){
+                      stat.ID = new SerializationStream(data).readInt();
+                      results.remove(ret);
+                      ret.setResult(stat);
+                      return true;
+                    }
+                  });
+                }else{
+                  results.remove(ret);
+                  ret.setResult(stat);
+                  ping2(wrapper);
+                }
+                return true;
+              }
+            });
+            return true;
+          }
+        });
+      }
+    });
+    if (connected){
+      pingNow();
+    }
+    return ret;
+  }
+  /**
+   * Deletes a synchronization task.
+   * @param authID identifies the operator which authenticates this operation.
+   * @param sID identifies the SyncTask to be deleted.
+   * @return {@code Result<Byte>} that encapsulates the result of this asynchronous operation.
+   * <ul>
+   * <li>{@code Protocol.SUCCESS}</li>
+   * <li>{@code Protocol.FAILURE}</li>
+   * <li>{@code Protocol.NOT_LOGGED_IN} indiciates the authenticating operator is not logged in.</li>
+   * <li>{@code Protocol.INSUFFICIENT_PERMISSIONS} indicates the authenticating operator does not have the required permissions.</li>
+   * <li>{@code Protocol.DOES_NOT_EXIST} indicates the specified SyncTask does not exist.</li>
+   * </ul>
+   */
+  public static Result<Byte> deleteSyncTask(final int authID, final int sID){
+    final Result<Byte> ret = new Result<Byte>();
+    results.add(ret);
+    enqueue(new RunnableProtocol(Protocol.DELETE_SYNC){
+      public void run(final SocketWrapper wrapper){
+        SerializationStream s = new SerializationStream(8);
+        s.write(authID);
+        s.write(sID);
+        wrapper.writeBytes(s.data, null, new Handler<Void>(){
+          public boolean onSuccess(Void v){
+            wrapper.read(null, new Handler<Byte>(){
+              public boolean onSuccess(Byte b){
+                results.remove(ret);
+                ret.setResult(b);
+                ping2(wrapper);
+                return true;
+              }
+            });
+            return true;
+          }
+        });
+      }
+    });
+    if (connected){
+      pingNow();
+    }
+    return ret;
+  }
+  /**
+   * Modifies a synchronization task.
+   * @param authID identifies the operator which authenticates this operation.
+   * @param task contains prepared information to send to the database.
+   * @return {@code Result<Byte>} that encapsulates the result of this asynchronous operation.
+   * <ul>
+   * <li>{@code Protocol.SUCCESS}</li>
+   * <li>{@code Protocol.NOT_LOGGED_IN} indiciates the authenticating operator is not logged in.</li>
+   * <li>{@code Protocol.DOES_NOT_EXIST} indicating there is no task whose ID matches.</li>
+   * <li>{@code Protocol.INSUFFICIENT_PERMISSIONS} indicates the authenticating operator does not have the required permissions.</li>
+   * </ul>
+   */
+  public static Result<Byte> modifySyncTask(final int authID, final SyncTask task){
+    final Result<Byte> ret = new Result<Byte>();
+    results.add(ret);
+    enqueue(new RunnableProtocol(Protocol.MODIFY_SYNC){
+      public void run(final SocketWrapper wrapper){
+        byte[] bytes = task.serialize();
+        SerializationStream s = new SerializationStream(bytes.length+4);
+        s.write(authID);
+        s.writeRaw(bytes);
+        wrapper.writeBytes(s.data, null, new Handler<Void>(){
+          public boolean onSuccess(Void v){
+            wrapper.read(null, new Handler<Byte>(){
+              public boolean onSuccess(Byte b){
+                results.remove(ret);
+                ret.setResult(b);
+                ping2(wrapper);
+                return true;
+              }
+            });
+            return true;
+          }
+        });
+      }
+    });
+    if (connected){
+      pingNow();
+    }
+    return ret;
+  }
+  /**
+   * Retrieves a list of all synchronization tasks.
+   * @param authID identifies the operator which authenticates this operation.
+   * @return {@code Result<SyncList>} that encapsulates the result of this asynchronous operation.
+   */
+  public static Result<SyncList> getSyncTasks(final int authID){
+    final Result<SyncList> ret = new Result<SyncList>();
+    SyncList list = new SyncList();
+    results.add(ret);
+    enqueue(new RunnableProtocol(Protocol.GET_SYNC_LIST){
+      public void run(final SocketWrapper wrapper){
+        SerializationStream s = new SerializationStream(4);
+        s.write(authID);
+        wrapper.writeBytes(s.data, null, new Handler<Void>(){
+          public boolean onSuccess(Void v){
+            wrapper.read(null, new Handler<Byte>(){
+              public boolean onSuccess(Byte b){
+                list.status = b;
+                if (b==Protocol.SUCCESS){
+                  wrapper.readBytes(16777216, null, new Handler<byte[]>(){
+                    public boolean onSuccess(byte[] data){
+                      results.remove(ret);
+                      list.tasks = SyncTasks.deserialize(new SerializationStream(data));
+                      ret.setResult(list);
+                      ping2(wrapper);
+                      return true;
+                    }
+                  });
+                }else{
+                  results.remove(ret);
+                  ret.setResult(list);
+                  ping2(wrapper);
+                }
+                return true;
+              }
+            });
+            return true;
+          }
+        });
+      }
+    });
+    if (connected){
+      pingNow();
+    }
+    return ret;
+  }
+  /**
+   * Triggers a synchronization task.
+   * @param authID identifies the operator which authenticates this operation.
+   * @param sID identifies the SyncTask to be triggered.
+   * @return {@code Result<Byte>} that encapsulates the result of this asynchronous operation.
+   * <ul>
+   * <li>{@code Protocol.SUCCESS}</li>
+   * <li>{@code Protocol.NOT_LOGGED_IN} indiciates the authenticating operator is not logged in.</li>
+   * <li>{@code Protocol.INSUFFICIENT_PERMISSIONS} indicates the authenticating operator does not have the required permissions.</li>
+   * <li>{@code Protocol.DOES_NOT_EXIST} indicates the specified SyncTask does not exist.</li>
+   * </ul>
+   */
+  public static Result<Byte> triggerSyncTask(final int authID, final int sID){
+    final Result<Byte> ret = new Result<Byte>();
+    results.add(ret);
+    enqueue(new RunnableProtocol(Protocol.TRIGGER_SYNC){
+      public void run(final SocketWrapper wrapper){
+        SerializationStream s = new SerializationStream(8);
+        s.write(authID);
+        s.write(sID);
+        wrapper.writeBytes(s.data, null, new Handler<Void>(){
+          public boolean onSuccess(Void v){
+            wrapper.read(null, new Handler<Byte>(){
+              public boolean onSuccess(Byte b){
+                results.remove(ret);
+                ret.setResult(b);
+                ping2(wrapper);
+                return true;
+              }
+            });
+            return true;
+          }
+        });
+      }
+    });
+    if (connected){
+      pingNow();
+    }
+    return ret;
+  }
+  /**
+   * Triggers all synchronization tasks.
+   * @param authID identifies the operator which authenticates this operation.
+   * @return {@code Result<Byte>} that encapsulates the result of this asynchronous operation.
+   * <ul>
+   * <li>{@code Protocol.SUCCESS}</li>
+   * <li>{@code Protocol.NOT_LOGGED_IN} indiciates the authenticating operator is not logged in.</li>
+   * <li>{@code Protocol.INSUFFICIENT_PERMISSIONS} indicates the authenticating operator does not have the required permissions.</li>
+   * </ul>
+   */
+  public static Result<Byte> triggerSyncTasks(final int authID){
+    final Result<Byte> ret = new Result<Byte>();
+    results.add(ret);
+    enqueue(new RunnableProtocol(Protocol.TRIGGER_SYNC){
       public void run(final SocketWrapper wrapper){
         SerializationStream s = new SerializationStream(4);
         s.write(authID);

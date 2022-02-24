@@ -105,7 +105,7 @@ public class Main {
             //Occurs when asyncGroup.shutdown() is called from another thread
             //Do nothing
           }catch(final Throwable e){
-            enqueue(new DelayedRunnable(0){
+            enqueue(new DelayedRunnable(System.currentTimeMillis()){
               public void run(){
                 Logger.log("Connection acceptor encountered error.", e);
                 gracefulExit(true);
@@ -116,7 +116,7 @@ public class Main {
         @Override
         public void failed(final Throwable e, Void v){
           if (!(e instanceof AsynchronousCloseException)){
-            enqueue(new DelayedRunnable(0){
+            enqueue(new DelayedRunnable(System.currentTimeMillis()){
               public void run(){
                 Logger.log("Failed to accept connection.", e);
                 gracefulExit(true);
@@ -139,6 +139,7 @@ public class Main {
       if (connect()){
         Logger.trim(Config.deleteLogAfter);
         enqueueSave();
+        enqueueSync(0);
         DelayedRunnable r;
         while (!asyncGroup.awaitTermination(1000L, TimeUnit.MILLISECONDS)){
           while ((r=queue.poll())!=null){
@@ -154,12 +155,39 @@ public class Main {
   public static void enqueue(DelayedRunnable d){
     queue.offer(d);
   }
+  private static void enqueueSync(long when){
+    enqueue(new DelayedRunnable(when){
+      public void run(){
+        try{
+          final long time = System.currentTimeMillis();
+          SyncTasks.forEach(new Predicate<SyncTask>(){
+            public boolean test(SyncTask t){
+              long x = t.getNextTriggerTime();
+              if (x>=0 && x<=time){
+                triggerSyncTask(t);
+              }
+              return false;
+            }
+          });
+        }catch(Throwable t){
+          Logger.log("Error occurred while checking synchronization tasks.", t);
+        }finally{
+          enqueueSync(System.currentTimeMillis()+Config.syncCheckInterval);
+        }
+      }
+    });
+  }
   private static void enqueueSave(){
     enqueue(new DelayedRunnable(Config.nextBackupTime()){
       public void run(){
-        save();
-        Logger.trim(Config.deleteLogAfter);
-        enqueueSave();
+        try{
+          save();
+          Logger.trim(Config.deleteLogAfter);
+        }catch(Throwable t){
+          Logger.log("Error occurred while backing up database.", t);
+        }finally{
+          enqueueSave();
+        }
       }
     });
   }
@@ -247,18 +275,35 @@ public class Main {
       return false;
     }
   }
+  /**
+   * Trigger the given synchronization task.
+   */
   public static void triggerSyncTask(final SyncTask t){
-    final Path src = SyncTask.resolve(null,t.getSource());
-    if (src!=null){
+    t.resetTrigger();
+    final Path source = SyncTask.resolve(null,t.getSource());
+    final String dst = t.getDestination();
+    if (source!=null){
+      final Path src = source.normalize();
       Connections.forEach(new Predicate<Connection>(){
         public boolean test(Connection c){
           Server s = c.server;
           if (s!=null && t.appliesTo(s.getID())){
-            //TODO
+            c.syncFile(src, dst);
           }
           return true;
         }
       });
     }
+  }
+  /**
+   * Trigger all synchronization tasks.
+   */
+  public static void triggerSyncTasks(){
+    SyncTasks.forEach(new Predicate<SyncTask>(){
+      public boolean test(SyncTask t){
+        triggerSyncTask(t);
+        return false;
+      }
+    });
   }
 }

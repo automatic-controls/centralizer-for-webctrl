@@ -37,13 +37,31 @@ public class SyncTask {
   /**
    * Creates a new synchronization task.
    */
-  protected SyncTask(int ID, String description, long syncInterval, String src, String dst, boolean allServers){
+  public SyncTask(int ID, String description, long syncInterval, String src, String dst, boolean allServers){
     this.ID = ID;
     this.description = description;
     setSyncInterval(syncInterval);
     this.src = src;
     this.dst = dst;
     this.allServers = allServers;
+  }
+  /**
+   * Removes IDs for servers that no longer exist.
+   */
+  public void checkIDs(){
+    if (Database.isServer()){
+      lock.writeLock().lock();
+      try{
+        final Iterator<Integer> i = servers.iterator();
+        while (i.hasNext()){
+          if (Servers.get(i.next())==null){
+            i.remove();
+          }
+        }
+      }finally{
+        lock.writeLock().unlock();
+      }
+    }
   }
   /**
    * Applies the given predicate to each synchronization task.
@@ -83,12 +101,12 @@ public class SyncTask {
   }
   /**
    * Adds the specified server to the server list.
-   * @return {@code true} if the server was added successfully; {@code false} if the server was already present.
+   * @return {@code true} if the server was added successfully; {@code false} otherwise.
    */
   public boolean add(int ID){
     lock.writeLock().lock();
     try{
-      return servers.add(ID);
+      return (Database.isServer() && Servers.get(ID)==null) ? false : servers.add(ID);
     }finally{
       lock.writeLock().unlock();
     }
@@ -171,6 +189,7 @@ public class SyncTask {
     setSyncInterval(t.syncInterval);
     lock.writeLock().lock();
     servers = t.servers;
+    checkIDs();
     lock.writeLock().unlock();
     t.servers = null;
   }

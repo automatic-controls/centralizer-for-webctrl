@@ -108,6 +108,10 @@ public class Config {
    */
   public volatile static long connectionKey = 0;
   /**
+   * Specifies how often to check whether any synchronization tasks need to be triggered.
+   */
+  public final static long syncCheckInterval = 600000L;
+  /**
    * Compares the given version string to the hardcoded version string of this application.
    * Assuming each version string is of the form "MAJOR.MINOR.PATCH",
    * two version strings are compatible whenever the MAJOR and MINOR versions agree.

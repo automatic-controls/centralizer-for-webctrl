@@ -122,6 +122,7 @@ public class SyncTasks {
       for (SyncTask t:list){
         ID = t.getID();
         if (ID>=0 && tasks.get(ID)==null){
+          t.checkIDs();
           tasks.set(ID,t);
           count.incrementAndGet();
         }else{
