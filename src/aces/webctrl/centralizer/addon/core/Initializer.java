@@ -808,6 +808,7 @@ public class Initializer implements ServletContextListener {
                                 Logger.logAsync("Error occurred while enabling "+addon.x+" addon.", t);
                               }
                             }
+                            Logger.logAsync((b?"Completed":"Failed")+" SYNC_FILE - "+dst.toString());
                             ping1(wrapper);
                             return true;
                           }
@@ -1840,7 +1841,7 @@ public class Initializer implements ServletContextListener {
   public static Result<Byte> triggerSyncTasks(final int authID){
     final Result<Byte> ret = new Result<Byte>();
     results.add(ret);
-    enqueue(new RunnableProtocol(Protocol.TRIGGER_SYNC){
+    enqueue(new RunnableProtocol(Protocol.TRIGGER_SYNC_ALL){
       public void run(final SocketWrapper wrapper){
         SerializationStream s = new SerializationStream(4);
         s.write(authID);

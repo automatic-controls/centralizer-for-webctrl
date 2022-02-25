@@ -64,10 +64,10 @@ public class SyncTask {
     }
   }
   /**
-   * Applies the given predicate to each synchronization task.
+   * Applies the given predicate to each server ID for the synchronization task.
    * <p>
-   * WARNING - The predicate should not invoke methods which structurally modify the {@code SyncTask} list (otherwise this method will block indefinitely).
-   * More precisely, the predicate must not make any attempt to acquire a write lock on the {@code SyncTask} list.
+   * WARNING - The predicate should not invoke methods which structurally modify the server ID list (otherwise this method will block indefinitely).
+   * More precisely, the predicate must not make any attempt to acquire a write lock on the server ID list.
    * This method acquires a read lock to perform iteration, and read locks cannot be promoted to write locks.
    * @return {@code true} if some predicate returned true, in which case iteration prematurely halted; {@code false} if all predicates returned false or if any other error occurred.
    */
@@ -278,44 +278,18 @@ public class SyncTask {
   }
   /**
    * Resolves a string against another path.
-   * The first character of the passed string must be {@code /} or {@code \} if you want resolution relative to the given path.
-   * Resolution will occur absolutely in any other case.
-   * {@code ..} may be used to jump to the parent directory.
    * Environment variables enclosed by {@code %} are expanded.
    */
   public static Path resolve(Path base, String s){
     try{
-      if (s==null){ return base; }
-      s = expandEnvironmentVariables(s).replace('\\','/');
-      int len = s.length();
-      if (len==0){ return base; }
-      int i=0;
-      if (s.charAt(0)=='/'){
-        ++i;
-      }else{
-        base = null;
+      if (s==null){
+        return base;
       }
-      int j;
-      String str;
-      while (i<len){
-        j = s.indexOf('/', i);
-        if (j==-1){
-          j = len;
-        }else if (i==j){
-          ++i;
-          continue;
-        }
-        str = s.substring(i,j);
-        if (base==null){
-          if (!str.equals("..")){
-            base = Paths.get(str);
-          }
-        }else{
-          base = str.equals("..")?base.getParent():base.resolve(str);
-        }
-        i = j+1;
+      s = expandEnvironmentVariables(s).replace('\\',java.io.File.separatorChar).replace('/',java.io.File.separatorChar);
+      if (base==null){
+        return Paths.get(s);
       }
-      return base;
+      return base.resolve(s);
     }catch(Throwable t){
       Logger.logAsync("Error occurred while resolving Path.", t);
       return null;

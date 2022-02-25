@@ -284,6 +284,7 @@ public class Main {
     final String dst = t.getDestination();
     if (source!=null){
       final Path src = source.normalize();
+      Logger.logAsync("SYNC_FILE - "+src.toString());
       Connections.forEach(new Predicate<Connection>(){
         public boolean test(Connection c){
           Server s = c.server;

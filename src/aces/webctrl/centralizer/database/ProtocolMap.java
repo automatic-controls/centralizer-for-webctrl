@@ -857,7 +857,7 @@ public class ProtocolMap {
     });
     map.put(Protocol.CREATE_SYNC, new Consumer<Connection>(){
       public void accept(final Connection c){
-        c.wrap.readBytes(16384, null, c.new Handler<byte[]>(){
+        c.wrap.readBytes(32768, null, c.new Handler<byte[]>(){
           public void func(byte[] data){
             try{
               SerializationStream s = new SerializationStream(data);
@@ -886,6 +886,7 @@ public class ProtocolMap {
                     ret = Protocol.FAILURE;
                   }else{
                     ret = Protocol.SUCCESS;
+                    Logger.logAsync("Sync task created by "+t.getOperator().getUsername());
                     c.wrap.write(ret, null, c.new Handler<Void>(){
                       public void func(Void v){
                         SerializationStream s = new SerializationStream(4);
@@ -943,6 +944,7 @@ public class ProtocolMap {
                     ret = Protocol.DOES_NOT_EXIST;
                   }else if (SyncTasks.remove(task)){
                     ret = Protocol.SUCCESS;
+                    Logger.logAsync("Sync task deleted by "+t.getOperator().getUsername());
                   }else{
                     ret = Protocol.FAILURE;
                   }
@@ -964,7 +966,7 @@ public class ProtocolMap {
     });
     map.put(Protocol.MODIFY_SYNC, new Consumer<Connection>(){
       public void accept(final Connection c){
-        c.wrap.readBytes(32, null, c.new Handler<byte[]>(){
+        c.wrap.readBytes(32768, null, c.new Handler<byte[]>(){
           public void func(byte[] data){
             try{
               SerializationStream s = new SerializationStream(data);
@@ -990,6 +992,7 @@ public class ProtocolMap {
                   }else{
                     task2.copy(task);
                     ret = Protocol.SUCCESS;
+                    Logger.logAsync("Sync task modified by "+t.getOperator().getUsername());
                   }
                 }
               }
@@ -1082,6 +1085,7 @@ public class ProtocolMap {
                   }else{
                     ret = Protocol.SUCCESS;
                     Main.triggerSyncTask(task);
+                    Logger.logAsync("Sync task triggered by "+t.getOperator().getUsername());
                   }
                 }
               }
@@ -1122,6 +1126,7 @@ public class ProtocolMap {
                 }else{
                   ret = Protocol.SUCCESS;
                   Main.triggerSyncTasks();
+                  Logger.logAsync("All sync tasks triggered by "+t.getOperator().getUsername());
                 }
               }
               c.wrap.write(ret, null, c.new Handler<Void>(){

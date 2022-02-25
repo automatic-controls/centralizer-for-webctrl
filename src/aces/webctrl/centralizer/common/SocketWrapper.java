@@ -113,6 +113,7 @@ public class SocketWrapper {
    * @oaram <T> is the type of attached object
    */
   public <T> void readPath(final Path p, final T attach, final CompletionHandler<Boolean,T> func){
+    Logger.log("readPath "+p.toString());
     try{
       Path folder = p.getParent();
       Path pp = folder;
@@ -130,6 +131,7 @@ public class SocketWrapper {
     read(attach, new CompletionHandler<Byte,T>(){
       public void completed(Byte b, T attach){
         if (b==Protocol.FILE_TYPE){
+          Logger.log("readPath file");
           try{
             if (Files.exists(p) && Files.isDirectory(p)){
               Files.walkFileTree(p, new SimpleFileVisitor<Path>(){
@@ -154,6 +156,7 @@ public class SocketWrapper {
           }
           readFile(p,attach,func);
         }else if (b==Protocol.FOLDER_TYPE){
+          Logger.log("readPath folder");
           try{
             if (Files.exists(p) && !Files.isDirectory(p)){
               Files.delete(p);
@@ -186,10 +189,12 @@ public class SocketWrapper {
    * @param <T> is the type of attached object.
    */
   public <T> void writePath(final Path p, final T attach, final CompletionHandler<Boolean,T> func){
+    Logger.log("writePath "+p.toString());
     boolean error = false;
     try{
       if (Files.exists(p)){
         if (Files.isDirectory(p)){
+          Logger.log("writePath folder");
           write(Protocol.FOLDER_TYPE, attach, new CompletionHandler<Void,T>(){
             public void completed(Void v, T attach){
               writeFolder(p, attach, func);
@@ -200,6 +205,7 @@ public class SocketWrapper {
             }
           });
         }else if (Files.isRegularFile(p)){
+          Logger.log("writePath file");
           write(Protocol.FILE_TYPE, attach, new CompletionHandler<Void,T>(){
             public void completed(Void v, T attach){
               writeFile(p, attach, func);
@@ -210,9 +216,11 @@ public class SocketWrapper {
             }
           });
         }else{
+          Logger.log("writePath failed because path is not a file or folder.");
           error = true;
         }
       }else{
+        Logger.log("writePath failed because path does not exist.");
         error = true;
       }
     }catch(Throwable t){

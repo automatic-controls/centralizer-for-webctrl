@@ -9,92 +9,414 @@
     <title>
       Synchronization
     </title>
-    <!-- <link rel="stylesheet" type="text/css" href="css/main.css"/> -->
-    <style>
-      body, input, textarea, select {
-        background-color:black;
-        color:white;
-      }
-      button {
-        background-color:darkblue;
-        color:white;
-        border:solid 1px white;
-      }
-      button:hover {
-        background-color:darkred;
-      }
-      button:active {
-        background-color:darkgreen;
-      }
-      button:disabled {
-        background-color:darkslategray;
-      }
-      .e {
-        margin-left:0.5em;
-        margin-right:0.5em;
-        margin-top:0.25em;
-        margin-bottom:0.25em;
-      }
-      .column {
-        float:left;
-        width:50%;
-      }
-      .row {
-        content: "";
-        display:table;
-        clear:both;
-        width:100%;
-      }
-      a:link {
-        color: lightgreen;
-        background-color: transparent;
-        text-decoration: none;
-      }
-      a:visited {
-        color: lightgreen;
-        background-color: transparent;
-        text-decoration: none;
-      }
-      a:hover {
-        color: red;
-        background-color: transparent;
-        text-decoration: underline;
-      }
-      a:active {
-        color: yellow;
-        background-color: transparent;
-        text-decoration: underline;
-      }
-      td, th {
-        padding:4px;
-        border:solid 1px white;
-      }
-      table:not(.nohighlight) > tr:hover > td {
-        background-color:darkgreen;
-      }
-      tr:nth-child(odd) {
-        background-color:#222222;
-      }
-      tr:nth-child(even) {
-        background-color:#090909;
-      }
-      th {
-        background-color:darkslategray;
-      }
-      table {
-        border:solid 1px white;
-        border-collapse:collapse;
-      }
-    </style>
+    <link rel="stylesheet" type="text/css" href="css/main.css"/>
     <script>
-      
+      function resizeTextArea(area){
+        area.style.height = "auto";
+        area.style.height = area.scrollHeight+"px";
+        area.style.width = "auto";
+        area.style.width = area.scrollWidth+"px";
+      }
+      function validateLong(obj){
+        let str = obj.value;
+        if (str.length>0){
+          str = str.replace(/\D/g,"");
+          if (str.length>18){
+            str = str.substring(0,18);
+          }
+          obj.value = str;
+        }
+      }
+      function addTask(id, desc, src, dst, syncInterval, allServers, servers){
+        let modified = false;
+        const stat = document.createElement("H3");
+        const onModify = ()=>{
+          modified = true;
+          checkModify();
+        };
+        const checkModify = ()=>{
+          stat.innerHTML = modified?"Unsaved Changes":"Idle";
+        };
+        const tr = document.createElement("TR");
+        const td_desc = document.createElement("TD");
+        const td_src = document.createElement("TD");
+        const td_dst = document.createElement("TD");
+        const td_sync = document.createElement("TD");
+        const td_servers = document.createElement("TD");
+        const td_actions = document.createElement("TD");
+        const td_status = document.createElement("TD");
+        tr.appendChild(td_desc);
+        tr.appendChild(td_src);
+        tr.appendChild(td_dst);
+        tr.appendChild(td_sync);
+        tr.appendChild(td_servers);
+        tr.appendChild(td_actions);
+        tr.appendChild(td_status);
+        const _desc = document.createElement("TEXTAREA");
+        _desc.className = "e";
+        _desc.value = desc;
+        _desc.style.overflow = "hidden";
+        _desc.setAttribute("rows", "1");
+        _desc.setAttribute("cols", "10");
+        _desc.style.resize = "none";
+        _desc.oninput = ()=>{
+          resizeTextArea(_desc);
+          onModify();
+        };
+        _desc.setAttribute("wrap", "off");
+        td_desc.appendChild(_desc);
+        const _src = document.createElement("INPUT");
+        _src.style.textAlign = "center";
+        _src.className = "e";
+        _src.value = src;
+        _src.oninput = onModify;
+        _src.setAttribute("spellcheck", "false");
+        td_src.appendChild(_src);
+        const _dst = document.createElement("INPUT");
+        _dst.style.textAlign = "center";
+        _dst.className = "e";
+        _dst.value = dst;
+        _dst.oninput = onModify;
+        _dst.setAttribute("spellcheck", "false");
+        td_dst.appendChild(_dst);
+        const _sync = document.createElement("INPUT");
+        _sync.style.textAlign = "center";
+        _sync.className = "e";
+        _sync.value = syncInterval;
+        _sync.oninput = ()=>{
+          validateLong(_sync);
+          onModify();
+        };
+        td_sync.appendChild(_sync);
+        stat.className = "e";
+        stat.style.color = "red";
+        td_status.appendChild(stat);
+        const _allServers = document.createElement("INPUT");
+        _allServers.type = "checkbox";
+        _allServers.checked = allServers;
+        _allServers.className = "e";
+        _allServers.style.marginTop = "1em";
+        _allServers.style.marginBottom = "1em";
+        td_servers.appendChild(_allServers);
+        const _allServersLabel = document.createElement("LABEL");
+        _allServersLabel.innerHTML = "All Servers";
+        td_servers.appendChild(_allServersLabel);
+        const _list = document.createElement("TABLE");
+        _list.style.width = "100%";
+        const addServer = (sID)=>{
+          const name = serverMappings[sID];
+          if (name){
+            const r = document.createElement("TR");
+            r.sID = sID;
+            const a = document.createElement("TD");
+            a.innerHTML = name;
+            const b = document.createElement("TD");
+            const del = document.createElement("BUTTON");
+            del.className = "e";
+            del.innerHTML = "Delete";
+            del.onclick = ()=>{
+              r.parentNode.removeChild(r);
+              onModify();
+            };
+            b.appendChild(del);
+            r.appendChild(a);
+            r.appendChild(b);
+            _list.appendChild(r);
+          }
+        };
+        const addServerRow = document.createElement("TR");
+        addServerRow.sID = "-1";
+        const td_newServer = document.createElement("TH");
+        const td_addButton = document.createElement("TH");
+        const newServer = document.createElement("SELECT");
+        const addButton = document.createElement("BUTTON");
+        td_addButton.appendChild(addButton);
+        td_newServer.appendChild(newServer);
+        newServer.style.textAlign = "center";
+        {
+          const s = document.createElement("OPTION");
+          s.value = "-1";
+          s.innerText = "NULL";
+          newServer.appendChild(s);
+        }
+        for (const [k,v] of Object.entries(serverMappings)){
+          const s = document.createElement("OPTION");
+          s.value = k;
+          s.innerText = v;
+          newServer.appendChild(s);
+        }
+        addButton.className = "e";
+        addButton.innerHTML = "Add";
+        addButton.onclick = ()=>{
+          const sel = newServer.value;
+          if (sel!=="-1"){
+            newServer.value = "-1";
+            let add = true;
+            for (const e of _list.getElementsByTagName("TR")){
+              if (sel===e.sID){
+                return;
+              }
+            }
+            onModify();
+            addServer(sel);
+          }
+        };
+        td_newServer.value = "-1";
+        addServerRow.appendChild(td_newServer);
+        addServerRow.appendChild(td_addButton);
+        _list.appendChild(addServerRow);
+        for (const s of servers){
+          addServer(s);
+        }
+        _allServers.onchange = ()=>{
+          onModify();
+          if (_allServers.checked){
+            _list.style.display = "none";
+          }else{
+            _list.style.display = "table";
+          }
+        };
+        _allServers.onchange();
+        td_servers.appendChild(_list);
+        const saveButton = document.createElement("BUTTON");
+        const triggerButton = document.createElement("BUTTON");
+        const deleteButton = document.createElement("BUTTON");
+        saveButton.innerHTML = "Save";
+        triggerButton.innerHTML = "Trigger";
+        deleteButton.innerHTML = "Delete";
+        saveButton.className = "e";
+        triggerButton.className = "e";
+        deleteButton.className = "e";
+        td_actions.appendChild(saveButton);
+        td_actions.appendChild(document.createElement("BR"));
+        td_actions.appendChild(triggerButton);
+        td_actions.appendChild(document.createElement("BR"));
+        td_actions.appendChild(deleteButton);
+        saveButton.onclick = ()=>{
+          if (!saveButton.disabled && modified){
+            saveButton.disabled = true;
+            _sync.oninput();
+            const a = _desc.value;
+            const b = _src.value;
+            const c = _dst.value;
+            const d = _sync.value;
+            if (a.length===0 || b.length===0 || c.length===0 || d.length===0){
+              saveButton.disabled = false;
+              stat.innerHTML = "Please Populate All Fields";
+            }else{
+              stat.innerHTML = "Saving..."
+              const req = new XMLHttpRequest();
+              req.open("POST","__PREFIX__ManageFileSync",true);
+              req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
+              req.onreadystatechange = function(){
+                if (this.readyState===4){
+                  if (this.status===200){
+                    stat.innerHTML = "Changes Saved"
+                    modified = false;
+                  }else if (this.status===504){
+                    stat.innerHTML = "Request Timed Out";
+                  }else if (this.status===403){
+                    stat.innerHTML = "Insufficient Permissions";
+                  }else{
+                    stat.innerHTML = "Error Code: "+this.status;
+                  }
+                  saveButton.disabled = false;
+                }
+              };
+              let s = "";
+              for (const e of _list.getElementsByTagName("TR")){
+                if (e.sID!=="-1"){
+                  s+=e.sID+" ";
+                }
+              }
+              s = s.trim();
+              req.send(
+                "type=save"+
+                "&id="+encodeURIComponent(id)+
+                "&desc="+encodeURIComponent(a)+
+                "&src="+encodeURIComponent(b)+
+                "&dst="+encodeURIComponent(c)+
+                "&sync="+encodeURIComponent(d)+
+                "&all="+encodeURIComponent(_allServers.checked?"true":"false")+
+                "&servers="+encodeURIComponent(s)
+              );
+            }
+          }
+        };
+        triggerButton.onclick = ()=>{
+          if (!triggerButton.disabled){
+            triggerButton.disabled = true;
+            stat.innerHTML = "Triggering...";
+            const req = new XMLHttpRequest();
+            req.open("POST","__PREFIX__ManageFileSync",true);
+            req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
+            req.onreadystatechange = function(){
+              if (this.readyState===4){
+                if (this.status===200){
+                  stat.innerHTML = "Triggered"
+                }else if (this.status===504){
+                  stat.innerHTML = "Request Timed Out";
+                }else if (this.status===403){
+                  stat.innerHTML = "Insufficient Permissions";
+                }else{
+                  stat.innerHTML = "Error Code: "+this.status;
+                }
+                triggerButton.disabled = false;
+              }
+            };
+            req.send("type=trigger&id="+encodeURIComponent(id));
+          }
+        };
+        deleteButton.onclick = ()=>{
+          if (!deleteButton.disabled && confirm("Are you sure you want to delete this mapping?") && !deleteButton.disabled){
+            deleteButton.disabled = true;
+            stat.innerHTML = "Deleting...";
+            const req = new XMLHttpRequest();
+            req.open("POST","__PREFIX__ManageFileSync",true);
+            req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
+            req.onreadystatechange = function(){
+              if (this.readyState===4){
+                if (this.status===200){
+                  tr.parentNode.removeChild(tr);
+                }else if (this.status===504){
+                  stat.innerHTML = "Request Timed Out";
+                }else if (this.status===403){
+                  stat.innerHTML = "Insufficient Permissions";
+                }else{
+                  stat.innerHTML = "Error Code: "+this.status;
+                }
+                deleteButton.disabled = false;
+              }
+            };
+            req.send("type=delete&id="+encodeURIComponent(id));
+          }
+        };
+        tr.save = saveButton.onclick;
+        headerRow.parentNode.insertBefore(tr, newTaskRow);
+        _desc.oninput();
+        modified = false;
+        checkModify();
+      }
+      function saveAll(){
+        for (const row of taskList.children){
+          if (row.tagName==="TR"){
+            row.save();
+          }
+        }
+      }
+      function triggerAll(button){
+        button.disabled = true;
+        statusText.innerHTML = "Submitting...";
+        const req = new XMLHttpRequest();
+        req.open("POST","__PREFIX__ManageFileSync",true);
+        req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
+        req.onreadystatechange = function(){
+          if (this.readyState===4){
+            if (this.status===200){
+              statusText.innerHTML = "Global Sync Triggered";
+            }else if (this.status===504){
+              statusText.innerHTML = "Request Timed Out";
+            }else if (this.status===403){
+              statusText.innerHTML = "Insufficient Permissions";
+            }else{
+              statusText.innerHTML = "Error Code: "+this.status;
+            }
+            button.disabled = false;
+          }
+        };
+        req.send("type=triggerAll");
+      }
+      function createTask(button){
+        button.disabled = true;
+        validateLong(newTaskSync);
+        const a = newTaskDesc.value;
+        const b = newTaskSrc.value;
+        const c = newTaskDst.value;
+        const d = newTaskSync.value;
+        const e = newTaskAll.checked;
+        if (a.length===0 || b.length===0 || c.length===0 || d.length===0){
+          button.disabled = false;
+          newTaskStatus.innerHTML = "Please Populate All Fields";
+        }else{
+          newTaskStatus.innerHTML = "Creating..."
+          const req = new XMLHttpRequest();
+          req.open("POST","__PREFIX__ManageFileSync",true);
+          req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
+          req.onreadystatechange = function(){
+            if (this.readyState===4){
+              if (this.status===200){
+                newTaskDesc.value = "";
+                newTaskDesc.oninput();
+                newTaskSrc.value = "";
+                newTaskDst.value = "";
+                newTaskSync.value = "";
+                newTaskAll.checked = false;
+                addTask(this.responseText, a, b, c, d, e, []);
+                newTaskStatus.innerHTML = "";
+              }else if (this.status===504){
+                newTaskStatus.innerHTML = "Request Timed Out";
+              }else if (this.status===403){
+                newTaskStatus.innerHTML = "Insufficient Permissions";
+              }else{
+                newTaskStatus.innerHTML = "Error Code: "+this.status;
+              }
+              button.disabled = false;
+            }
+          };
+          req.send(
+            "type=create"+
+            "&desc="+encodeURIComponent(a)+
+            "&src="+encodeURIComponent(b)+
+            "&dst="+encodeURIComponent(c)+
+            "&sync="+encodeURIComponent(d)+
+            "&all="+encodeURIComponent(e?"true":"false")
+          );
+        }
+      }
     </script>
   </head>
   <body>
     <div style="text-align:center">
-      <h1>File Synchronization Tasks</h1>
-      
+      <h1>File Synchronization Management</h1>
+      <br>
+      <table id="taskList" style="margin:0 auto" class="nohighlight">
+        <tr id="headerRow">
+          <th>Description</th>
+          <th>Source</th>
+          <th>Destination</th>
+          <th>Sync Interval (ms)</th>
+          <th>Affected Servers</th>
+          <th>Actions</th>
+          <th>Status</th>
+        </tr>
+        <tr id="newTaskRow">
+          <td><textarea id="newTaskDesc" class="e" style="overflow:hidden;resize:none" rows="1" cols="10" wrap="off" oninput="resizeTextArea(this)"></textarea></td>
+          <td><input id="newTaskSrc" class="e" style="text-align:center" spellcheck="false"></td>
+          <td><input id="newTaskDst" class="e" style="text-align:center" spellcheck="false"></td>
+          <td><input id="newTaskSync" class="e" style="text-align:center" oninput="validateLong(this)"></td>
+          <td>
+            <input id="newTaskAll" type="checkbox" class="e">
+            <label>All Servers</label>
+          </td>
+          <td><button class="e" onclick="createTask(this)">Create</button></td>
+          <td><h3 id="newTaskStatus" class="e" style="color:red"></h3></td>
+        </tr>
+      </table>
+      <br>
+      <button class="e" onclick="location.reload()">Refresh</button>
+      <button class="e" onclick="saveAll()">Save All</button>
+      <button class="e" onclick="triggerAll(this)">Trigger All</button>
       <h3 id="statusText" class="e" style="color:red"></h3>
+      <br>
+      <a href="__PREFIX__index" class="e">Primary Configuration Page</a><br>
     </div>
+    <script>
+      headerRow.save = ()=>{
+        statusText.innerHTML = "";
+      };
+      newTaskRow.save = ()=>{};
+      var serverMappings = {};
+      //__INIT_SCRIPT__
+    </script>
   </body>
 </html>
