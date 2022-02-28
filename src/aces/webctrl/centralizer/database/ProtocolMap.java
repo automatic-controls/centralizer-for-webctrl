@@ -7,6 +7,7 @@ package aces.webctrl.centralizer.database;
 import aces.webctrl.centralizer.common.*;
 import java.util.*;
 import java.util.function.*;
+import java.nio.file.*;
 public class ProtocolMap {
   private final static TreeMap<Byte,Consumer<Connection>> protocolMap = generateMap();
   public static void exec(Connection con, Byte b){
@@ -1138,6 +1139,47 @@ public class ProtocolMap {
               Logger.logAsync("Error occurred in TRIGGER_SYNC_ALL protocol.",e);
               c.close(true);
               return;
+            }
+          }
+        });
+      }
+    });
+    map.put(Protocol.UPLOAD_FILE, new Consumer<Connection>(){
+      public void accept(final Connection c){
+        c.wrap.readBytes(16384, null, c.new Handler<byte[]>(){
+          public void func(byte[] data){
+            boolean err = false;
+            try{
+              Path dest = SyncTask.resolve(Main.getUploads(), new String(data, java.nio.charset.StandardCharsets.UTF_8));
+              if (dest==null){
+                err = true;
+              }else{
+                final Path dst = dest.normalize();
+                if (dst.startsWith(Main.getUploads()) || (!dst.startsWith(Main.getInstallation()) && !Main.getInstallation().startsWith(dst))){
+                  c.wrap.write(Protocol.SUCCESS, null, c.new Handler<Void>(){
+                    public void func(Void v){
+                      c.wrap.readPath(dst, null, c.new Handler<Boolean>(){
+                        public void func(Boolean b){
+                          Logger.logAsync((b?"Completed":"Failed")+" UPLOAD_FILE - "+dst.toString());
+                          c.listen3();
+                        }
+                      }, null, null);
+                    }
+                  });
+                }else{
+                  err = true;
+                }
+              }
+            }catch(Throwable t){
+              Logger.logAsync("Error occurred in UPLOAD_FILE protocol.", t);
+              err = true;
+            }
+            if (err){
+              c.wrap.write(Protocol.FAILURE, null, c.new Handler<Void>(){
+                public void func(Void v){
+                  c.listen3();
+                }
+              });
             }
           }
         });

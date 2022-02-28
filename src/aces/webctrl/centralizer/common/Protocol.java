@@ -212,6 +212,12 @@ public class Protocol {
    * </ul>
    */
   public final static byte TRIGGER_SYNC_ALL = ++ID1;
+  /**
+   * Indicates the client wants to upload a file to the database.
+   * No additional authentication parameters are required.
+   * However, the destination path cannot interfere with core database files.
+   */
+  public final static byte UPLOAD_FILE = ++ID1;
 
 
 

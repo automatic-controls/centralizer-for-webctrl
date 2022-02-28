@@ -17,10 +17,12 @@ public class Main {
 
   /** Path to the installation folder (the .jar location) */
   private volatile static Path installation = null;
-  /** Path to the WINSW executable. */
+  /** Path to the WINSW executable */
   private volatile static String WINSW = null;
   /** Path to the XML configuration file for the Windows service */
   private volatile static String serviceXML = null;
+  /** Path where files may be uploaded to. */
+  private volatile static Path uploadFolder = null;
 
   /** Where all files are stored for this database */
   private volatile static Path rootFolder = null;
@@ -52,7 +54,8 @@ public class Main {
     try{
       //Minimal initialization sequence to establish logging capabilities
       
-      rootFolder = Paths.get(System.getenv("HomeDrive"), "Centralizer for WebCTRL");
+      installation = Paths.get(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParent().normalize();
+      rootFolder = installation.resolve("data");
       lockFile = rootFolder.resolve("lock");
       if (!Files.exists(rootFolder)){
         Files.createDirectory(rootFolder);
@@ -91,9 +94,16 @@ public class Main {
     try{
       //Initialization
 
-      installation = Paths.get(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParent();
       WINSW = '"'+installation.resolve("winsw.exe").toString()+'"';
       serviceXML = '"'+installation.resolve("service.xml").toString()+'"';
+      uploadFolder = installation.resolve("uploads").normalize();
+      try{
+        if (!Files.exists(uploadFolder)){
+          Files.createDirectory(uploadFolder);
+        }
+      }catch(Throwable t){
+        Logger.log("Error occurred while creating folder: "+uploadFolder.toString(), t);
+      }
 
       clientAcceptor = new CompletionHandler<AsynchronousSocketChannel,Void>(){
         @Override
@@ -306,5 +316,17 @@ public class Main {
         return false;
       }
     });
+  }
+  /**
+   * @return the installation folder for this application.
+   */
+  public static Path getInstallation(){
+    return installation;
+  }
+  /**
+   * @return the folder that all uploaded files are sent to by default.
+   */
+  public static Path getUploads(){
+    return uploadFolder;
   }
 }

@@ -7,8 +7,6 @@ package aces.webctrl.centralizer.common;
 import java.security.*;
 import java.nio.file.*;
 import java.util.concurrent.atomic.*;
-//TODO (New Feature) - Data Retrieval - Retrieves data from clients
-//TODO (New Feature) - Script Executor - Executes scripts on client machines
 //TODO (Performance Improvement) - Make every IO operation non-blocking
 /**
  * Thread-safe namespace for initializing and saving the database.

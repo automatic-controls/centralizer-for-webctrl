@@ -94,7 +94,6 @@ exit /b
 
 :uninstallFunc
   "%~dp0winsw" uninstall "%~dp0service.xml"
-  rmdir /S /Q "%HomeDrive%\Centralizer for WebCTRL"
   echo.
   echo To complete uninstallation, please delete "%~dp0".
   echo Or run "%~dp0install.vbs" to reinstall the service.
@@ -106,7 +105,6 @@ exit /b
     echo   ^<id^>centralizerDatabaseForWebCTRL^</id^>
     echo   ^<name^>Centralizer for WebCTRL^</name^>
     echo   ^<description^>This service manages a database which is intended to interface with the corresponding WebCTRL add-on.^</description^>
-    echo   ^<env name="HomeDrive" value="%HomeDrive%"/^>
     echo   ^<executable^>%%BASE%%\jre\bin\java^</executable^>
     echo   ^<arguments^>-cp "%%BASE%%\*" aces.webctrl.centralizer.database.Main^</arguments^>
     echo   ^<stoptimeout^>60sec^</stoptimeout^>

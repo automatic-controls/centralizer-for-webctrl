@@ -647,7 +647,7 @@ public class Initializer implements ServletContextListener {
   private static void enqueuePing(final SocketWrapper wrapper, long expiry){
     if (!stop){
       synchronized (nextPingLock){
-        if (nextPing==null || expiry<=nextPing.getExpiry()){
+        if (nextPing==null || expiry<nextPing.getExpiry()){
           if (nextPing!=null){
             nextPing.cancel();
           }
@@ -1855,6 +1855,52 @@ public class Initializer implements ServletContextListener {
                 results.remove(ret);
                 ret.setResult(b);
                 ping2(wrapper);
+                return true;
+              }
+            });
+            return true;
+          }
+        });
+      }
+    });
+    if (connected){
+      pingNow();
+    }
+    return ret;
+  }
+  /**
+   * Uploads a file to the database.
+   * @param src specifies the source file to upload.
+   * @param dst specifies the destination path on the database.
+   * @return {@code Result<Byte>} that encapsulates the result of this asynchronous operation.
+   * <ul>
+   * <li>{@code Protocol.SUCCESS}</li>
+   * <li>{@code Protocol.FAILURE}</li>
+   * </ul>
+   */
+  public static Result<Byte> uploadFile(final Path src, final String dst){
+    final Result<Byte> ret = new Result<Byte>();
+    results.add(ret);
+    enqueue(new RunnableProtocol(Protocol.UPLOAD_FILE){
+      public void run(final SocketWrapper wrapper){
+        wrapper.writeBytes(dst.getBytes(java.nio.charset.StandardCharsets.UTF_8), null, new Handler<Void>(){
+          public boolean onSuccess(Void v){
+            wrapper.read(null, new Handler<Byte>(){
+              public boolean onSuccess(Byte b){
+                if (b==Protocol.SUCCESS){
+                  wrapper.writePath(src, null, new Handler<Boolean>(){
+                    public boolean onSuccess(Boolean b){
+                      results.remove(ret);
+                      ret.setResult(b?Protocol.SUCCESS:Protocol.FAILURE);
+                      ping2(wrapper);
+                      return true;
+                    }
+                  }, null, null);
+                }else{
+                  results.remove(ret);
+                  ret.setResult(b);
+                  ping2(wrapper);
+                }
                 return true;
               }
             });
