@@ -91,10 +91,8 @@ public class ManageFileSync extends SecureServlet {
           ret.waitForResult(System.currentTimeMillis()+10000);
           final Byte b = ret.getResult();
           if (b==null){
-            Logger.log("NULL RESULT: type=triggerAll");
             res.setStatus(504);
           }else if (b!=Protocol.SUCCESS){
-            Logger.log("BAD STATUS: type=triggerAll");
             res.setStatus(403);
           }
         }else if (type.equals("trigger")){
@@ -108,10 +106,8 @@ public class ManageFileSync extends SecureServlet {
               ret.waitForResult(System.currentTimeMillis()+10000);
               final Byte b = ret.getResult();
               if (b==null){
-                Logger.log("NULL RESULT: type=trigger");
                 res.setStatus(504);
               }else if (b!=Protocol.SUCCESS){
-                Logger.log("BAD STATUS: type=trigger");
                 res.setStatus(403);
               }
             }catch(NumberFormatException e){
@@ -129,10 +125,8 @@ public class ManageFileSync extends SecureServlet {
               ret.waitForResult(System.currentTimeMillis()+10000);
               final Byte b = ret.getResult();
               if (b==null){
-                Logger.log("NULL RESULT: type=delete");
                 res.setStatus(504);
               }else if (b!=Protocol.SUCCESS){
-                Logger.log("BAD STATUS: type=delete");
                 res.setStatus(403);
               }
             }catch(NumberFormatException e){
@@ -149,7 +143,6 @@ public class ManageFileSync extends SecureServlet {
           final String servers = req.getParameter("servers");
           if (id==null || desc==null || src==null || dst==null || sync==null || all==null || servers==null){
             res.setStatus(400);
-            Logger.log("NULL PARAMS: type=save");
           }else{
             try{
               final SyncTask t = new SyncTask(Integer.parseInt(id), desc, Long.parseLong(sync), src, dst, Boolean.parseBoolean(all));
@@ -160,18 +153,15 @@ public class ManageFileSync extends SecureServlet {
                 }
               }
               final Result<Byte> ret = Initializer.modifySyncTask(authID, t);
-              ret.waitForResult(12000);
+              ret.waitForResult(System.currentTimeMillis()+12000);
               final Byte b = ret.getResult();
               if (b==null){
-                Logger.log("NULL RESULT: type=save");
                 res.setStatus(504);
               }else if (b!=Protocol.SUCCESS){
-                Logger.log("BAD STATUS: type=save");
                 res.setStatus(403);
               }
             }catch(NumberFormatException e){
               res.setStatus(400);
-              Logger.log("ERROR: type=save", e);
             }
           }
         }else if (type.equals("create")){
@@ -182,17 +172,14 @@ public class ManageFileSync extends SecureServlet {
           final String all = req.getParameter("all");
           if (desc==null || src==null || dst==null || sync==null || all==null){
             res.setStatus(400);
-            Logger.log("NULL PARAMS: type=create");
           }else{
             try{
               final Result<SyncStatus> ret = Initializer.createSyncTask(authID, desc, Long.parseLong(sync), src, dst, Boolean.parseBoolean(all));
-              ret.waitForResult(15000);
+              ret.waitForResult(System.currentTimeMillis()+15000);
               final SyncStatus stat = ret.getResult();
               if (stat==null){
-                Logger.log("NULL RESULT: type=create");
                 res.setStatus(504);
               }else if (stat.status!=Protocol.SUCCESS || stat.ID==-1){
-                Logger.log("BAD STATUS: type=create");
                 res.setStatus(403);
               }else{
                 res.setContentType("text/plain");
@@ -200,7 +187,6 @@ public class ManageFileSync extends SecureServlet {
               }
             }catch(NumberFormatException e){
               res.setStatus(400);
-              Logger.log("ERROR: type=create", e);
             }
           }
         }else{

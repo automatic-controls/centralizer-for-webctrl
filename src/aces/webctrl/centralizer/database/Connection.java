@@ -162,7 +162,11 @@ public class Connection implements Comparable<Connection> {
   abstract class Handler<T> implements CompletionHandler<T,Void> {
     public abstract void func(T ret);
     @Override public void completed(T ret, Void v){
-      func(ret);
+      try{
+        func(ret);
+      }catch(Throwable t){
+        Logger.logAsync("Error occurred in Handler.", t);
+      }
     }
     @Override public void failed(Throwable e, Void v){
       close(true);
@@ -571,7 +575,7 @@ public class Connection implements Comparable<Connection> {
                       public void func(Boolean b){
                         listen2();
                       }
-                    });
+                    }, null, null);
                   }else{
                     listen2();
                   }

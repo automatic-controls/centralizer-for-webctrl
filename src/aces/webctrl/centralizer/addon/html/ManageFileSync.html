@@ -71,6 +71,7 @@
         _src.value = src;
         _src.oninput = onModify;
         _src.setAttribute("spellcheck", "false");
+        _src.setAttribute("size", "40");
         td_src.appendChild(_src);
         const _dst = document.createElement("INPUT");
         _dst.style.textAlign = "center";
@@ -78,6 +79,7 @@
         _dst.value = dst;
         _dst.oninput = onModify;
         _dst.setAttribute("spellcheck", "false");
+        _dst.setAttribute("size", "40");
         td_dst.appendChild(_dst);
         const _sync = document.createElement("INPUT");
         _sync.style.textAlign = "center";
@@ -391,8 +393,8 @@
         </tr>
         <tr id="newTaskRow">
           <td><textarea id="newTaskDesc" class="e" style="overflow:hidden;resize:none" rows="1" cols="10" wrap="off" oninput="resizeTextArea(this)"></textarea></td>
-          <td><input id="newTaskSrc" class="e" style="text-align:center" spellcheck="false"></td>
-          <td><input id="newTaskDst" class="e" style="text-align:center" spellcheck="false"></td>
+          <td><input id="newTaskSrc" class="e" style="text-align:center" spellcheck="false" size="40"></td>
+          <td><input id="newTaskDst" class="e" style="text-align:center" spellcheck="false" size="40"></td>
           <td><input id="newTaskSync" class="e" style="text-align:center" oninput="validateLong(this)"></td>
           <td>
             <input id="newTaskAll" type="checkbox" class="e">

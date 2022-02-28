@@ -511,6 +511,7 @@ public class Initializer implements ServletContextListener {
                                                                         ClientConfig.identifier = s.readBytes();
                                                                         status = "Connected";
                                                                         cancelNextPing();
+                                                                        Logger.logAsync("Connected to database.");
                                                                         enqueuePing(wrapper,0);
                                                                         return false;
                                                                       }catch(Throwable e){
@@ -551,6 +552,7 @@ public class Initializer implements ServletContextListener {
                                                                 if (b.byteValue()==Protocol.SUCCESS){
                                                                   status = "Connected";
                                                                   cancelNextPing();
+                                                                  Logger.logAsync("Connected to database.");
                                                                   enqueuePing(wrapper,0);
                                                                   return false;
                                                                 }else{
@@ -780,39 +782,39 @@ public class Initializer implements ServletContextListener {
                     err = true;
                   }else{
                     final Path dst = dest.normalize();
-                    final Container<String> addon = new Container<String>();
-                    try{
-                      if (dst.startsWith(addonsFolder)){
-                        final String name = dst.getFileName().toString();
-                        final int len = name.length();
-                        if (len>=6 && name.endsWith(".addon")){
-                          addon.x = name.substring(0,len-6);
-                          if (Files.isRegularFile(dst)){
-                            HelperAPI.disableAddon(addon.x);
-                          }
-                        }
-                      }
-                    }catch(Throwable t){
-                      Logger.logAsync("Error occurred while checking SyncTask for addons.", t);
-                    }
+                    final ArrayList<String> addons = new ArrayList<String>(8);
                     wrapper.write(Protocol.SUCCESS, null, new Handler<Void>(){
                       public boolean onSuccess(Void v){
                         wrapper.readPath(dst, null, new Handler<Boolean>(){
                           public boolean onSuccess(Boolean b){
-                            if (addon.x!=null){
+                            for (String str:addons){
                               try{
-                                if (Files.isRegularFile(dst)){
-                                  HelperAPI.enableAddon(addon.x);
-                                }
+                                HelperAPI.enableAddon(str);
                               }catch(Throwable t){
-                                Logger.logAsync("Error occurred while enabling "+addon.x+" addon.", t);
+                                Logger.logAsync("Error occurred while enabling "+str+" addon.", t);
                               }
                             }
                             Logger.logAsync((b?"Completed":"Failed")+" SYNC_FILE - "+dst.toString());
                             ping1(wrapper);
                             return true;
                           }
-                        });
+                        }, dst.startsWith(addonsFolder)?new Consumer<Path>(){
+                          public void accept(Path p){
+                            try{
+                              final String name = p.getFileName().toString();
+                              final int len = name.length();
+                              if (len>=6 && name.endsWith(".addon")){
+                                String str = name.substring(0,len-6);
+                                addons.add(str);
+                                if (Files.isRegularFile(p)){
+                                  HelperAPI.disableAddon(str);
+                                }
+                              }
+                            }catch(Throwable t){
+                              Logger.logAsync("Error occurred while checking SyncTask for addons.", t);
+                            }
+                          }
+                        }:null, null);
                         return true;
                       }
                     });
@@ -1639,6 +1641,7 @@ public class Initializer implements ServletContextListener {
                       stat.ID = new SerializationStream(data).readInt();
                       results.remove(ret);
                       ret.setResult(stat);
+                      ping2(wrapper);
                       return true;
                     }
                   });

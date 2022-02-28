@@ -10,6 +10,7 @@ import java.nio.file.*;
 import java.nio.channels.*;
 import java.util.concurrent.TimeUnit;
 import java.util.*;
+import java.util.function.*;
 /**
  * Wraps an {@code AsynchronousSocketChannel} to provide automatic encrytion and decryption.
  */
@@ -110,10 +111,11 @@ public class SocketWrapper {
    * @param p is a path to the destination folder which will store the retrieved data.
    * @param attach is any object which the {@code CompletionHandler} should have access to.
    * @param func is the {@code CompletionHandler} invoked upon success or failure of this method.
+   * @param preRead is invoked before reading each file from the socket.
+   * @param postRead is invoked after reading each file from the socket. The passed {@code Boolean} indicates whether the file-read was successful.
    * @oaram <T> is the type of attached object
    */
-  public <T> void readPath(final Path p, final T attach, final CompletionHandler<Boolean,T> func){
-    Logger.log("readPath "+p.toString());
+  public <T> void readPath(final Path p, final T attach, final CompletionHandler<Boolean,T> func, final Consumer<Path> preRead, final BiConsumer<Path,Boolean> postRead){
     try{
       Path folder = p.getParent();
       Path pp = folder;
@@ -131,7 +133,6 @@ public class SocketWrapper {
     read(attach, new CompletionHandler<Byte,T>(){
       public void completed(Byte b, T attach){
         if (b==Protocol.FILE_TYPE){
-          Logger.log("readPath file");
           try{
             if (Files.exists(p) && Files.isDirectory(p)){
               Files.walkFileTree(p, new SimpleFileVisitor<Path>(){
@@ -151,12 +152,81 @@ public class SocketWrapper {
                 }
               });
             }
+            Path pp = p.getParent();
+            if (!Files.exists(pp)){
+              Files.createDirectories(pp);
+            }
           }catch(Throwable t){
             Logger.logAsync("Error occurred in SocketWrapper.readPath", t);
           }
-          readFile(p,attach,func);
+          readBytes(32, attach, new CompletionHandler<byte[],T>(){
+            public void completed(byte[] data, T attach){
+              byte ret;
+              try{
+                long lastMod = -1;
+                try{
+                  SerializationStream s = new SerializationStream(data);
+                  lastMod = s.readLong();
+                  if (!s.end()){
+                    Logger.logAsync("Lost data detected.");
+                  }
+                }catch(Throwable t){
+                  Logger.logAsync("Deserialization error occurred in SocketWrapper.readPath", t);
+                }
+                if (lastMod==-1){
+                  ret = Protocol.FAILURE;
+                }else if (!Files.exists(p) || Files.isRegularFile(p) && Files.getLastModifiedTime(p).toMillis()!=lastMod){
+                  ret = Protocol.SUCCESS;
+                  write(ret, attach, new CompletionHandler<Void,T>(){
+                    public void completed(Void v, T attach){
+                      if (preRead!=null){
+                        preRead.accept(p);
+                      }
+                      if (postRead==null){
+                        readFile(p,attach,func);
+                      }else{
+                        readFile(p, attach, new CompletionHandler<Boolean,T>(){
+                          public void completed(Boolean b, T attach){
+                            postRead.accept(p,b);
+                            func.completed(b,attach);
+                          }
+                          public void failed(Throwable t, T attach){
+                            func.failed(t,attach);
+                            close();
+                          }
+                        });
+                      }
+                    }
+                    public void failed(Throwable t, T attach){
+                      func.failed(t,attach);
+                      close();
+                    }
+                  });
+                }else{
+                  ret = Protocol.CONTINUE;
+                }
+              }catch(Throwable t){
+                ret = Protocol.FAILURE;
+              }
+              if (ret!=Protocol.SUCCESS){
+                final boolean rret = ret==Protocol.CONTINUE;
+                write(ret, attach, new CompletionHandler<Void,T>(){
+                  public void completed(Void v, T attach){
+                    func.completed(rret,attach);
+                  }
+                  public void failed(Throwable t, T attach){
+                    func.failed(t,attach);
+                    close();
+                  }
+                });
+              }
+            }
+            public void failed(Throwable t, T attach){
+              func.failed(t,attach);
+              close();
+            }
+          });
         }else if (b==Protocol.FOLDER_TYPE){
-          Logger.log("readPath folder");
           try{
             if (Files.exists(p) && !Files.isDirectory(p)){
               Files.delete(p);
@@ -164,7 +234,7 @@ public class SocketWrapper {
           }catch(Throwable t){
             Logger.logAsync("Error occurred in SocketWrapper.readPath", t);
           }
-          readFolder(p,attach,func);
+          readFolder(p,attach,func,preRead,postRead);
         }else{
           func.completed(false, attach);
         }
@@ -186,18 +256,18 @@ public class SocketWrapper {
    * @param p is a path to the data source which will copied to the socket.
    * @param attach is any object which the {@code CompletionHandler} should have access to.
    * @param func is the {@code CompletionHandler} invoked upon success or failure of this method.
+   * @param preWrite is invoked before writing each file to the socket.
+   * @param postWrite is invoked after writing each file to the socket. The passed {@code Boolean} indicates whether the file-write was successful.
    * @param <T> is the type of attached object.
    */
-  public <T> void writePath(final Path p, final T attach, final CompletionHandler<Boolean,T> func){
-    Logger.log("writePath "+p.toString());
+  public <T> void writePath(final Path p, final T attach, final CompletionHandler<Boolean,T> func, final Consumer<Path> preWrite, final BiConsumer<Path,Boolean> postWrite){
     boolean error = false;
     try{
       if (Files.exists(p)){
         if (Files.isDirectory(p)){
-          Logger.log("writePath folder");
           write(Protocol.FOLDER_TYPE, attach, new CompletionHandler<Void,T>(){
             public void completed(Void v, T attach){
-              writeFolder(p, attach, func);
+              writeFolder(p, attach, func, preWrite, postWrite);
             }
             public void failed(Throwable t, T attach){
               func.failed(t,attach);
@@ -205,10 +275,50 @@ public class SocketWrapper {
             }
           });
         }else if (Files.isRegularFile(p)){
-          Logger.log("writePath file");
+          final long lastMod = Files.getLastModifiedTime(p).toMillis();
           write(Protocol.FILE_TYPE, attach, new CompletionHandler<Void,T>(){
             public void completed(Void v, T attach){
-              writeFile(p, attach, func);
+              SerializationStream s = new SerializationStream(8);
+              s.write(lastMod);
+              writeBytes(s.data, attach, new CompletionHandler<Void,T>(){
+                public void completed(Void v, T attach){
+                  read(attach, new CompletionHandler<Byte,T>(){
+                    public void completed(Byte b, T attach){
+                      if (b==Protocol.SUCCESS){
+                        if (preWrite!=null){
+                          preWrite.accept(p);
+                        }
+                        if (postWrite==null){
+                          writeFile(p, attach, func);
+                        }else{
+                          writeFile(p, attach, new CompletionHandler<Boolean,T>(){
+                            public void completed(Boolean b, T attach){
+                              postWrite.accept(p,b);
+                              func.completed(b,attach);
+                            }
+                            public void failed(Throwable t, T attach){
+                              func.failed(t,attach);
+                              close();
+                            }
+                          });
+                        }
+                      }else if (b==Protocol.FAILURE){
+                        func.completed(false,attach);
+                      }else{
+                        func.completed(true,attach);
+                      }
+                    }
+                    public void failed(Throwable t, T attach){
+                      func.failed(t,attach);
+                      close();
+                    }
+                  });
+                }
+                public void failed(Throwable t, T attach){
+                  func.failed(t,attach);
+                  close();
+                }
+              });
             }
             public void failed(Throwable t, T attach){
               func.failed(t,attach);
@@ -216,11 +326,9 @@ public class SocketWrapper {
             }
           });
         }else{
-          Logger.log("writePath failed because path is not a file or folder.");
           error = true;
         }
       }else{
-        Logger.log("writePath failed because path does not exist.");
         error = true;
       }
     }catch(Throwable t){
@@ -250,9 +358,11 @@ public class SocketWrapper {
    * @param folder is a path to the destination folder which will store the retrieved data.
    * @param attach is any object which the {@code CompletionHandler} should have access to.
    * @param func is the {@code CompletionHandler} invoked upon success or failure of this method.
+   * @param preRead is invoked before reading each file from the socket.
+   * @param postRead is invoked after reading each file from the socket. The passed {@code Boolean} indicates whether the file-read was successful.
    * @oaram <T> is the type of attached object
    */
-  private <T> void readFolder(final Path folder, final T attach, final CompletionHandler<Boolean,T> func){
+  private <T> void readFolder(final Path folder, final T attach, final CompletionHandler<Boolean,T> func, final Consumer<Path> preRead, final BiConsumer<Path,Boolean> postRead){
     final Container<Boolean> ret = new Container<Boolean>(true);
     final Path root = folder.normalize();
     final HashSet<Path> files = new HashSet<Path>(32);
@@ -344,7 +454,7 @@ public class SocketWrapper {
           files.add(a.p);
           Path folder = a.p.getParent();
           Path p = folder;
-          while (p!=null && p.getNameCount()>0){
+          while (p!=null && p.startsWith(root)){
             if (Files.exists(p) && !Files.isDirectory(p)){
               Files.delete(p);
               break;
@@ -377,7 +487,23 @@ public class SocketWrapper {
     };
     a.transfer = new CompletionHandler<Void,T>(){
       public void completed(Void v, T attach){
-        readFile(a.p, attach, a.finalStep);
+        if (preRead!=null){
+          preRead.accept(a.p);
+        }
+        if (postRead==null){
+          readFile(a.p, attach, a.finalStep);
+        }else{
+          readFile(a.p, attach, new CompletionHandler<Boolean,T>(){
+            public void completed(Boolean b, T attach){
+              postRead.accept(a.p,b);
+              a.finalStep.completed(b,attach);
+            }
+            public void failed(Throwable t, T attach){
+              func.failed(t,attach);
+              close();
+            }
+          });
+        }
       }
       public void failed(Throwable e, T attach){
         func.failed(e,attach);
@@ -415,9 +541,11 @@ public class SocketWrapper {
    * @param folder is a path to the data source which will copied to the socket.
    * @param attach is any object which the {@code CompletionHandler} should have access to.
    * @param func is the {@code CompletionHandler} invoked upon success or failure of this method.
+   * @param preWrite is invoked before writing each file to the socket.
+   * @param postWrite is invoked after writing each file to the socket. The passed {@code Boolean} indicates whether the file-write was successful.
    * @param <T> is the type of attached object.
    */
-  private <T> void writeFolder(final Path folder, final T attach, final CompletionHandler<Boolean,T> func){
+  private <T> void writeFolder(final Path folder, final T attach, final CompletionHandler<Boolean,T> func, final Consumer<Path> preWrite, final BiConsumer<Path,Boolean> postWrite){
     final Container<Boolean> ret = new Container<Boolean>(true);
     final Path root = folder.normalize();
     final ArrayList<FileEntry> files = new ArrayList<FileEntry>(32);
@@ -488,7 +616,23 @@ public class SocketWrapper {
       public void completed(Byte b, T attach){
         if (b==Protocol.SUCCESS){
           // Indicates the lastModified timestamps do not match / the file does not exists. So we send the file over the socket
-          writeFile(a.e.p, attach, a.loop);
+          if (preWrite!=null){
+            preWrite.accept(a.e.p);
+          }
+          if (postWrite==null){
+            writeFile(a.e.p, attach, a.loop);
+          }else{
+            writeFile(a.e.p, attach, new CompletionHandler<Boolean,T>(){
+              public void completed(Boolean b, T attach){
+                postWrite.accept(a.e.p,b);
+                a.loop.completed(b,attach);
+              }
+              public void failed(Throwable t, T attach){
+                func.failed(t,attach);
+                close();
+              }
+            });
+          }
         }else if (b==Protocol.FAILURE){
           // Indicates a file error occurred
           a.loop.completed(false,attach);
@@ -795,7 +939,12 @@ public class SocketWrapper {
           if (b.byteValue()==Protocol.CONTINUE){
             try{
               if (req.fileBuf==null){
-                req.fileBuf = ByteBuffer.allocate((int)Math.min(fileBlockSize, req.ch.size()));
+                long size = req.ch.size();
+                if (size==0){
+                  write(Protocol.EOF, null, req.EOF);
+                  return;
+                }
+                req.fileBuf = ByteBuffer.allocate((int)Math.min(fileBlockSize, size));
               }else{
                 req.fileBuf.clear();
               }

@@ -5,7 +5,7 @@ import java.util.*;
 import com.controlj.green.datatable.util.CoreHelper;
 import com.controlj.green.addonsupport.web.auth.AuthenticationManager;
 import com.controlj.green.extensionsupport.Extension;
-import com.controlj.green.web.tools.webapp.WebserverProxy;
+import com.controlj.green.webserver.*;
 /**
  * Namespace which contains methods to access small sections of a few internal WebCTRL APIs.
  */
@@ -32,7 +32,21 @@ public class HelperAPI {
    */
   public static boolean disableAddon(String name){
     try{
-      new WebserverProxy().disableAddOn(name);
+      TomcatServer server = TomcatServerSingleton.get();
+      if (server==null){
+        return false;
+      }
+      AddOn addon = null;
+      for (AddOn x:server.scanForAddOns()){
+        if (x.getName().equals(name)){
+          addon = x;
+          break;
+        }
+      }
+      if (addon==null){
+        return false;
+      }
+      server.disableAddOn(addon);
       return true;
     }catch(Throwable t){
       if (logErrors){ Logger.logAsync(t); }
@@ -46,7 +60,21 @@ public class HelperAPI {
    */
   public static boolean enableAddon(String name){
     try{
-      new WebserverProxy().enableAddOn(name);
+      TomcatServer server = TomcatServerSingleton.get();
+      if (server==null){
+        return false;
+      }
+      AddOn addon = null;
+      for (AddOn x:server.scanForAddOns()){
+        if (x.getName().equals(name)){
+          addon = x;
+          break;
+        }
+      }
+      if (addon==null){
+        return false;
+      }
+      server.enableAddOn(addon);
       return true;
     }catch(Throwable t){
       if (logErrors){ Logger.logAsync(t); }
@@ -61,7 +89,21 @@ public class HelperAPI {
    */
   public static boolean removeAddon(String name, boolean removeData){
     try{
-      new WebserverProxy().removeAddOn(name, removeData);
+      TomcatServer server = TomcatServerSingleton.get();
+      if (server==null){
+        return false;
+      }
+      AddOn addon = null;
+      for (AddOn x:server.scanForAddOns()){
+        if (x.getName().equals(name)){
+          addon = x;
+          break;
+        }
+      }
+      if (addon==null){
+        return false;
+      }
+      server.removeAddOn(addon, removeData);
       return true;
     }catch(Throwable t){
       if (logErrors){ Logger.logAsync(t); }
