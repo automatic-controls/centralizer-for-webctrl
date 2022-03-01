@@ -56,6 +56,15 @@
   </servlet-mapping>
 
   <servlet>
+    <servlet-name>ManageData</servlet-name>
+    <servlet-class>aces.webctrl.centralizer.addon.web.ManageUploads</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>ManageData</servlet-name>
+    <url-pattern>/ManageData</url-pattern>
+  </servlet-mapping>
+
+  <servlet>
     <servlet-name>StartLocation</servlet-name>
     <servlet-class>aces.webctrl.centralizer.addon.web.StartLocation</servlet-class>
   </servlet>

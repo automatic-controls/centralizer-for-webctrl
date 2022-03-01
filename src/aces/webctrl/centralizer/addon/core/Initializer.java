@@ -160,14 +160,16 @@ public class Initializer implements ServletContextListener {
       }
     };
     Database.init(root, false);
-    ClientConfig.init(root.resolve("config.txt"));
+    ClientConfig.init(root.resolve("config"));
     ClientConfig.load();
     Logger.trim(ClientConfig.deleteLogAfter);
+    Uploads.init(root.resolve("uploads"));
     mainThread = new Thread(){
       public void run(){
         enqueueConfigure(0);
         enqueueBackup();
         enqueueConnect(0);
+        enqueueUpload();
         DelayedRunnable r;
         ArrayList<Task> arr = new ArrayList<Task>();
         boolean b;
@@ -618,6 +620,17 @@ public class Initializer implements ServletContextListener {
       });
     }
   }
+  /** Triggers regularly scheduled uploads. */
+  private static void enqueueUpload(){
+    enqueue(new DelayedRunnable(System.currentTimeMillis()+60000){
+      public void run(){
+        if (connected){
+          Uploads.trigger();
+        }
+        enqueueUpload();
+      }
+    });
+  }
   /** Saves all data once every day */
   private static void enqueueBackup(){
     enqueue(new DelayedRunnable(ClientConfig.nextBackupTime()){
@@ -633,6 +646,7 @@ public class Initializer implements ServletContextListener {
     boolean ret = true;
     ret&=ClientConfig.save();
     ret&=Database.save();
+    ret&=Uploads.save();
     if (ret){
       Logger.log("Database saved successfully.");
     }else{

@@ -10,12 +10,12 @@ import java.util.concurrent.atomic.*;
 public class Upload implements Comparable<Upload> {
   private final static AtomicInteger nextID = new AtomicInteger(0);
   private volatile int ID = nextID.getAndIncrement();
-  private volatile String src;
-  private volatile String dst;
-  private volatile String expr;
-  private volatile Path srcPath;
-  private volatile CronSequenceGenerator cron;
-  private volatile long nextRunTime;
+  private volatile String src = null;
+  private volatile String dst = null;
+  private volatile String expr = null;
+  private volatile Path srcPath = null;
+  private volatile CronSequenceGenerator cron = null;
+  private volatile long nextRunTime = -1;
   /**
    * Compares internal identification numbers for sorting purposes.
    */
@@ -46,10 +46,27 @@ public class Upload implements Comparable<Upload> {
    */
   public synchronized Result<Byte> trigger(){
     try{
-      final CronSequenceGenerator cron = this.cron;
       final Path srcPath = this.srcPath;
       final long nextRunTime = this.nextRunTime;
-      if (cron!=null && srcPath!=null && nextRunTime!=-1 && nextRunTime<=System.currentTimeMillis() && Files.exists(srcPath)){
+      if (srcPath!=null && nextRunTime!=-1 && nextRunTime<=System.currentTimeMillis() && Initializer.isConnected() && Files.exists(srcPath)){
+        reset();
+        return Initializer.uploadFile(srcPath, dst);
+      }
+      return null;
+    }catch(Throwable t){
+      Result<Byte> ret = new Result<Byte>();
+      ret.setResult(Protocol.FAILURE);
+      return ret;
+    }
+  }
+  /**
+   * Forcibly initiates and resets this upload task.
+   * @return a {@code Result<Byte>} encapsulating the result of this operation if it was ready to be triggered; {@code null} if the operation could not be triggered.
+   */
+  public synchronized Result<Byte> forceTrigger(){
+    try{
+      final Path srcPath = this.srcPath;
+      if (srcPath!=null && Initializer.isConnected() && Files.exists(srcPath)){
         reset();
         return Initializer.uploadFile(srcPath, dst);
       }
@@ -65,6 +82,13 @@ public class Upload implements Comparable<Upload> {
    */
   public long getNext(){
     return nextRunTime;
+  }
+  /**
+   * @return the next run time of this upload task as a {@code String}.
+   */
+  public String getNextString(){
+    long nextRunTime = this.nextRunTime;
+    return nextRunTime==-1?"None":Logger.format.format(java.time.Instant.ofEpochMilli(nextRunTime));
   }
   /**
    * Resets the next run time of this upload task.
@@ -113,6 +137,12 @@ public class Upload implements Comparable<Upload> {
     return srcPath;
   }
   /**
+   * @return the source file path for this uplaod task.
+   */
+  public String getSourceString(){
+    return src;
+  }
+  /**
    * @return the cron expression which controls scheduling for this upload task.
    */
   public String getExpression(){
@@ -128,8 +158,10 @@ public class Upload implements Comparable<Upload> {
    * Sets the source path for this upload task.
    */
   public void setSource(String src){
-    this.src = src;
-    srcPath = SyncTask.resolve(null, src);
+    if (!src.equals(this.src)){
+      this.src = src;
+      srcPath = SyncTask.resolve(Initializer.systemFolder, src);
+    }
   }
   /**
    * Sets the source path for this upload task.
@@ -143,15 +175,19 @@ public class Upload implements Comparable<Upload> {
    * @return {@code true} on success; {@code false} if the given expression cannot be parsed.
    */
   public boolean setExpression(String expr){
-    this.expr = expr;
-    try{
-      cron = new CronSequenceGenerator(expr);
+    if (expr.equals(this.expr)){
       return true;
-    }catch(Throwable t){
-      cron = null;
-      return false;
-    }finally{
-      reset();
+    }else{
+      this.expr = expr;
+      try{
+        cron = new CronSequenceGenerator(expr);
+        return true;
+      }catch(Throwable t){
+        cron = null;
+        return false;
+      }finally{
+        reset();
+      }
     }
   }
 }

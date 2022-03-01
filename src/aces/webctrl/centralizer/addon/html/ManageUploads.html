@@ -1,0 +1,165 @@
+<!--
+  BSD 3-Clause License
+  Copyright (c) 2022, Automatic Controls Equipment Systems, Inc.
+  Contributors: Cameron Vogt (@cvogt729)
+-->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Data Collection
+    </title>
+    <!-- <link rel="stylesheet" type="text/css" href="css/main.css"/> -->
+    <style>
+      body, input, textarea, select {
+        background-color:black;
+        color:white;
+      }
+      button {
+        background-color:darkblue;
+        color:white;
+        border:solid 1px white;
+      }
+      button:hover {
+        background-color:darkred;
+      }
+      button:active {
+        background-color:darkgreen;
+      }
+      button:disabled {
+        background-color:darkslategray;
+      }
+      .e {
+        margin-left:0.5em;
+        margin-right:0.5em;
+        margin-top:0.25em;
+        margin-bottom:0.25em;
+      }
+      .column {
+        float:left;
+        width:50%;
+      }
+      .row {
+        content: "";
+        display:table;
+        clear:both;
+        width:100%;
+      }
+      a:link {
+        color: lightgreen;
+        background-color: transparent;
+        text-decoration: none;
+      }
+      a:visited {
+        color: lightgreen;
+        background-color: transparent;
+        text-decoration: none;
+      }
+      a:hover {
+        color: red;
+        background-color: transparent;
+        text-decoration: underline;
+      }
+      a:active {
+        color: yellow;
+        background-color: transparent;
+        text-decoration: underline;
+      }
+      td, th {
+        padding:4px;
+        border:solid 1px white;
+      }
+      table:not(.nohighlight) > tr:hover > td {
+        background-color:darkgreen;
+      }
+      tr:nth-child(odd) {
+        background-color:#222222;
+      }
+      tr:nth-child(even) {
+        background-color:#090909;
+      }
+      th {
+        background-color:darkslategray;
+      }
+      table {
+        border:solid 1px white;
+        border-collapse:collapse;
+      }
+    </style>
+    <script>
+      function add(ID,src,dst,expr,next){
+
+      }
+      function createTask(button){
+
+      }
+      function triggerAll(button){
+        button.disabled = true;
+        statusText.innerHTML = "Submitting...";
+        const req = new XMLHttpRequest();
+        req.open("POST","__PREFIX__ManageData",true);
+        req.setRequestHeader("content-type", "application/x-www-form-urlencoded");
+        req.onreadystatechange = function(){
+          if (this.readyState===4){
+            if (this.status===200){
+              statusText.innerHTML = "All Data Collected";
+            }else if (this.status===504){
+              statusText.innerHTML = "Request Timed Out";
+            }else if (this.status===403){
+              statusText.innerHTML = "Insufficient Permissions";
+            }else if (this.status===409){
+              statusText.innerHTML = "Collection Error Occurred";
+            }else{
+              statusText.innerHTML = "Error Code: "+this.status;
+            }
+            button.disabled = false;
+          }
+        };
+        req.send("type=triggerAll");
+      }
+      function saveAll(){
+        for (const row of taskList.children){
+          if (row.tagName==="TR"){
+            row.save();
+          }
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div style="text-align:center">
+      <h1>Data Collection</h1>
+      <br>
+      <table id="taskList" style="margin:0 auto" class="nohighlight">
+        <tr id="headerRow">
+          <th>Source</th>
+          <th>Destination</th>
+          <th>Cron Expression</th>
+          <th>Next Collection Time</th>
+          <th>Actions</th>
+        </tr>
+        <tr id="newTaskRow">
+          <td><input id="newTaskSrc" class="e" style="text-align:center" spellcheck="false" size="40"></td>
+          <td><input id="newTaskDst" class="e" style="text-align:center" spellcheck="false" size="40"></td>
+          <td><input id="newTaskExpr" class="e" style="text-align:center" spellcheck="false"></td>
+          <td></td>
+          <td><button class="e" onclick="createTask(this)">Create</button></td>
+        </tr>
+      </table>
+      <br>
+      <button class="e" onclick="location.reload()">Refresh</button>
+      <button class="e" onclick="saveAll()">Save All</button>
+      <button class="e" onclick="triggerAll(this)">Trigger All</button>
+      <h3 id="statusText" class="e" style="color:red"></h3>
+      <br>
+      <a href="__PREFIX__index" class="e">Primary Configuration Page</a><br>
+    </div>
+    <script>
+      headerRow.save = ()=>{
+        statusText.innerHTML = "";
+      };
+      newTaskRow.save = ()=>{};
+      //__INIT_SCRIPT__
+    </script>
+  </body>
+</html>
