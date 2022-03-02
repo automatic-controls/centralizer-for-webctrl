@@ -67,6 +67,7 @@ public class ManageUploads extends SecureServlet {
           }else{
             final Upload x = new Upload(src,dst,expr);
             Uploads.add(x);
+            Logger.logAsync(op.getUsername()+" created data collection mapping.");
             res.setContentType("text/plain");
             res.getWriter().print(String.valueOf(x.getID())+','+x.getNextString());
           }
@@ -86,6 +87,7 @@ public class ManageUploads extends SecureServlet {
                 x.setSource(src);
                 x.setDestination(dst);
                 x.setExpression(expr);
+                Logger.logAsync(op.getUsername()+" modified data collection mapping.");
                 res.setContentType("text/plain");
                 res.getWriter().print(x.getNextString());
               }
@@ -99,7 +101,9 @@ public class ManageUploads extends SecureServlet {
             res.setStatus(400);
           }else{
             try{
-              Uploads.remove(Integer.parseInt(ID));
+              if (Uploads.remove(Integer.parseInt(ID))!=null){
+                Logger.logAsync(op.getUsername()+" deleted data collection mapping.");
+              }
             }catch(NumberFormatException e){
               res.setStatus(400);
             }
@@ -107,6 +111,7 @@ public class ManageUploads extends SecureServlet {
         }else if (type.equals("triggerAll")){
           if (Initializer.isConnected()){
             final ArrayList<Result<Byte>> rets = Uploads.forceTrigger();
+            Logger.log(op.getUsername()+" triggered all data collection mappings.");
             for (Result<Byte> ret:rets){
               if (ret==null){
                 res.setStatus(409);
@@ -136,6 +141,7 @@ public class ManageUploads extends SecureServlet {
             }else{
               try{
                 final Upload x = Uploads.get(Integer.parseInt(ID));
+                Logger.log(op.getUsername()+" triggered a data collection mapping.");
                 if (x==null){
                   res.setStatus(410);
                 }else{
