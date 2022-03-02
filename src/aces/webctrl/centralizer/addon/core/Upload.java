@@ -160,13 +160,15 @@ public class Upload implements Comparable<Upload> {
   public void setSource(String src){
     if (!src.equals(this.src)){
       this.src = src;
-      srcPath = SyncTask.resolve(Initializer.systemFolder, src);
+      Path tmp = SyncTask.resolve(Initializer.systemFolder, src);
+      srcPath = tmp==null?null:tmp.normalize();
     }
   }
   /**
    * Sets the source path for this upload task.
    */
   public void setSource(Path src){
+    src = src.normalize();
     this.src = src.toString();
     srcPath = src;
   }

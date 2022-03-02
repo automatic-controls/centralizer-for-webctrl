@@ -23,6 +23,9 @@ public class ManageFileSync extends SecureServlet {
       ).replace(
         "__PREFIX__",
         Initializer.getPrefix()
+      ).replace(
+        "__ACTIVE_FOLDER__",
+        Utility.escapeHTML(Initializer.systemFolder.toString())
       );
     }catch(Throwable e){
       if (e instanceof ServletException){

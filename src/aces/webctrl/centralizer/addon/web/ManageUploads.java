@@ -23,6 +23,9 @@ public class ManageUploads extends SecureServlet {
       ).replace(
         "__PREFIX__",
         Initializer.getPrefix()
+      ).replace(
+        "__ACTIVE_FOLDER__",
+        Utility.escapeHTML(Initializer.systemFolder.toString())
       );
     }catch(Throwable e){
       if (e instanceof ServletException){
@@ -49,7 +52,7 @@ public class ManageUploads extends SecureServlet {
               sb.append(Utility.escapeJS(x.getSourceString())).append("\",\"");
               sb.append(Utility.escapeJS(x.getDestination())).append("\",\"");
               sb.append(Utility.escapeJS(x.getExpression())).append("\",\"");
-              sb.append(Utility.escapeJS(x.getNextString())).append("\");");
+              sb.append(Utility.escapeJS(x.getNextString())).append("\");\n");
               return false;
             }
           });
@@ -110,10 +113,9 @@ public class ManageUploads extends SecureServlet {
                 return;
               }
             }
-            final long time = System.currentTimeMillis()+120000;
             Byte b;
             for (Result<Byte> ret:rets){
-              ret.waitForResult(time);
+              ret.waitForResult(-1);
               b = ret.getResult();
               if (b==null){
                 res.setStatus(504);
@@ -141,7 +143,7 @@ public class ManageUploads extends SecureServlet {
                   if (ret==null){
                     res.setStatus(409);
                   }else{
-                    ret.waitForResult(System.currentTimeMillis()+120000);
+                    ret.waitForResult(-1);
                     final Byte b = ret.getResult();
                     if (b==null){
                       res.setStatus(504);

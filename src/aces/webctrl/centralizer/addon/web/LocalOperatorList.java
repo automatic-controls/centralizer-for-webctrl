@@ -18,6 +18,9 @@ public class LocalOperatorList extends SecureServlet {
       html = Utility.loadResourceAsString("aces/webctrl/centralizer/addon/html/LocalOperatorList.html").replaceAll(
         "(?m)^[ \\t]++",
         ""
+      ).replace(
+        "__PREFIX__",
+        aces.webctrl.centralizer.addon.core.Initializer.getPrefix()
       );
     }catch(Throwable e){
       if (e instanceof ServletException){

@@ -1897,6 +1897,7 @@ public class Initializer implements ServletContextListener {
     results.add(ret);
     enqueue(new RunnableProtocol(Protocol.UPLOAD_FILE){
       public void run(final SocketWrapper wrapper){
+        Logger.logAsync("Attempting UPLOAD_FILE - "+src.toString());
         wrapper.writeBytes(dst.getBytes(java.nio.charset.StandardCharsets.UTF_8), null, new Handler<Void>(){
           public boolean onSuccess(Void v){
             wrapper.read(null, new Handler<Byte>(){
@@ -1906,6 +1907,7 @@ public class Initializer implements ServletContextListener {
                     public boolean onSuccess(Boolean b){
                       results.remove(ret);
                       ret.setResult(b?Protocol.SUCCESS:Protocol.FAILURE);
+                      Logger.logAsync((b?"Completed":"Failed")+" UPLOAD_FILE - "+src.toString());
                       ping2(wrapper);
                       return true;
                     }
@@ -1913,6 +1915,7 @@ public class Initializer implements ServletContextListener {
                 }else{
                   results.remove(ret);
                   ret.setResult(b);
+                  Logger.logAsync("Failed UPLOAD_FILE - "+src.toString());
                   ping2(wrapper);
                 }
                 return true;

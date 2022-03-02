@@ -696,6 +696,7 @@ public class SocketWrapper {
         Repeat.
       }
     */
+    c.useExtraSteps(false);
     read(null, new CompletionHandler<Byte,Void>(){
       public void completed(Byte b, Void v){
         if (b.byteValue()==Protocol.CONTINUE){
@@ -815,9 +816,11 @@ public class SocketWrapper {
             }
             write(Protocol.FILE_ERROR, null, new CompletionHandler<Void,Void>(){
               public void completed(Void v, Void vv){
+                c.useExtraSteps(true);
                 func.completed(false,attach);
               }
               public void failed(Throwable e, Void vv){
+                c.useExtraSteps(true);
                 func.failed(e,attach);
                 close();
               }
@@ -825,10 +828,12 @@ public class SocketWrapper {
           }
         }else{
           Logger.logAsync("Remote error occurred while reading file \""+file.toString()+"\" from socket.");
+          c.useExtraSteps(true);
           func.completed(false, attach);
         }
       }
       public void failed(Throwable e, Void v){
+        c.useExtraSteps(true);
         func.failed(e,attach);
         close();
       }
@@ -872,14 +877,17 @@ public class SocketWrapper {
             }catch (Throwable t){
               Logger.logAsync("Error occurred while setting last modified time stamp of received file.", t);
             }
+            c.useExtraSteps(true);
             func.completed(transfer, attach);
           }
           public void failed(Throwable t, Void v){
+            c.useExtraSteps(true);
             func.failed(t,attach);
             close();
           }
         });
       }else{
+        c.useExtraSteps(true);
         func.completed(transfer, attach);
       }
     }
@@ -891,6 +899,7 @@ public class SocketWrapper {
       }catch(Throwable err){
         Logger.logAsync("Error occurred while closing AsynchronousFileChannel to \""+file.toString()+"\".", err);
       }
+      c.useExtraSteps(true);
       func.failed(e,attach);
       close();
     }
@@ -922,6 +931,7 @@ public class SocketWrapper {
         Repeat.
       }
     */
+    c.useExtraSteps(false);
     AsynchronousFileChannel ch = null;
     try{
       ch = AsynchronousFileChannel.open(file, readOpenOptions, Database.exec, emptyAttributes);
@@ -1021,9 +1031,11 @@ public class SocketWrapper {
       }
       write(Protocol.FILE_ERROR, null, new CompletionHandler<Void,Void>(){
         public void completed(Void v, Void vv){
+          c.useExtraSteps(true);
           func.completed(false,attach);
         }
         public void failed(Throwable e, Void vv){
+          c.useExtraSteps(true);
           func.failed(e,attach);
           close();
         }
@@ -1069,14 +1081,17 @@ public class SocketWrapper {
         s.write(time);
         writeBytes(s.data, null, new CompletionHandler<Void,Void>(){
           public void completed(Void a, Void b){
+            c.useExtraSteps(true);
             func.completed(transfer, attach);
           }
           public void failed(Throwable t, Void b){
+            c.useExtraSteps(true);
             func.failed(t,attach);
             close();
           }
         });
       }else{
+        c.useExtraSteps(true);
         func.completed(transfer, attach);
       }
     }
@@ -1087,6 +1102,7 @@ public class SocketWrapper {
       }catch(Throwable err){
         Logger.logAsync("Error occurred while closing AsynchronousFileChannel to \""+file.toString()+"\".", err);
       }
+      c.useExtraSteps(true);
       func.failed(e,attach);
       close();
     }

@@ -22,13 +22,25 @@ package aces.webctrl.centralizer.common;
  */
 public class StreamCipher {
   /** The symmetric key used for encryption and decryption. */
-  private byte[] key = null;
+  private volatile byte[] key = null;
   /** Stores the result of XORing all the bytes of {@link #key} together. */
-  private byte keyXOR;
+  private volatile byte keyXOR;
   /** Copy of {@link #key} stored and retrieved using {@link #mark()} and {@link #reset()}. */
-  private byte[] lastKey = null;
+  private volatile byte[] lastKey = null;
   /** Copy of {@link #keyXOR} stored and retrieved using {@link #mark()} and {@link #reset()}. */
-  private byte lastKeyXOR;
+  private volatile byte lastKeyXOR;
+  /** Whether to take extra steps for improved security. There is a possible speed trade-off. */
+  private volatile boolean extra = true;
+  /**
+   * @return whether to take extra steps for improved security. There is a possible speed trade-off.
+   */
+  public boolean useExtraSteps(){
+    return extra;
+  }
+  /** Set whether to take extra steps for improved security. There is a possible speed trade-off. */
+  public void useExtraSteps(boolean extra){
+    this.extra = extra;
+  }
   /**
    * Creates a new {@code StreamCipher} with the given symmetric key.
    * 128 bit keys should be sufficient ({@code key.length==16}).
@@ -68,7 +80,9 @@ public class StreamCipher {
       key[i]^=b;
       keyXOR^=key[i];
     }
-    nextKey();
+    if (extra){
+      nextKey();
+    }
     return b;
   }
   /**
@@ -87,7 +101,9 @@ public class StreamCipher {
       keyXOR^=key[i];
     }
     b^=tmp2;
-    nextKey();
+    if (extra){
+      nextKey();
+    }
     return b;
   }
   /**
