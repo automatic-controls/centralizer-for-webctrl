@@ -29,3 +29,34 @@ Since *Automated Logic* dealer branch employees are assumed to be responsible, a
 Before proceeding, there are some network requirements that must be met. The host computer for the database must be able to accept incoming connections from the IP address of each WebCTRL server. Similarly, each WebCTRL server must be permitted to establish out-bound connections to the database computer's IP address.
 
 All network traffic between the database and each WebCTRL server is securely encrypted using a form of XOR stream cipher with symmetric keys established through RSA encryption. [Forward secrecy](https://en.wikipedia.org/wiki/Forward_secrecy) of each symmetric key is ensured.
+
+## Database Installation
+
+1. Identify a Windows machine you control with nearly 100% uptime. Choose a port to use for network communication (the default is 1978). Ensure port-forwarding is setup on your network firewall to allow inbound connections from all WebCTRL server IPs.
+
+1. Download the latest release of the [database installation files](https://github.com/automatic-controls/centralizer-for-webctrl/releases/latest/download/Database.zip).
+
+1. Unzip and place the installation files into an empty folder in a secure location on your Windows machine.
+
+1. Run *./install.vbs* to install and start the database Windows service on your computer.
+
+1. Run *./stop.vbs* or stop the database service using alternate means. At this point, the application should have generated files under the *./data* directory.
+
+1. Make necessary changes to *./data/config.txt* and restart the database service. During this step, you may change the port to which the database binds. Note that all such manual modifications should take place while the database is inactive (or risk having your changes overwritten). You will want to record the values of *PublicKeyHash* and *ConnectionKey* from this configuration file, since they will be used for configuring the add-on component. To decrease network traffic, you may wish to increase the *PingInterval* to a few minutes.
+
+   | Name | Description |
+   | - | - |
+   | *PublicKeyHash* | This value should be compared to the hash shown on each add-on's main page. If the hashes do not match, you may be the victim of a [man-in-the-middle cyber attack](https://en.wikipedia.org/wiki/Man-in-the-middle_attack). |
+   | *Version* | Specifies the version of the application which generated the data files. On initialization, this value is used to determine compatibility. |
+   | *Port* | Specifies the port bound to the database for listening to incoming connections. |
+   | *ConnectionKey* | You need this value to connect new WebCTRL servers to the database. |
+   | *PacketCapture* | Specifies whether to record encrypted data packets sent over the network in a file *./data/packet_capture.txt*. This should not be enabled for log peroids of time. The primary purpose is debugging.  |
+   | *BackupTime* | Specifies the time of day to backup data in RAM to the hard-drive *./data* folder. |
+   | *BackLog* | Specifies the maximum number of pending network connections for processing. All incoming connections will be rejected after this limit is surpassed. |
+   | *Timeout* | Specifies how long to wait (in milliseconds) for connected WebCTRL servers to respond before assuming the connection has been lost. |
+   | *OperatorTimeout* | Specifies how long (in milliseconds) it takes for an operator to be automatically logged off the database due to inactivity. |
+   | *PingInterval* | Specifies how often (in milliseconds) that connected WebCTRL servers should attempt to ping the database. |
+   | *DeleteLogAfter* | Specifies how long (in milliseconds) to keep historical log records. |
+   | *LoginAttempts* | Operators are allowed a maximum of *LoginAttempts* failed logins during any period of *LoginTimePeriod*. If exceeded, an operator lockout of *LoginLockoutTime* is incurred. |
+   | *LoginTimePeriod* | Specified in milliseconds. See the description for *LoginAttempts*. |
+   | *LoginLockoutTime* | Specified in milliseconds. See the description for *LoginAttempts*. |
