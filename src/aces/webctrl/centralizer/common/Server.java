@@ -50,6 +50,7 @@ public class Server {
     this.name = name;
     this.description = description;
     connected.set(true);
+    lastConnectionTime = System.currentTimeMillis();
     identifier = new byte[32];
     Database.entropy.nextBytes(identifier);
   }

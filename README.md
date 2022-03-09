@@ -64,7 +64,7 @@ All network traffic between the database and each WebCTRL server is securely enc
 
 ## Add-On Installation
 
-1. Ensure your WebCTRL server machine can establish outbound connections to the database's IP address and port. Ensure your server is protected with a TLS/SSL certificate (i.e. your server is accessible using the HTTPS protocol as opposed to HTTP). The Centralizer add-on will not function unless these requirements are met.
+1. Ensure your WebCTRL server machine can establish outbound connections to the database's IP address and port. Please ensure your server is protected with a TLS/SSL certificate (i.e. your server is accessible using the HTTPS protocol as opposed to HTTP).
 
 1. If your WebCTRL server requires signed add-ons, download the [authenticating certificate](https://github.com/automatic-controls/addon-dev-script/blob/main/ACES.cer?raw=true) to the *./addons* directory of your server.
 
@@ -120,7 +120,6 @@ This section describes possible files stored under the *./data* directory of the
 | - | - |
 | *./Operators/\*\** | Contains data files for each central operator labelled by username. |
 | *./Servers/\*\** | Contains data files for each WebCTRL server labelled by name. |
-| *./uploads/\*\** | This is the default destination folder for all data collection upload tasks from each WebCTRL server. |
 | *./config.txt* | Contains various configuration properties for the database. |
 | *./log.txt* | Contains historical log entries for the database. |
 | *./packet_capture.txt* | When enabled, this file contains Base64-encoded network data packets. |

@@ -15,6 +15,7 @@ import javax.servlet.http.*;
  */
 public abstract class SecureServlet extends HttpServlet {
   private volatile Collection<String> roles = null;
+  private volatile static boolean allowUnsecureProtocol = true;
   public SecureServlet(Collection<String> roles){
     this.roles = roles;
   }
@@ -25,7 +26,7 @@ public abstract class SecureServlet extends HttpServlet {
     try{
       req.setCharacterEncoding("UTF-8");
       res.setCharacterEncoding("UTF-8");
-      if (req.isSecure()){
+      if (allowUnsecureProtocol || req.isSecure()){
         if (roles!=null){
           for (String role:roles){
             if (!req.isUserInRole(role)){

@@ -448,7 +448,7 @@
           <br>
           <label for="serverDesc">Server Description:</label>
           <br>
-          <textarea id="serverDesc" class="e" rows="4" cols="50" oninput="onConfigChange()"></textarea>
+          <textarea id="serverDesc" class="e" rows="4" cols="50" style="text-align:center" oninput="onConfigChange()"></textarea>
           <br>
           <label for="packetCapture"><span title="Specifies whether to record a log of all transmitted/received information from the database. All traffic is encrypted, so sensitive details will not be visible in the log.">Raw Packet Capture:</span></label>
           <input id="packetCapture" class="e" type="checkbox" onchange="onConfigChange()">
@@ -476,7 +476,7 @@
           <br>
           <label for="description">Description:</label>
           <br>
-          <textarea id="description" class="e" rows="4" cols="50"></textarea>
+          <textarea id="description" class="e" rows="4" cols="50" style="text-align:center"></textarea>
           <br>
           <button class="e" onclick="clearAdmin()">Clear</button>
           <button id="adminSaveButton" class="e" onclick="saveAdmin()">Save</button>

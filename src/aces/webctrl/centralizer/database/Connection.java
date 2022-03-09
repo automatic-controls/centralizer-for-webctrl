@@ -331,7 +331,6 @@ public class Connection implements Comparable<Connection> {
                                                   }
                                                 });
                                               }else{
-                                                server.connect();
                                                 //Write a success message
                                                 wrap.write(Protocol.SUCCESS, null, new Handler<Void>(){
                                                   public void func(Void v){

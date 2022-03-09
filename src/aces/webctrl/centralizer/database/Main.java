@@ -23,6 +23,8 @@ public class Main {
   private volatile static String serviceXML = null;
   /** Path where files may be uploaded to. */
   private volatile static Path uploadFolder = null;
+  /** Path where synchronized files may be stored. */
+  private volatile static Path syncFolder = null;
 
   /** Where all files are stored for this database */
   private volatile static Path rootFolder = null;
@@ -103,6 +105,14 @@ public class Main {
         }
       }catch(Throwable t){
         Logger.log("Error occurred while creating folder: "+uploadFolder.toString(), t);
+      }
+      syncFolder = installation.resolve("sync").normalize();
+      try{
+        if (!Files.exists(syncFolder)){
+          Files.createDirectory(syncFolder);
+        }
+      }catch(Throwable t){
+        Logger.log("Error occurred while creating folder: "+syncFolder.toString(), t);
       }
 
       clientAcceptor = new CompletionHandler<AsynchronousSocketChannel,Void>(){
@@ -290,7 +300,7 @@ public class Main {
    */
   public static void triggerSyncTask(final SyncTask t){
     t.resetTrigger();
-    final Path source = SyncTask.resolve(null,t.getSource());
+    final Path source = SyncTask.resolve(Main.getSyncs(),t.getSource());
     final String dst = t.getDestination();
     if (source!=null){
       final Path src = source.normalize();
@@ -328,5 +338,11 @@ public class Main {
    */
   public static Path getUploads(){
     return uploadFolder;
+  }
+  /**
+   * @return the default folder for containing synchronized files.
+   */
+  public static Path getSyncs(){
+    return syncFolder;
   }
 }
