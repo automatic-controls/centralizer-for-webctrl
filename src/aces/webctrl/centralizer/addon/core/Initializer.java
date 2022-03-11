@@ -17,7 +17,7 @@ import javax.servlet.*;
 import com.controlj.green.addonsupport.*;
 /** Namespace which controls the primary operation of this addon */
 public class Initializer implements ServletContextListener {
-  /** The name of the application (used for constructing URLs) */
+  /** The name of this addon */
   private volatile static String name;
   /** Prefix used for constructing relative URL paths */
   private volatile static String prefix;
@@ -164,6 +164,8 @@ public class Initializer implements ServletContextListener {
     ClientConfig.load();
     Logger.trim(ClientConfig.deleteLogAfter);
     Uploads.init(root.resolve("uploads"));
+    HelperAPI.logoutAllForeign();
+    HelperAPI.activateWebOperatorProvider(name);
     mainThread = new Thread(){
       public void run(){
         enqueueConfigure(0);
@@ -245,6 +247,8 @@ public class Initializer implements ServletContextListener {
     forceDisconnect();
     save();
     PacketLogger.stop();
+    HelperAPI.activateDefaultWebOperatorProvider();
+    HelperAPI.logoutAllForeign();
     Logger.log("Centralizer addon has been shut down.");
     Logger.close();
   }
@@ -710,6 +714,7 @@ public class Initializer implements ServletContextListener {
                   }
                 }else if (stamp==-1L){
                   Operators.remove(op);
+                  HelperAPI.logout(op);
                   Logger.logAsync("Operator "+op.getUsername()+" deleted.");
                   ping1(wrapper);
                 }else if (op.getStamp()==stamp && op.getCreationTime()==cre){
@@ -872,6 +877,7 @@ public class Initializer implements ServletContextListener {
                         op = Operators.get(s.readInt());
                         if (op!=null){
                           Operators.remove(op);
+                          HelperAPI.logout(op);
                           Logger.logAsync("Operator "+op.getUsername()+" deleted.");
                         }
                       }
@@ -936,7 +942,7 @@ public class Initializer implements ServletContextListener {
    */
   private volatile static long lockoutExpiry = 0;
   /**
-   * Logs in the specified operator.
+   * Logs in the specified operator. When connected to the database, this method waits for the database to respond.
    * @param username is the operator to be logged in.
    * @param password is cleared after use for security reasons.
    * @return {@code Result<OperatorStatus>} that encapsulates the result of this asynchronous operation.
@@ -974,6 +980,7 @@ public class Initializer implements ServletContextListener {
                       stat.status = b.byteValue();
                       if (stat.status==Protocol.DOES_NOT_EXIST){
                         Operators.remove(stat.operator);
+                        HelperAPI.logout(stat.operator);
                       }else if (stat.status==Protocol.SUCCESS || stat.status==Protocol.CHANGE_PASSWORD){
                         Logger.logAsync("Operator "+stat.operator.getUsername()+" logged in.");
                       }
@@ -1008,6 +1015,26 @@ public class Initializer implements ServletContextListener {
       }
     }
     return ret;
+  }
+  /**
+   * Logs in the specified operator. This method does not attempt to communicate with the database or enforce lockout counters.
+   * @param username is the operator to be logged in.
+   * @param password is cleared after use for security reasons.
+   * @return {@code OperatorStatus} that encapsulates the result of this operation.
+   */
+  public static OperatorStatus loginLocal(final String username, final byte[] password){
+    final OperatorStatus stat = new OperatorStatus();
+    stat.operator = Operators.get(username);
+    if (stat.operator==null){
+      Arrays.fill(password,(byte)0);
+      stat.status = Protocol.DOES_NOT_EXIST;
+    }else if (stat.operator.checkCredentials(username,password)){
+      stat.status = Protocol.SUCCESS;
+      Logger.logAsync("Operator "+stat.operator.getUsername()+" logged in locally.");
+    }else{
+      stat.status = Protocol.FAILURE;
+    }
+    return stat;
   }
   /**
    * Logs out the specified operator.

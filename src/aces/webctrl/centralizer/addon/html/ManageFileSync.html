@@ -300,10 +300,8 @@
         checkModify();
       }
       function saveAll(){
-        for (const row of taskList.children){
-          if (row.tagName==="TR"){
-            row.save();
-          }
+        for (const row of headerRow.parentNode.children){
+          row.save();
         }
       }
       function triggerAll(button){
@@ -381,12 +379,12 @@
     <div style="text-align:center">
       <h1>File Synchronization</h1>
       Configure synchronization of files across all WebCTRL servers connected to the central database.<br>
-      The source path is resolved absolutely or relatively to the *./sync* folder in the database installation folder.<br>
+      The source path is resolved absolutely or relatively to the ./sync folder in the database installation directory.<br>
       The destination path is resolved absolutely or relatively to the active WebCTRL system folder on each server.<br>
       The active WebCTRL system folder for this server is "__ACTIVE_FOLDER__".<br>
       The synchronization interval specifies the time in milliseconds to wait between attempted synchronizations (minimum of 10 minutes).<br>
       <br>
-      <table id="taskList" style="margin:0 auto" class="nohighlight">
+      <table style="margin:0 auto" class="nohighlight">
         <tr id="headerRow">
           <th>Description</th>
           <th>Source</th>
@@ -397,7 +395,7 @@
           <th>Status</th>
         </tr>
         <tr id="newTaskRow">
-          <td><textarea id="newTaskDesc" class="e" style="overflow:hidden;resize:none" rows="1" cols="10" wrap="off" oninput="resizeTextArea(this)"></textarea></td>
+          <td><textarea id="newTaskDesc" class="e" style="overflow:hidden;resize:none;text-align:center" rows="1" cols="10" wrap="off" spellcheck="false" oninput="resizeTextArea(this)"></textarea></td>
           <td><input id="newTaskSrc" class="e" style="text-align:center" spellcheck="false" size="40"></td>
           <td><input id="newTaskDst" class="e" style="text-align:center" spellcheck="false" size="40"></td>
           <td><input id="newTaskSync" class="e" style="text-align:center" oninput="validateLong(this)"></td>

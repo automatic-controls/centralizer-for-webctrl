@@ -217,10 +217,8 @@
         req.send("type=triggerAll");
       }
       function saveAll(){
-        for (const row of taskList.children){
-          if (row.tagName==="TR"){
-            row.save();
-          }
+        for (const row of headerRow.parentNode.children){
+          row.save();
         }
       }
     </script>
@@ -233,7 +231,7 @@
       The destination path can be absolute or relative to an uploads folder on the machine hosting the central database.<br>
       <a href="https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/scheduling/support/CronExpression.html#parse-java.lang.String-" target="_blank">Cron expressions</a> are used for scheduling. Leave the cron expression blank to prevent scheduled execution.<br>
       <br>
-      <table id="taskList" style="margin:0 auto" class="nohighlight">
+      <table style="margin:0 auto" class="nohighlight">
         <tr id="headerRow">
           <th>Source</th>
           <th>Destination</th>

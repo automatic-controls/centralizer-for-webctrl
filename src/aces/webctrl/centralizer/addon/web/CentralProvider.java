@@ -50,11 +50,14 @@ public class CentralProvider extends StandardWebOperatorProvider {
         }catch(Throwable e){}
       }
       Result<OperatorStatus> ret = Initializer.login(username, Utility.toBytes(password));
-      if (ret.waitForResult(System.currentTimeMillis()+20000)){
+      if (ret.waitForResult(System.currentTimeMillis()+10000)){
         OperatorStatus stat = ret.getResult();
         if (stat==null){
-          throw new ValidationException("Database connection has been reset. Please try again in a few seconds.");
-        }else if (stat.status==Protocol.DOES_NOT_EXIST){
+          stat = new OperatorStatus();
+          stat.operator = Operators.get(username);
+          stat.status = stat.operator==null?Protocol.DOES_NOT_EXIST:Protocol.SUCCESS;
+        }
+        if (stat.status==Protocol.DOES_NOT_EXIST){
           return super.validate(username, password, host);
         }else if (stat.status==Protocol.LOCKED_OUT){
           throw new ValidationException("Operator has been locked out.");

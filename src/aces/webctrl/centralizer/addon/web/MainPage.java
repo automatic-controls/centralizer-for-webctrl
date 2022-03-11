@@ -11,10 +11,8 @@ import java.io.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
 import java.util.*;
-import java.nio.file.*;
 public class MainPage extends SecureServlet {
   private volatile static String html = null;
-  private volatile static Path addonFile = null;
   public MainPage(){
     super(Collections.singleton("view_administrator_only"));
   }
@@ -30,11 +28,6 @@ public class MainPage extends SecureServlet {
         "__VERSION__",
         'v'+Config.VERSION
       );
-      if (Initializer.info.getServerVersion().getVersionNumber().equals("7.0")){
-        addonFile = Paths.get(MainPage.class.getProtectionDomain().getCodeSource().getLocation().getPath());
-      }else{
-        addonFile = Paths.get(MainPage.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-      }
     }catch(Throwable e){
       if (e instanceof ServletException){
         throw (ServletException)e;
@@ -263,11 +256,6 @@ public class MainPage extends SecureServlet {
         }
       }else{
         res.setStatus(504);
-      }
-    }else if (req.getParameter("setprovider")!=null){
-      if (HelperAPI.activateWebOperatorProvider(addonFile)==null){
-        res.setStatus(500);
-        Logger.logAsync("Failed to set authentication provider.");
       }
     }else if (req.getParameter("blankConfig")!=null){
       final String user = req.getParameter("user");

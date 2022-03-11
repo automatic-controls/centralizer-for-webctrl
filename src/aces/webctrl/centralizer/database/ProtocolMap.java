@@ -230,6 +230,7 @@ public class ProtocolMap {
                           }
                           case 6:{//Force Change
                             op.changePassword(true);
+                            modified = true;
                             sb.append(";ForcePasswordChange");
                             break;
                           }

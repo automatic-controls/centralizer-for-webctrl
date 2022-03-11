@@ -500,5 +500,6 @@ public class Operator {
    */
   public void changePassword(boolean b){
     forceChange = b;
+    stamp();
   }
 }

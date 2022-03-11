@@ -296,9 +296,6 @@
       function genKey(obj){
         sendCommand(obj,dataStatus,"genkey","New key generated.");
       }
-      function setProvider(obj){
-        sendCommand(obj,configStatus,"setprovider","Authentication provider activated.");
-      }
       function enableRemoval(obj){
         sendCommand(obj, configStatus, "enableRemoval", "Add-on removal enabled.");
       }
@@ -456,7 +453,6 @@
           <button id="configResetButton" class="e" onclick="resetConfig()">Reset</button>
           <button id="configSaveButton" class="e" onclick="saveConfig()">Save</button>
           <br><br>
-          <span title="Attempts to set this add-on as the authentication provider for the server."><button class="e" onclick="setProvider(this)">Activate Authentication Provider</button></span>
           <button class="e" onclick="enableRemoval(this)">Enable Add-On Removal</button>
           <button class="e" onclick="disableRemoval(this)">Disable Add-On Removal</button>
           <h3 id="configStatus" class="e" style="color:red"></h3>
