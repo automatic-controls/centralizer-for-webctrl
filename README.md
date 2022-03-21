@@ -74,8 +74,6 @@ All network traffic between the database and each WebCTRL server is securely enc
 
    ![](./images/main_page.png)
 
-1. Click the **Activate Authentication Provider** button.
-
 1. If your Centralizer database has never connected to a WebCTRL server before, you must fill out the section titled **Admin Account For Blank Setup** and press **Save**. An operator will be created with the configured credentials when the initial connection is established. See [Operator Management](#operator-management) for a description of each property.
 
 1. Fill out the section titled **Add-On Settings**. Press **Save** when all fields are populated.
@@ -98,7 +96,7 @@ All network traffic between the database and each WebCTRL server is securely enc
 
 1. Restart your WebCTRL server using the *rebootserver* manual command.
 
-1. The minimal setup requirements have been completed at this point. To verify, login using valid credentials for a central operator.
+1. The minimal setup requirements have been completed at this point. To verify, log into WebCTRL using valid credentials of a central operator.
 
 ## Add-On Uninstallation
 

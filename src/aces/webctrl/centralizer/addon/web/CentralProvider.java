@@ -21,7 +21,7 @@ public class CentralProvider extends StandardWebOperatorProvider {
   @Override public WebOperator login(HttpServletRequest req, HttpServletResponse res) throws ValidationException, IOException, ServletException {
     WebOperator op = super.login(req,res);
     try{
-      if (op!=null && op instanceof CentralOperator && req.isSecure()){
+      if (op!=null && op instanceof CentralOperator && (SecureServlet.allowUnsecureProtocol || req.isSecure())){
         CentralOperator cop = (CentralOperator)op;
         if (cop.changePassword() && Initializer.isConnected()){
           RequestDispatcher dis = req.getServletContext().getContext(Initializer.getPrefix()).getRequestDispatcher("/ChangePassword");

@@ -15,7 +15,7 @@ import javax.servlet.http.*;
  */
 public abstract class SecureServlet extends HttpServlet {
   private volatile Collection<String> roles = null;
-  private volatile static boolean allowUnsecureProtocol = true;
+  public volatile static boolean allowUnsecureProtocol = true;
   public SecureServlet(Collection<String> roles){
     this.roles = roles;
   }
