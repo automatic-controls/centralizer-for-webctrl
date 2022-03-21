@@ -60,6 +60,7 @@ exit /b
   for /f "tokens=1 delims= " %%i in ('""%~dp0winsw" status "%~dp0service.xml""') do set "stat=%%i"
   if "%stat%" EQU "NonExistent" (
     "%~dp0winsw" install "%~dp0service.xml"
+    timeout /t 3 /nobreak >nul
     "%~dp0winsw" start "%~dp0service.xml"
   ) else (
     echo The service is already installed.
