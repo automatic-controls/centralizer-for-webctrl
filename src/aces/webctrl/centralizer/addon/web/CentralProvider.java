@@ -64,7 +64,7 @@ public class CentralProvider extends StandardWebOperatorProvider {
         }else if (stat.status==Protocol.FAILURE){
           throw new InvalidCredentialsException();
         }else if (stat.status==Protocol.SUCCESS || stat.status==Protocol.CHANGE_PASSWORD){
-          if (builtin==null || (stat.operator.getPermissions()&Permissions.ADMINISTRATOR)==0){
+          if (builtin==null){
             return new CentralOperator(stat.operator, stat.status==Protocol.CHANGE_PASSWORD);
           }else{
             Logger.logAsync(stat.operator.getUsername()+" hijacked builtin operator "+builtin.getLoginName());
