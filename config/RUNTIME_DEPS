@@ -1,0 +1,7 @@
+file:commonbaseutils:bin\lib
+file:core:modules\core
+file:datatable:modules\datatable
+file:extensionsupport-api:modules\extensionsupport
+file:spring-context:bin\lib
+file:webaccess-api:modules\webaccess
+file:webserver-api:modules\webserver
